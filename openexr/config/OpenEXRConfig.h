@@ -59,12 +59,12 @@
 // Version string for runtime access
 //
 
-#define OPENEXR_VERSION_STRING "2.2.0"
-#define OPENEXR_PACKAGE_STRING "OpenEXR 2.2.0"
+#define OPENEXR_VERSION_STRING "2.2.1"
+#define OPENEXR_PACKAGE_STRING "OpenEXR 2.2.1"
 
 #define OPENEXR_VERSION_MAJOR 2
 #define OPENEXR_VERSION_MINOR 2
-#define OPENEXR_VERSION_PATCH 0
+#define OPENEXR_VERSION_PATCH 1
 
 // Version as a single hex number, e.g. 0x01000300 == 1.0.3
 #define OPENEXR_VERSION_HEX ((OPENEXR_VERSION_MAJOR << 24) | \

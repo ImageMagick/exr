@@ -32,7 +32,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
-#if defined(OPENEXR_DLL) || !defined(_LIB)
+#if defined(OPENEXR_DLL)
     #if defined(ILMIMF_EXPORTS)
 	    #define IMF_EXPORT __declspec(dllexport)
         #define IMF_EXPORT_CONST extern __declspec(dllexport)
