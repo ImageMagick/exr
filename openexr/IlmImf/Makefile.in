@@ -87,10 +87,7 @@ DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(top_srcdir)/depcomp $(libIlmImfinclude_HEADERS) \
 	$(noinst_HEADERS)
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/m4/compilelinkrun.m4 \
-	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/ltoptions.m4 \
-	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
-	$(top_srcdir)/m4/lt~obsolete.m4 \
+am__aclocal_m4_deps = $(top_srcdir)/m4/ax_cxx_compile_stdcxx.m4 \
 	$(top_srcdir)/m4/path.pkgconfig.m4 $(top_srcdir)/m4/threads.m4 \
 	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -129,7 +126,9 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(libdir)" \
 	"$(DESTDIR)$(libIlmImfincludedir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
-libIlmImf_la_DEPENDENCIES =
+am__DEPENDENCIES_1 =
+libIlmImf_la_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1)
 am_libIlmImf_la_OBJECTS = ImfAttribute.lo ImfBoxAttribute.lo \
 	ImfCRgbaFile.lo ImfChannelList.lo ImfChannelListAttribute.lo \
 	ImfFloatAttribute.lo ImfFrameBuffer.lo ImfHeader.lo ImfIO.lo \
@@ -174,10 +173,10 @@ libIlmImf_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
 PROGRAMS = $(noinst_PROGRAMS)
 am_b44ExpLogTable_OBJECTS = b44ExpLogTable.$(OBJEXT)
 b44ExpLogTable_OBJECTS = $(am_b44ExpLogTable_OBJECTS)
-b44ExpLogTable_DEPENDENCIES =
+b44ExpLogTable_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_dwaLookups_OBJECTS = dwaLookups.$(OBJEXT)
 dwaLookups_OBJECTS = $(am_dwaLookups_OBJECTS)
-dwaLookups_DEPENDENCIES =
+dwaLookups_DEPENDENCIES = $(am__DEPENDENCIES_1)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -292,6 +291,9 @@ EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 FGREP = @FGREP@
 GREP = @GREP@
+HAVE_CXX11 = @HAVE_CXX11@
+HAVE_CXX14 = @HAVE_CXX14@
+HAVE_CXX17 = @HAVE_CXX17@
 ILMBASE_CXXFLAGS = @ILMBASE_CXXFLAGS@
 ILMBASE_LDFLAGS = @ILMBASE_LDFLAGS@
 ILMBASE_LIBS = @ILMBASE_LIBS@
@@ -335,6 +337,8 @@ PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 PTHREAD_CC = @PTHREAD_CC@
 PTHREAD_CFLAGS = @PTHREAD_CFLAGS@
 PTHREAD_LIBS = @PTHREAD_LIBS@
@@ -344,6 +348,8 @@ SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
 VERSION = @VERSION@
+ZLIB_CFLAGS = @ZLIB_CFLAGS@
+ZLIB_LIBS = @ZLIB_LIBS@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
@@ -358,6 +364,8 @@ am__leading_dot = @am__leading_dot@
 am__quote = @am__quote@
 am__tar = @am__tar@
 am__untar = @am__untar@
+arg_pkg_prefix_CFLAGS = @arg_pkg_prefix_CFLAGS@
+arg_pkg_prefix_LIBS = @arg_pkg_prefix_LIBS@
 bindir = @bindir@
 build = @build@
 build_alias = @build_alias@
@@ -491,7 +499,7 @@ libIlmImf_la_SOURCES = ImfForward.h ImfAttribute.cpp ImfBoxAttribute.cpp ImfCRgb
 
 libIlmImf_la_LDFLAGS = @ILMBASE_LDFLAGS@ -version-info \
 	@LIBTOOL_VERSION@ -no-undefined $(am__append_1)
-libIlmImf_la_LIBADD = -lz @ILMBASE_LIBS@
+libIlmImf_la_LIBADD = $(ZLIB_LIBS) $(ILMBASE_LIBS)
 libIlmImfincludedir = $(includedir)/OpenEXR
 libIlmImfinclude_HEADERS = ImfForward.h ImfAttribute.h ImfBoxAttribute.h \
 			   ImfCRgbaFile.h ImfChannelList.h \
@@ -514,6 +522,7 @@ libIlmImfinclude_HEADERS = ImfForward.h ImfAttribute.h ImfBoxAttribute.h \
 			   ImfRational.h ImfRationalAttribute.h \
 			   ImfFramesPerSecond.h \
 			   ImfStandardAttributes.h \
+			   ImfStdIO.h \
 			   ImfEnvmap.h \
 			   ImfEnvmapAttribute.h \
 			   ImfInt64.h ImfRgba.h \
@@ -573,14 +582,15 @@ noinst_HEADERS = ImfCompressor.h    \
 
 EXTRA_DIST = $(noinst_HEADERS) b44ExpLogTable.cpp b44ExpLogTable.h dwaLookups.cpp dwaLookups.h CMakeLists.txt
 INCLUDES = @ILMBASE_CXXFLAGS@ \
-	   -I$(top_builddir)  \
-	   -I$(top_srcdir)/config
+	   -I$(top_builddir) \
+	   -I$(top_srcdir)/config \
+	   $(ILMBASE_CFLAGS) $(ZLIB_CFLAGS)
 
 CLEANFILES = b44ExpLogTable b44ExpLogTable.h dwaLookups dwaLookups.h
 b44ExpLogTable_SOURCES = b44ExpLogTable.cpp
-b44ExpLogTable_LDADD = @ILMBASE_LDFLAGS@ @ILMBASE_LIBS@
+b44ExpLogTable_LDADD = @ILMBASE_LDFLAGS@ $(ILMBASE_LIBS)
 dwaLookups_SOURCES = dwaLookups.cpp
-dwaLookups_LDADD = @ILMBASE_LDFLAGS@ @ILMBASE_LIBS@
+dwaLookups_LDADD = @ILMBASE_LDFLAGS@ $(ILMBASE_LIBS)
 BUILT_SOURCES = b44ExpLogTable.h dwaLookups.h
 all: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) all-am
@@ -596,9 +606,9 @@ $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__confi
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu IlmImf/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign IlmImf/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu IlmImf/Makefile
+	  $(AUTOMAKE) --foreign IlmImf/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \

@@ -83,10 +83,7 @@ subdir = exrmultipart
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(top_srcdir)/depcomp
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/m4/compilelinkrun.m4 \
-	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/ltoptions.m4 \
-	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
-	$(top_srcdir)/m4/lt~obsolete.m4 \
+am__aclocal_m4_deps = $(top_srcdir)/m4/ax_cxx_compile_stdcxx.m4 \
 	$(top_srcdir)/m4/path.pkgconfig.m4 $(top_srcdir)/m4/threads.m4 \
 	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -100,7 +97,9 @@ PROGRAMS = $(bin_PROGRAMS)
 am_exrmultipart_OBJECTS = exrmultipart.$(OBJEXT)
 exrmultipart_OBJECTS = $(am_exrmultipart_OBJECTS)
 exrmultipart_LDADD = $(LDADD)
-exrmultipart_DEPENDENCIES = $(top_builddir)/IlmImf/libIlmImf.la
+am__DEPENDENCIES_1 =
+exrmultipart_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+	$(top_builddir)/IlmImf/libIlmImf.la $(am__DEPENDENCIES_1)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
@@ -198,6 +197,9 @@ EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 FGREP = @FGREP@
 GREP = @GREP@
+HAVE_CXX11 = @HAVE_CXX11@
+HAVE_CXX14 = @HAVE_CXX14@
+HAVE_CXX17 = @HAVE_CXX17@
 ILMBASE_CXXFLAGS = @ILMBASE_CXXFLAGS@
 ILMBASE_LDFLAGS = @ILMBASE_LDFLAGS@
 ILMBASE_LIBS = @ILMBASE_LIBS@
@@ -241,6 +243,8 @@ PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 PTHREAD_CC = @PTHREAD_CC@
 PTHREAD_CFLAGS = @PTHREAD_CFLAGS@
 PTHREAD_LIBS = @PTHREAD_LIBS@
@@ -250,6 +254,8 @@ SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
 VERSION = @VERSION@
+ZLIB_CFLAGS = @ZLIB_CFLAGS@
+ZLIB_LIBS = @ZLIB_LIBS@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
@@ -264,6 +270,8 @@ am__leading_dot = @am__leading_dot@
 am__quote = @am__quote@
 am__tar = @am__tar@
 am__untar = @am__untar@
+arg_pkg_prefix_CFLAGS = @arg_pkg_prefix_CFLAGS@
+arg_pkg_prefix_LIBS = @arg_pkg_prefix_LIBS@
 bindir = @bindir@
 build = @build@
 build_alias = @build_alias@
@@ -306,11 +314,11 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 INCLUDES = -I$(top_builddir) \
 -I$(top_srcdir)/IlmImf -I$(top_srcdir)/config \
-@ILMBASE_CXXFLAGS@
+@ILMBASE_CXXFLAGS@ $(ILMBASE_CFLAGS) $(ZLIB_CFLAGS)
 
-LDADD = @ILMBASE_LDFLAGS@ @ILMBASE_LIBS@ \
-$(top_builddir)/IlmImf/libIlmImf.la \
--lz
+LDADD = @ILMBASE_LDFLAGS@ $(ILMBASE_LIBS) \
+	$(top_builddir)/IlmImf/libIlmImf.la \
+	$(ZLIB_LIBS)
 
 exrmultipart_SOURCES = exrmultipart.cpp
 EXTRA_DIST = CMakeLists.txt
@@ -327,9 +335,9 @@ $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__confi
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu exrmultipart/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign exrmultipart/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu exrmultipart/Makefile
+	  $(AUTOMAKE) --foreign exrmultipart/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
