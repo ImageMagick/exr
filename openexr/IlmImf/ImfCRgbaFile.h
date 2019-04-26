@@ -441,6 +441,7 @@ int	       	ImfTiledOutputLevelRoundingMode
 struct ImfInputFile;
 typedef struct ImfInputFile ImfInputFile;
 
+IMF_EXPORT
 ImfInputFile *		ImfOpenInputFile (const char name[]);
 
 IMF_EXPORT 
