@@ -34,8 +34,12 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
-#include "testCopyDeepScanLine.h"
+#ifdef NDEBUG
+#    undef NDEBUG
+#endif
 
+#include "testCopyDeepScanLine.h"
+#include "random.h"
 
 #include <assert.h>
 #include <string.h>
@@ -68,8 +72,6 @@ const int minX = 42;
 const int minY = 51;
 const Box2i dataWindow(V2i(minX, minY), V2i(minX + width - 1, minY + height - 1));
 const Box2i displayWindow(V2i(0, 0), V2i(minX + width * 2, minY + height * 2));
-const char source_filename[] = IMF_TMP_DIR "imf_test_copy_deep_scanline_source.exr";
-const char copy_filename[]  = IMF_TMP_DIR "imf_test_copy_deep_scanline_copy.exr";
 
 vector<int> channelTypes;
 Array2D<unsigned int> sampleCount;
@@ -97,7 +99,7 @@ void generateRandomFile (const std::string & source_filename,
 
     for (int i = 0; i < channelCount; i++)
     {
-        int type = rand() % 3;
+        int type = random_int(3);
         stringstream ss;
         ss << i;
         string str = ss.str();
@@ -132,7 +134,7 @@ void generateRandomFile (const std::string & source_filename,
 
     for (int i = 0; i < channelCount; i++)
     {
-        PixelType type;
+        PixelType type = NUM_PIXELTYPES;
         if (channelTypes[i] == 0)
             type = IMF::UINT;
         if (channelTypes[i] == 1)
@@ -144,7 +146,7 @@ void generateRandomFile (const std::string & source_filename,
         ss << i;
         string str = ss.str();
 
-        int sampleSize;
+        int sampleSize = 0;
         if (channelTypes[i] == 0) sampleSize = sizeof (unsigned int);
         if (channelTypes[i] == 1) sampleSize = sizeof (half);
         if (channelTypes[i] == 2) sampleSize = sizeof (float);
@@ -172,7 +174,7 @@ void generateRandomFile (const std::string & source_filename,
 
             for (int j = 0; j < width; j++)
             {
-                sampleCount[i][j] = rand() % 10 + 1;
+                sampleCount[i][j] = random_int(10) + 1;
                 for (int k = 0; k < channelCount; k++)
                 {
                     if (channelTypes[k] == 0)
@@ -181,7 +183,7 @@ void generateRandomFile (const std::string & source_filename,
                         data[k][i][j] = new half[sampleCount[i][j]];
                     if (channelTypes[k] == 2)
                         data[k][i][j] = new float[sampleCount[i][j]];
-                    for (int l = 0; l < sampleCount[i][j]; l++)
+                    for (unsigned int l = 0; l < sampleCount[i][j]; l++)
                     {
                         if (channelTypes[k] == 0)
                             ((unsigned int*)data[k][i][j])[l] = (i * width + j) % 2049;
@@ -265,7 +267,7 @@ void readFile (const std::string & copy_filename, int channelCount)
     
     for (int i = 0; i < channelCount; i++)
     {
-            PixelType type;
+            PixelType type = NUM_PIXELTYPES;
             if (channelTypes[i] == 0)
                 type = IMF::UINT;
             if (channelTypes[i] == 1)
@@ -277,7 +279,7 @@ void readFile (const std::string & copy_filename, int channelCount)
             ss << i;
             string str = ss.str();
 
-            int sampleSize;
+            int sampleSize = 0;
             if (channelTypes[i] == 0) sampleSize = sizeof (unsigned int);
             if (channelTypes[i] == 1) sampleSize = sizeof (half);
             if (channelTypes[i] == 2) sampleSize = sizeof (float);
@@ -302,8 +304,6 @@ void readFile (const std::string & copy_filename, int channelCount)
         file.readPixelSampleCounts(dataWindow.min.y, dataWindow.max.y);
         for (int i = 0; i < dataWindow.max.y - dataWindow.min.y + 1; i++)
         {
-            int y = i + dataWindow.min.y;
-
             for (int j = 0; j < width; j++)
                 assert(localSampleCount[i][j] == sampleCount[i][j]);
 
@@ -328,21 +328,21 @@ void readFile (const std::string & copy_filename, int channelCount)
         for (int j = 0; j < width; j++)
             for (int k = 0; k < channelCount; k++)
             {
-                    for (int l = 0; l < sampleCount[i][j]; l++)
+                    for (unsigned int l = 0; l < sampleCount[i][j]; l++)
                     {
                         if (channelTypes[k] == 0)
                         {
                             unsigned int* value = (unsigned int*)(data[k][i][j]);
-                            if (value[l] != (i * width + j) % 2049)
+                            if (value[l] != static_cast<unsigned int>(i * width + j) % 2049)
                                 cout << j << ", " << i << " error, should be "
                                      << (i * width + j) % 2049 << ", is " << value[l]
                                      << endl << flush;
-                            assert (value[l] == (i * width + j) % 2049);
+                            assert (value[l] == static_cast<unsigned int>(i * width + j) % 2049);
                         }
                         if (channelTypes[k] == 1)
                         {
                             half* value = (half*)(data[k][i][j]);
-                            if (value[l] != (i * width + j) % 2049)
+                            if (value[l] != static_cast<unsigned int>(i * width + j) % 2049)
                                 cout << j << ", " << i << " error, should be "
                                      << (i * width + j) % 2049 << ", is " << value[l]
                                      << endl << flush;
@@ -419,7 +419,7 @@ void testCopyDeepScanLine (const std::string &tempDir)
     {
         cout << "\n\nTesting raw data copy in DeepScanLineInput/OutputFile:\n" << endl;
 
-        srand(1);
+        random_reseed(1);
 
         int numThreads = ThreadPool::globalThreadPool().numThreads();
         ThreadPool::globalThreadPool().setNumThreads(4);

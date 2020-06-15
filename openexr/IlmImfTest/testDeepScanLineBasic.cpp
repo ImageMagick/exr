@@ -32,8 +32,12 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
-#include "testDeepScanLineBasic.h"
+#ifdef NDEBUG
+#    undef NDEBUG
+#endif
 
+#include "testDeepScanLineBasic.h"
+#include "random.h"
 
 #include <assert.h>
 #include <string.h>
@@ -92,7 +96,7 @@ void generateRandomFile (const std::string filename,
 
     for (int i = 0; i < channelCount; i++)
     {
-        int type = rand() % 3;
+        int type = random_int(3);
         stringstream ss;
         ss << i;
         string str = ss.str();
@@ -127,7 +131,7 @@ void generateRandomFile (const std::string filename,
 
     for (int i = 0; i < channelCount; i++)
     {
-        PixelType type;
+        PixelType type = NUM_PIXELTYPES;
         if (channelTypes[i] == 0)
             type = IMF::UINT;
         if (channelTypes[i] == 1)
@@ -139,7 +143,7 @@ void generateRandomFile (const std::string filename,
         ss << i;
         string str = ss.str();
 
-        int sampleSize;
+        int sampleSize = 0;
         if (channelTypes[i] == 0) sampleSize = sizeof (unsigned int);
         if (channelTypes[i] == 1) sampleSize = sizeof (half);
         if (channelTypes[i] == 2) sampleSize = sizeof (float);
@@ -170,7 +174,7 @@ void generateRandomFile (const std::string filename,
 
             for (int j = 0; j < width; j++)
             {
-                sampleCount[i][j] = rand() % 10 + 1;
+                sampleCount[i][j] = random_int(10) + 1;
                 for (int k = 0; k < channelCount; k++)
                 {
                     if (channelTypes[k] == 0)
@@ -179,7 +183,7 @@ void generateRandomFile (const std::string filename,
                         data[k][i][j] = new half[sampleCount[i][j]];
                     if (channelTypes[k] == 2)
                         data[k][i][j] = new float[sampleCount[i][j]];
-                    for (int l = 0; l < sampleCount[i][j]; l++)
+                    for (unsigned int l = 0; l < sampleCount[i][j]; l++)
                     {
                         if (channelTypes[k] == 0)
                             ((unsigned int*)data[k][i][j])[l] = (i * width + j) % 2049;
@@ -205,7 +209,7 @@ void generateRandomFile (const std::string filename,
 
             for (int j = 0; j < width; j++)
             {
-                sampleCount[i][j] = rand() % 10 + 1;
+                sampleCount[i][j] = random_int(10) + 1;
                 for (int k = 0; k < channelCount; k++)
                 {
                     if (channelTypes[k] == 0)
@@ -214,7 +218,7 @@ void generateRandomFile (const std::string filename,
                         data[k][i][j] = new half[sampleCount[i][j]];
                     if (channelTypes[k] == 2)
                         data[k][i][j] = new float[sampleCount[i][j]];
-                    for (int l = 0; l < sampleCount[i][j]; l++)
+                    for (unsigned int l = 0; l < sampleCount[i][j]; l++)
                     {
                         if (channelTypes[k] == 0)
                             ((unsigned int*)data[k][i][j])[l] = (i * width + j) % 2049;
@@ -271,8 +275,13 @@ void readFile (const std::string & filename,
 
     Array2D<unsigned int> localSampleCount;
     localSampleCount.resizeErase(height, width);
-    Array<Array2D< void* > > data(channelCount);
-    for (int i = 0; i < channelCount; i++)
+    
+        
+    // also test filling channels. Generate up to 2 extra channels
+    int fillChannels=random_int(3);
+    
+    Array<Array2D< void* > > data(channelCount+fillChannels);
+    for (int i = 0; i < channelCount+fillChannels; i++)
         data[i].resizeErase(height, width);
 
     DeepFrameBuffer frameBuffer;
@@ -293,12 +302,12 @@ void readFile (const std::string & filename,
     {
         if(randomChannels)
         {
-	     read_channel[i] = rand() % 2;
+	     read_channel[i] = random_int(2);
 	     
         }
         if(!randomChannels || read_channel[i]==1)
 	{
-            PixelType type;
+            PixelType type = NUM_PIXELTYPES;
             if (channelTypes[i] == 0)
                 type = IMF::UINT;
             if (channelTypes[i] == 1)
@@ -310,7 +319,7 @@ void readFile (const std::string & filename,
             ss << i;
             string str = ss.str();
 
-            int sampleSize;
+            int sampleSize = 0;
             if (channelTypes[i] == 0) sampleSize = sizeof (unsigned int);
             if (channelTypes[i] == 1) sampleSize = sizeof (half);
             if (channelTypes[i] == 2) sampleSize = sizeof (float);
@@ -335,7 +344,24 @@ void readFile (const std::string & filename,
       cout << "skipping " <<flush;
       return;
     }
-    
+    for(int i = 0 ; i < fillChannels ; ++i )
+    { 
+            PixelType type  = IMF::FLOAT;
+            int sampleSize = sizeof(float);            
+            int pointerSize = sizeof (char *);
+            stringstream ss;
+            // generate channel names that aren't in file but (might) interleave with existing file
+            ss << i << "fill";
+            string str = ss.str();
+               frameBuffer.insert (str,                            // name // 6
+                                DeepSlice (type,                    // type // 7
+                                (char *) (&data[i+channelCount][0][0]
+                                          - dataWindow.min.x
+                                          - dataWindow.min.y * width),               // base // 8)
+                                pointerSize * 1,          // xStride// 9
+                                pointerSize * width,      // yStride// 10
+                                sampleSize));             // sampleStride
+    }
     file.setFrameBuffer(frameBuffer);
 
     if (bulkRead)
@@ -344,8 +370,6 @@ void readFile (const std::string & filename,
         file.readPixelSampleCounts(dataWindow.min.y, dataWindow.max.y);
         for (int i = 0; i < dataWindow.max.y - dataWindow.min.y + 1; i++)
         {
-            int y = i + dataWindow.min.y;
-
             for (int j = 0; j < width; j++)
                 assert(localSampleCount[i][j] == sampleCount[i][j]);
 
@@ -353,15 +377,19 @@ void readFile (const std::string & filename,
             {
                 for (int k = 0; k < channelCount; k++)
                 {
-   		     if(!randomChannels || read_channel[k]==1)
-		     {
-                         if (channelTypes[k] == 0)
-                              data[k][i][j] = new unsigned int[localSampleCount[i][j]];
-                         if (channelTypes[k] == 1)
-                              data[k][i][j] = new half[localSampleCount[i][j]];
-                         if (channelTypes[k] == 2)
-                             data[k][i][j] = new float[localSampleCount[i][j]];
-		     }
+                    if(!randomChannels || read_channel[k]==1)
+                    {
+                                if (channelTypes[k] == 0)
+                                    data[k][i][j] = new unsigned int[localSampleCount[i][j]];
+                                if (channelTypes[k] == 1)
+                                    data[k][i][j] = new half[localSampleCount[i][j]];
+                                if (channelTypes[k] == 2)
+                                    data[k][i][j] = new float[localSampleCount[i][j]];
+                    }
+                }
+                for( int f = 0 ; f < fillChannels ; ++f )
+                {
+                       data[f+channelCount][i][j] = new float[localSampleCount[i][j]];
                 }
             }
         }
@@ -384,15 +412,19 @@ void readFile (const std::string & filename,
             {
                 for (int k = 0; k < channelCount; k++)
                 {
-		    if( !randomChannels || read_channel[k]==1)
-		    {
-                        if (channelTypes[k] == 0)
-                            data[k][i][j] = new unsigned int[localSampleCount[i][j]];
-                        if (channelTypes[k] == 1)
-                            data[k][i][j] = new half[localSampleCount[i][j]];
-                        if (channelTypes[k] == 2)
-                            data[k][i][j] = new float[localSampleCount[i][j]];
-		    }
+                    if( !randomChannels || read_channel[k]==1)
+                    {
+                                if (channelTypes[k] == 0)
+                                    data[k][i][j] = new unsigned int[localSampleCount[i][j]];
+                                if (channelTypes[k] == 1)
+                                    data[k][i][j] = new half[localSampleCount[i][j]];
+                                if (channelTypes[k] == 2)
+                                    data[k][i][j] = new float[localSampleCount[i][j]];
+                    }
+                }
+                for( int f = 0 ; f < fillChannels ; ++f )
+                {
+                       data[f+channelCount][i][j] = new float[localSampleCount[i][j]];
                 }
             }
 
@@ -405,18 +437,18 @@ void readFile (const std::string & filename,
         for (int j = 0; j < width; j++)
             for (int k = 0; k < channelCount; k++)
             {
-	        if( !randomChannels || read_channel[k]==1 )
-		{
-                    for (int l = 0; l < sampleCount[i][j]; l++)
+                if( !randomChannels || read_channel[k]==1 )
+                {
+                    for (unsigned int l = 0; l < sampleCount[i][j]; l++)
                     {
                         if (channelTypes[k] == 0)
                         {
                             unsigned int* value = (unsigned int*)(data[k][i][j]);
-                            if (value[l] != (i * width + j) % 2049)
+                            if (value[l] != static_cast<unsigned int>(i * width + j) % 2049)
                                 cout << j << ", " << i << " error, should be "
                                      << (i * width + j) % 2049 << ", is " << value[l]
                                      << endl << flush;
-                            assert (value[l] == (i * width + j) % 2049);
+                            assert (value[l] == static_cast<unsigned int>(i * width + j) % 2049);
                         }
                         if (channelTypes[k] == 1)
                         {
@@ -437,23 +469,29 @@ void readFile (const std::string & filename,
                             assert (((float*)(data[k][i][j]))[l] == (i * width + j) % 2049);
                         }
                     }
-		}
+                }
             }
 
     for (int i = 0; i < height; i++)
         for (int j = 0; j < width; j++)
+        {
             for (int k = 0; k < channelCount; k++)
             {
-      	        if( !randomChannels || read_channel[k]==1 )
-		{
+                if( !randomChannels || read_channel[k]==1 )
+                {
                     if (channelTypes[k] == 0)
                         delete[] (unsigned int*) data[k][i][j];
                     if (channelTypes[k] == 1)
                         delete[] (half*) data[k][i][j];
                     if (channelTypes[k] == 2)
                         delete[] (float*) data[k][i][j];
-		}
+                }
             }
+            for( int f = 0 ; f < fillChannels ; ++f )
+            {
+                 delete[] (float*) data[f+channelCount][i][j];
+            }
+       }
 }
 
 void readWriteTest(const std::string & tempDir, int channelCount, int testTimes)
@@ -511,37 +549,61 @@ void testCompressionTypeChecks()
     //
     // these should fail
     //
-    try{
+    bool caught = false;
+    try
+    {
         h.compression()=ZIP_COMPRESSION;
         h.sanityCheck();    
         assert(false);
-    }catch(...){ 
-        cout << "correctly identified bad compression setting (zip)\n";
     }
-    try{
+    catch(...)
+    { 
+        cout << "correctly identified bad compression setting (zip)\n";
+        caught = true;
+    }
+    assert (caught);
+
+    try
+    {
+        caught = false;
         h.compression()=B44_COMPRESSION;
         h.sanityCheck();
         assert(false);
-    }catch(...){ 
-        cout << "correctly identified bad compression setting (b44)\n";
     }
-    try{
+    catch(...)
+    { 
+        cout << "correctly identified bad compression setting (b44)\n";
+        caught = true;
+    }
+    assert (caught);
+
+    try
+    {
+        caught = false;
         h.compression()=B44A_COMPRESSION;
         h.sanityCheck();
         assert(false);
-    }catch(...) { 
-        cout << "correctly identified bad compression setting (b44a)\n";
     }
-    try{
+    catch(...)
+    { 
+        cout << "correctly identified bad compression setting (b44a)\n";
+        caught = true;
+    }
+    assert (caught);
+
+    try
+    {
+        caught = false;
         h.compression()=PXR24_COMPRESSION;
         h.sanityCheck();
         assert(false);
-    }catch(...) {
-        cout << "correctly identified bad compression setting (pxr24)\n";
     }
-    
-    
-    return;
+    catch(...)
+    {
+        cout << "correctly identified bad compression setting (pxr24)\n";
+        caught = true;
+    }
+    assert (caught);
 }
 
 }; // namespace
@@ -552,7 +614,7 @@ void testDeepScanLineBasic (const std::string &tempDir)
     {
         cout << "\n\nTesting the DeepScanLineInput/OutputFile for basic use:\n" << endl;
 
-        srand(1);
+        random_reseed(1);
 
         int numThreads = ThreadPool::globalThreadPool().numThreads();
         ThreadPool::globalThreadPool().setNumThreads(4);

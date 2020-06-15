@@ -1,6 +1,7 @@
-# yue.nicholas@gmail.com
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright Contributors to the OpenEXR Project.
 
-ADD_EXECUTABLE ( ImathTest 
+add_executable(ImathTest 
   main.cpp
   testBox.cpp
   testBoxAlgo.cpp
@@ -24,12 +25,10 @@ ADD_EXECUTABLE ( ImathTest
   testShear.cpp
   testTinySVD.cpp
   testVec.cpp
-  )
+)
 
-ADD_TEST ( TestImath ImathTest )
-
-TARGET_LINK_LIBRARIES ( ImathTest
-  IlmBase::Imath${OPENEXR_TARGET_SUFFIX}
-  IlmBase::Iex${OPENEXR_TARGET_SUFFIX}
-  )
-
+target_link_libraries(ImathTest IlmBase::Imath)
+set_target_properties(ImathTest PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+add_test(NAME IlmBase.Imath COMMAND $<TARGET_FILE:ImathTest>)

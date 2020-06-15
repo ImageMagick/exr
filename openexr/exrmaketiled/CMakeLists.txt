@@ -1,23 +1,13 @@
-# yue.nicholas@gmail.com
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright Contributors to the OpenEXR Project.
 
-ADD_EXECUTABLE ( exrmaketiled
+add_executable(exrmaketiled 
   makeTiled.cpp
   main.cpp
   Image.cpp
 )
-SET_ILMBASE_INCLUDE_DIRS( exrmaketiled )
-
-TARGET_LINK_LIBRARIES ( exrmaketiled
-  OpenEXR::IlmImf${OPENEXR_TARGET_SUFFIX}
-  IlmBase::IlmThread${OPENEXR_TARGET_SUFFIX}
-  IlmBase::Iex${OPENEXR_TARGET_SUFFIX}
-  IlmBase::Half${OPENEXR_TARGET_SUFFIX}
-  ${PTHREAD_LIB}
-  ${ZLIB_LIBRARIES}
+target_link_libraries(exrmaketiled OpenEXR::IlmImf)
+set_target_properties(exrmaketiled PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
-
-INSTALL ( TARGETS
-  exrmaketiled
-  DESTINATION
-  ${CMAKE_INSTALL_PREFIX}/bin
-)
+install(TARGETS exrmaketiled DESTINATION ${CMAKE_INSTALL_BINDIR})

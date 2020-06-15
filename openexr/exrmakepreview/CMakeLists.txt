@@ -1,23 +1,12 @@
-# yue.nicholas@gmail.com
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright Contributors to the OpenEXR Project.
 
-ADD_EXECUTABLE ( exrmakepreview
-  makePreview.cpp
+add_executable(exrmakepreview
   main.cpp
+  makePreview.cpp
 )
-SET_ILMBASE_INCLUDE_DIRS( exrmakepreview )
-
-
-TARGET_LINK_LIBRARIES ( exrmakepreview
-  OpenEXR::IlmImf${OPENEXR_TARGET_SUFFIX}
-  IlmBase::IlmThread${OPENEXR_TARGET_SUFFIX}
-  IlmBase::Iex${OPENEXR_TARGET_SUFFIX}
-  IlmBase::Half${OPENEXR_TARGET_SUFFIX}
-  ${PTHREAD_LIB}
-  ${ZLIB_LIBRARIES}
+target_link_libraries(exrmakepreview OpenEXR::IlmImf)
+set_target_properties(exrmakepreview PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
-
-INSTALL ( TARGETS
-  exrmakepreview
-  DESTINATION
-  ${CMAKE_INSTALL_PREFIX}/bin
-)
+install(TARGETS exrmakepreview DESTINATION ${CMAKE_INSTALL_BINDIR})

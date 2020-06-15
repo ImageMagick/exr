@@ -125,7 +125,7 @@ FastHufDecoder::FastHufDecoder
     const int LONG_ZEROCODE_RUN  = 63;
     const int SHORTEST_LONG_RUN  = 2 + LONG_ZEROCODE_RUN - SHORT_ZEROCODE_RUN;
 
-    for (Int64 symbol = minSymbol; symbol <= maxSymbol; symbol++)
+    for (Int64 symbol = static_cast<Int64>(minSymbol); symbol <= static_cast<Int64>(maxSymbol); symbol++)
     {
         if (currByte - table > numBytes)
         {
@@ -153,7 +153,7 @@ FastHufDecoder::FastHufDecoder
             int runLen = readBits (8, currBits, currBitCount, currByte) +
                          SHORTEST_LONG_RUN;
 
-            if (symbol + runLen > maxSymbol + 1)
+            if (symbol + runLen > static_cast<Int64>(maxSymbol + 1))
             {
                 throw IEX_NAMESPACE::InputExc ("Error decoding Huffman table "
                                                "(Run beyond end of table).");
@@ -162,11 +162,11 @@ FastHufDecoder::FastHufDecoder
             symbol += runLen - 1;
 
         }
-        else if (codeLen >= (Int64) SHORT_ZEROCODE_RUN)
+        else if (codeLen >= static_cast<Int64>(SHORT_ZEROCODE_RUN))
         {
             int runLen = codeLen - SHORT_ZEROCODE_RUN + 2;
 
-            if (symbol + runLen > maxSymbol + 1)
+            if (symbol + runLen > static_cast<Int64>(maxSymbol + 1))
             {
                 throw IEX_NAMESPACE::InputExc ("Error decoding Huffman table "
                                                "(Run beyond end of table).");
@@ -255,15 +255,30 @@ FastHufDecoder::FastHufDecoder
         int codeLen = *i & 63;
         int symbol  = *i >> 6;
 
-        if (mapping[codeLen] >= _numSymbols)
+        if (mapping[codeLen] >= static_cast<Int64>(_numSymbols))
+        {
+            delete[] _idToSymbol;
+            _idToSymbol = NULL;
             throw IEX_NAMESPACE::InputExc ("Huffman decode error "
                                            "(Invalid symbol in header).");
-        
+        }
         _idToSymbol[mapping[codeLen]] = symbol;
         mapping[codeLen]++;
     }
 
-    buildTables(base, offset);
+    //
+    // exceptions can be thrown whilst building tables. Delete
+    // _idToSynmbol before re-throwing to prevent memory leak
+    //
+    try
+    {
+      buildTables(base, offset);
+    }catch(...)
+    {
+            delete[] _idToSymbol;
+            _idToSymbol = NULL;
+            throw;
+    }
 }
 
 
@@ -373,7 +388,8 @@ FastHufDecoder::buildTables (Int64 *base, Int64 *offset)
     // as 'offset', when using the left justified base table.
     //
 
-    for (int i = 0; i <= MAX_CODE_LEN; ++i)
+    _ljOffset[0] = offset[0] - _ljBase[0];
+    for (int i = 1; i <= MAX_CODE_LEN; ++i)
         _ljOffset[i] = offset[i] - (_ljBase[i] >> (64 - i));
 
     //
@@ -395,7 +411,7 @@ FastHufDecoder::buildTables (Int64 *base, Int64 *offset)
                 _tableCodeLen[i] = codeLen;
 
                 Int64 id = _ljOffset[codeLen] + (value >> (64 - codeLen));
-                if (id < _numSymbols)
+                if (id < static_cast<Int64>(_numSymbols))
                 {
                     _tableSymbol[i] = _idToSymbol[id];
                 }
@@ -667,7 +683,7 @@ FastHufDecoder::decode
             }
 
             Int64 id = _ljOffset[codeLen] + (buffer >> (64 - codeLen));
-            if (id < _numSymbols)
+            if (id < static_cast<Int64>(_numSymbols))
             {
                 symbol = _idToSymbol[id];
             }

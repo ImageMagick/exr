@@ -114,6 +114,11 @@ class Image
     Image (const IMATH_NAMESPACE::Box2i &dataWindow);
    ~Image ();
 
+    Image (const Image& other) = delete;
+    Image & operator = (const Image& other) = delete;
+    Image (Image&& other) = delete;
+    Image & operator = (Image&& other) = delete;
+    
     const IMATH_NAMESPACE::Box2i &	dataWindow () const;
     void			resize (const IMATH_NAMESPACE::Box2i &dataWindow);
 
@@ -190,12 +195,12 @@ OPENEXR_IMF_INTERNAL_NAMESPACE::Slice
 TypedImageChannel<T>::slice () const
 {
     const IMATH_NAMESPACE::Box2i &dw = image().dataWindow();
-    int w = dw.max.x - dw.min.x + 1;
 
-    return OPENEXR_IMF_INTERNAL_NAMESPACE::Slice (pixelType(),
-		       (char *) (&_pixels[0][0] - dw.min.y * w - dw.min.x),
-		       sizeof (T),
-		       w * sizeof (T));
+    return OPENEXR_IMF_INTERNAL_NAMESPACE::Slice::Make (
+        pixelType(),
+        &_pixels[0][0],
+        dw,
+        sizeof (T));
 }
 
 

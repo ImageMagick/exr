@@ -266,6 +266,11 @@ struct DeepTiledInputFile::Data: public Mutex
      Data (int numThreads);
     ~Data ();
 
+    Data (const Data& other) = delete;
+    Data& operator = (const Data& other) = delete;
+    Data (Data&& other) = delete;
+    Data& operator = (Data&& other) = delete;
+    
     inline TileBuffer * getTileBuffer (int number);
                                                     // hash function from tile indices
                                                     // into our vector of tile buffers
@@ -283,7 +288,8 @@ DeepTiledInputFile::Data::Data (int numThreads):
     multiPartBackwardSupport(false),
     numThreads(numThreads),
     memoryMapped(false),
-    _streamData(NULL),
+    sampleCountTableComp(nullptr),
+    _streamData(nullptr),
     _deleteStream(false)
 {
     //
@@ -308,6 +314,8 @@ DeepTiledInputFile::Data::~Data ()
 
     for (size_t i = 0; i < slices.size(); i++)
         delete slices[i];
+
+    delete sampleCountTableComp;
 }
 
 
@@ -458,59 +466,6 @@ readTileData (InputStreamMutex *streamData,
 }
 
 
-void
-readNextTileData (InputStreamMutex *streamData,
-                  DeepTiledInputFile::Data *ifd,
-                  int &dx, int &dy,
-                  int &lx, int &ly,
-                  char * & buffer,
-                  Int64 &dataSize,
-                  Int64 &unpackedDataSize)
-{
-    //
-    // Read the next tile block from the file
-    //
-
-    //
-    // Read the first few bytes of the tile (the header).
-    //
-
-    Xdr::read <StreamIO> (*streamData->is, dx);
-    Xdr::read <StreamIO> (*streamData->is, dy);
-    Xdr::read <StreamIO> (*streamData->is, lx);
-    Xdr::read <StreamIO> (*streamData->is, ly);
-
-    Int64 tableSize;
-    Xdr::read <StreamIO> (*streamData->is, tableSize);
-
-    Xdr::read <StreamIO> (*streamData->is, dataSize);
-    Xdr::read <StreamIO> (*streamData->is, unpackedDataSize);
-
-    //
-    // Skip the pixel sample count table because we have read this data.
-    //
-
-    Xdr::skip <StreamIO> (*streamData->is, tableSize);
-
-    //
-    // Read the pixel data.
-    //
-
-    streamData->is->read (buffer, dataSize);
-
-    //
-    // Keep track of which tile is the next one in
-    // the file, so that we can avoid redundant seekg()
-    // operations (seekg() can be fairly expensive).
-    //
-
-    streamData->currentPosition += 4 * Xdr::size<int>()   +
-                                   3 * Xdr::size<Int64>() +
-                                   tableSize              +
-                                   dataSize;
-}
-
-
 //
 // A TileBufferTask encapsulates the task of uncompressing
 // a single tile and copying it into the frame buffer.
@@ -600,8 +555,12 @@ TileBufferTask::execute ()
                 int count = _ifd->getSampleCount(x - xOffset, y - yOffset);
                 for (unsigned int c = 0; c < _ifd->slices.size(); ++c)
                 {
-                    sizeOfTile += count * pixelTypeSize(_ifd->slices[c]->typeInFile);
-                    bytesPerLine += count * pixelTypeSize(_ifd->slices[c]->typeInFile);
+                    // This slice does not exist in the file.
+                    if ( !_ifd->slices[c]->fill)
+                    {
+                          sizeOfTile += count * pixelTypeSize(_ifd->slices[c]->typeInFile);
+                          bytesPerLine += count * pixelTypeSize(_ifd->slices[c]->typeInFile);     
+                    }
                 }
                 numPixelsPerScanLine[y - tileRange.min.y] += count;
             }
@@ -641,6 +600,15 @@ TileBufferTask::execute ()
             _tileBuffer->format = Compressor::XDR;
             _tileBuffer->uncompressedData = _tileBuffer->buffer;
         }
+
+	//
+	// sanity check data size: the uncompressed data should be exactly 
+	// 'sizeOfTile' (if it's less, the file is corrupt and there'll be a buffer overrun)
+	//
+        if(_tileBuffer->dataSize != sizeOfTile)
+	{
+		THROW (IEX_NAMESPACE::InputExc, "size mismatch when reading deep tile: expected " << sizeOfTile << "bytes of uncompressed data but got " << _tileBuffer->dataSize);
+	}
 
         //
         // Convert the tile of pixel data back from the machine-independent
@@ -927,7 +895,15 @@ DeepTiledInputFile::DeepTiledInputFile (InputPartData* part) :
     _data (new Data (part->numThreads))
 {
     _data->_deleteStream=false;
-    multiPartInitialize(part);
+    try
+    {
+       multiPartInitialize(part);
+    }
+    catch(...)
+    {
+        delete _data;
+        throw;
+    }
 }
 
 
@@ -1957,7 +1933,7 @@ DeepTiledInputFile::totalTiles() const
                 for (int i_lx = 0; i_lx < numXLevels (); ++i_lx)
                     numAllTiles += numXTiles (i_lx) * numYTiles (i_ly);
                 
-                break;
+            break;
             
         default:
             

@@ -47,6 +47,7 @@
 #include "ImfSimd.h"
 #include "ImfSystemSpecific.h"
 #include "OpenEXRConfig.h"
+#include "OpenEXRConfigInternal.h"
 
 #include <half.h>
 #include <assert.h>
@@ -87,7 +88,7 @@ class SimdAlignedBuffer64
             alloc();
         }
 
-        SimdAlignedBuffer64(const SimdAlignedBuffer64 &rhs): _handle(0)
+        SimdAlignedBuffer64(const SimdAlignedBuffer64 &rhs): _buffer (0), _handle(0)
         {
             alloc();
             memcpy (_buffer, rhs._buffer, 64 * sizeof (T));
@@ -101,7 +102,7 @@ class SimdAlignedBuffer64
 
 #if __cplusplus >= 201103L
         SimdAlignedBuffer64(SimdAlignedBuffer64 &&rhs) noexcept
-            : _handle(rhs._handle), _buffer(rhs._buffer)
+        : _buffer(rhs._buffer), _handle(rhs._handle)
         {
             rhs._handle = nullptr;
             rhs._buffer = nullptr;
@@ -2165,7 +2166,7 @@ dctForward8x8 (float *data)
 
 #endif /* IMF_HAVE_SSE2 */
 
-} // anonymous namespace
+} // namespace
 
 OPENEXR_IMF_INTERNAL_NAMESPACE_HEADER_EXIT
 

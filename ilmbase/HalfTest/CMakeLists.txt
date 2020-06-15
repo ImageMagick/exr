@@ -1,6 +1,7 @@
-# yue.nicholas@gmail.com
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright Contributors to the OpenEXR Project.
 
-ADD_EXECUTABLE ( HalfTest
+add_executable(HalfTest
   main.cpp
   testArithmetic.cpp
   testBitPatterns.cpp
@@ -9,8 +10,11 @@ ADD_EXECUTABLE ( HalfTest
   testFunction.cpp
   testLimits.cpp
   testSize.cpp
-  )
+  testToFloat.cpp
+)
 
-TARGET_LINK_LIBRARIES ( HalfTest IlmBase::Half${OPENEXR_TARGET_SUFFIX} )
-
-ADD_TEST ( TestHalf HalfTest )
+target_link_libraries(HalfTest IlmBase::Half)
+set_target_properties(HalfTest PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+add_test(NAME IlmBase.Half COMMAND $<TARGET_FILE:HalfTest>)

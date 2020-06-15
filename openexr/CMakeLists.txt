@@ -1,234 +1,88 @@
-IF (WIN32)
-  CMAKE_MINIMUM_REQUIRED(VERSION 3.11)
-ELSE()
-  CMAKE_MINIMUM_REQUIRED(VERSION 3.2)
-ENDIF()
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright Contributors to the OpenEXR Project.
 
-PROJECT (openexr)
+# We require this to get object library link library support and
+# combined python 2 + 3 support
+if(OPENEXR_BUILD_BOTH_STATIC_SHARED)
+  if (${CMAKE_VERSION} VERSION_LESS "3.12.0")
+    message(FATAL_ERROR "CMake 3.12 or newer is required for object library support when building both static and shared libraries")
+  endif()
+  cmake_minimum_required(VERSION 3.12)
+else()
+  cmake_minimum_required(VERSION 3.10)
+endif()
 
-IF (NOT ILMBASE_PACKAGE_PREFIX)
-  SET (ILMBASE_PACKAGE_PREFIX ${CMAKE_INSTALL_PREFIX})
-ENDIF ()
+if(POLICY CMP0074)
+  cmake_policy(SET CMP0074 NEW)
+endif()
 
-ADD_DEFINITIONS (-DILM_IMF_TEST_IMAGEDIR="${CMAKE_CURRENT_SOURCE_DIR}/IlmImfTest/" )
+# we include this first to parse configure.ac and extract the version
+# numbers
+include(config/ParseConfigure.cmake)
 
-IF (NOT WIN32)
-  SET ( PTHREAD_LIB pthread )
-ENDIF()
+project(OpenEXR VERSION ${OPENEXR_VERSION} LANGUAGES C CXX)
 
-IF(WIN32)
-  SET(CMAKE_DEBUG_POSTFIX "_d")
-ENDIF()
+#######################################
+#######################################
+# This declares all the configuration variables visible
+# in cmake-gui or similar and the rest of the global
+# project setup
+#
+# Please look at this file to see what is configurable
+#######################################
+#######################################
+include(config/OpenEXRSetup.cmake)
 
+# Everyone depends on IlmBase, and we currently rely on
+# the version matched with our release
+find_package(IlmBase ${OPENEXR_VERSION} EXACT REQUIRED CONFIG)
 
-MACRO(SET_ILMBASE_INCLUDE_DIRS _target)
-  TARGET_INCLUDE_DIRECTORIES(${_target}
-    PRIVATE ${ZLIB_INCLUDE_DIR}
-    PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/../config
-    PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/../../IlmBase/config
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../IlmImf
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../IlmImfUtil
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../IlmBase/Half
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../IlmBase/Iex
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../IlmBase/IexMath
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../IlmBase/IlmThread
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../IlmBase/Imath
-  )
-ENDMACRO()
+# generates config headers, package config files
+add_subdirectory(config)
 
-LINK_DIRECTORIES ( ${ILMBASE_PACKAGE_PREFIX}/lib )
-MESSAGE ( "ILMBASE_PACKAGE_PREFIX = " ${ILMBASE_PACKAGE_PREFIX})
-
-IF (NOT WIN32 AND NOT APPLE)
-  # Test for GCC-style inline asm support with AVX instructions
-  INCLUDE (CheckCXXSourceCompiles)
-  CHECK_CXX_SOURCE_COMPILES (
-  	"
-  	int main()
-  	{
-  	 #if defined(__GNUC__) && defined(__SSE2__)
-  		 int n   = 0;
-  		 int eax = 0;
-  		 int edx = 0;
-  		 __asm__(
-  			 \"xgetbv     ;\"
-  			 \"vzeroupper  \"
-  			 : \"=a\"(eax), \"=d\"(edx) : \"c\"(n) : );
-  	 #else
-  		 #error No GCC style inline asm supported for AVX instructions
-  	 #endif
-  	}
-  	" HAVE_GCC_INLINE_ASM_AVX)
-
-  # Check if sysconf(_SC_NPROCESSORS_ONLN) can be used for CPU count
-  CHECK_CXX_SOURCE_COMPILES (
-      "
-      #include <unistd.h>
-      int main()
-      {
-          sysconf(_SC_NPROCESSORS_ONLN);
-      }
-      " HAVE_SYSCONF_NPROCESSORS_ONLN)
-ENDIF()
-
+# utility function for the repeated boilerplate of defining
+# the libraries
+include(config/LibraryDefine.cmake)
 
 ##########################
-# OpenEXRConfig.h generation
-##########################
 
-# By using a temp file then using configure_file below with copy, we
-# avoid constantly updating it (unless a value has changed)
-SET(OPENEXR_TMP_CONFIG ${CMAKE_CURRENT_BINARY_DIR}/config/OpenEXRConfig.h.in)
-IF (WIN32)
-  FILE ( WRITE ${OPENEXR_TMP_CONFIG} "#define OPENEXR_IMF_HAVE_COMPLETE_IOMANIP 1\n" )
-ELSEIF (APPLE)
-  FILE ( WRITE ${OPENEXR_TMP_CONFIG} "#define OPENEXR_IMF_HAVE_DARWIN 1\n" )
-  FILE ( APPEND ${OPENEXR_TMP_CONFIG} "#define OPENEXR_IMF_HAVE_COMPLETE_IOMANIP 1\n" )
-  FILE ( APPEND ${OPENEXR_TMP_CONFIG} "#include <string.h>\n" )
-ELSE ()
-  # Linux
-  FILE ( WRITE ${OPENEXR_TMP_CONFIG} "#define OPENEXR_IMF_HAVE_LINUX_PROCFS 1\n" )
-  FILE ( APPEND ${OPENEXR_TMP_CONFIG} "#define OPENEXR_IMF_HAVE_COMPLETE_IOMANIP 1\n" )
-  FILE ( APPEND ${OPENEXR_TMP_CONFIG} "#define OPENEXR_IMF_HAVE_LARGE_STACK 1\n" )
-ENDIF()
+add_subdirectory( IlmImf )
+add_subdirectory( IlmImfUtil )
 
-IF (OPENEXR_NAMESPACE_VERSIONING)
-    FILE ( APPEND ${OPENEXR_TMP_CONFIG} "#define OPENEXR_IMF_INTERNAL_NAMESPACE_CUSTOM 1\n")
-    FILE ( APPEND ${OPENEXR_TMP_CONFIG} "#define OPENEXR_IMF_NAMESPACE Imf\n" )
-    FILE ( APPEND ${OPENEXR_TMP_CONFIG} "#define OPENEXR_IMF_INTERNAL_NAMESPACE Imf_${OPENEXR_VERSION_API}\n\n" )
-ELSE ()
-    FILE ( APPEND ${OPENEXR_TMP_CONFIG} "#define OPENEXR_IMF_INTERNAL_NAMESPACE_CUSTOM 0\n")
-    FILE ( APPEND ${OPENEXR_TMP_CONFIG} "#define OPENEXR_IMF_NAMESPACE Imf\n" )
-    FILE ( APPEND ${OPENEXR_TMP_CONFIG} "#define OPENEXR_IMF_INTERNAL_NAMESPACE Imf\n\n" )
-ENDIF ()
-
-FILE ( APPEND ${OPENEXR_TMP_CONFIG} "#define OPENEXR_VERSION_STRING \"${OPENEXR_VERSION}\"\n" )
-FILE ( APPEND ${OPENEXR_TMP_CONFIG} "#define OPENEXR_PACKAGE_STRING \"OpenEXR ${OPENEXR_VERSION}\"\n" )
-
-
-FILE ( APPEND ${OPENEXR_TMP_CONFIG} "
-#define OPENEXR_VERSION_MAJOR ${OPENEXR_VERSION_MAJOR}
-#define OPENEXR_VERSION_MINOR ${OPENEXR_VERSION_MINOR}
-#define OPENEXR_VERSION_PATCH ${OPENEXR_VERSION_PATCH}
-")
-
-
-  FILE ( APPEND ${OPENEXR_TMP_CONFIG} "
-// Version as a single hex number, e.g. 0x01000300 == 1.0.3
-#define OPENEXR_VERSION_HEX ((OPENEXR_VERSION_MAJOR << 24) | \\
-                             (OPENEXR_VERSION_MINOR << 16) | \\
-                             (OPENEXR_VERSION_PATCH <<  8))\n
-")
-
-IF (HAVE_GCC_INLINE_ASM_AVX)
-  FILE ( APPEND ${OPENEXR_TMP_CONFIG} "#define OPENEXR_IMF_HAVE_GCC_INLINE_ASM_AVX 1\n" )
-ENDIF()
-
-IF (HAVE_SYSCONF_NPROCESSORS_ONLN)
-  FILE ( APPEND ${OPENEXR_TMP_CONFIG} "#define OPENEXR_IMF_HAVE_SYSCONF_NPROCESSORS_ONLN 1\n" )
-ENDIF()
-
-CONFIGURE_FILE ( ${OPENEXR_TMP_CONFIG} ${CMAKE_CURRENT_BINARY_DIR}/config/OpenEXRConfig.h COPYONLY )
-FILE ( REMOVE ${OPENEXR_TMP_CONFIG} )
-UNSET ( OPENEXR_TMP_CONFIG )
-
-##########################
-# IlmImf library
-##########################
-ADD_SUBDIRECTORY ( IlmImf )
-
-IF ( OPENEXR_BUILD_SHARED )
-  SET_TARGET_PROPERTIES ( IlmImf
-    PROPERTIES
-    VERSION ${OPENEXR_VERSION_MAJOR}.${OPENEXR_VERSION_MINOR}.${OPENEXR_VERSION_PATCH}
-    SOVERSION ${OPENEXR_SOVERSION}
-    OUTPUT_NAME "IlmImf${OPENEXR_LIBSUFFIX}"
-    )
-ENDIF ()
-
-##########################
-# IlmImfUtil library
-##########################
-ADD_SUBDIRECTORY ( IlmImfUtil )
-
-IF ( OPENEXR_BUILD_SHARED )
-  SET_TARGET_PROPERTIES ( IlmImfUtil
-    PROPERTIES
-    VERSION ${OPENEXR_VERSION_MAJOR}.${OPENEXR_VERSION_MINOR}.${OPENEXR_VERSION_PATCH}
-    SOVERSION ${OPENEXR_SOVERSION}
-    OUTPUT_NAME "IlmImfUtil${OPENEXR_LIBSUFFIX}"
-    )
-ENDIF ()
-
-##########################
-# Example Code
-##########################
-ADD_SUBDIRECTORY ( IlmImfExamples )
-
+option(INSTALL_OPENEXR_EXAMPLES "Install OpenEXR examples" ON)
+if(INSTALL_OPENEXR_EXAMPLES)
+  add_subdirectory( IlmImfExamples )
+endif()
 
 ##########################
 # Tests
 ##########################
-IF (ENABLE_TESTS)
-  ADD_SUBDIRECTORY ( IlmImfTest )
-  ADD_SUBDIRECTORY ( IlmImfUtilTest )
-  ADD_SUBDIRECTORY ( IlmImfFuzzTest )
-ENDIF ()
+# Can't seem to do EXCLUDE_FROM_ALL on the test executables
+# since you can't then create a dependency on the internal
+# "test" target such that it is auto built
+include(CTest)
+if(BUILD_TESTING)
+  enable_testing()
+  add_subdirectory( IlmImfTest )
+  add_subdirectory( IlmImfUtilTest )
+  add_subdirectory( IlmImfFuzzTest )
+endif()
 
 ##########################
 # Binaries / Utilities
 ##########################
-IF (OPENEXR_BUILD_UTILS)
-  ADD_SUBDIRECTORY ( exrheader )
-  ADD_SUBDIRECTORY ( exrmaketiled )
-  ADD_SUBDIRECTORY ( exrstdattr )
-  ADD_SUBDIRECTORY ( exrmakepreview )
-  ADD_SUBDIRECTORY ( exrenvmap )
-  ADD_SUBDIRECTORY ( exrmultiview )
-  ADD_SUBDIRECTORY ( exrmultipart )
-ENDIF ()
+if(OPENEXR_BUILD_UTILS)
+  add_subdirectory( exr2aces )
+  add_subdirectory( exrheader )
+  add_subdirectory( exrmaketiled )
+  add_subdirectory( exrstdattr )
+  add_subdirectory( exrmakepreview )
+  add_subdirectory( exrenvmap )
+  add_subdirectory( exrmultiview )
+  add_subdirectory( exrmultipart )
+endif()
 
-##########################
-# Installation
-##########################
-
-INSTALL ( FILES
-  ${CMAKE_CURRENT_BINARY_DIR}/config/OpenEXRConfig.h
-  DESTINATION
-  ${CMAKE_INSTALL_PREFIX}/include/OpenEXR
-  )
-
-# Documentation
-INSTALL ( FILES
-  doc/TechnicalIntroduction.pdf
-  doc/ReadingAndWritingImageFiles.pdf
-  doc/OpenEXRFileLayout.pdf
-  doc/MultiViewOpenEXR.pdf
-  doc/InterpretingDeepPixels.pdf
-  doc/TheoryDeepPixels.pdf
-  DESTINATION
-  ${CMAKE_INSTALL_PREFIX}/share/doc/OpenEXR-${OPENEXR_VERSION}
-  )
-
-# Examples
-INSTALL ( FILES
-  IlmImfExamples/main.cpp
-  IlmImfExamples/drawImage.cpp
-  IlmImfExamples/rgbaInterfaceExamples.cpp
-  IlmImfExamples/rgbaInterfaceTiledExamples.cpp
-  IlmImfExamples/generalInterfaceExamples.cpp
-  IlmImfExamples/lowLevelIoExamples.cpp
-  IlmImfExamples/previewImageExamples.cpp
-  IlmImfExamples/generalInterfaceTiledExamples.cpp
-  IlmImfExamples/generalInterfaceTiledExamples.h
-  IlmImfExamples/drawImage.h
-  IlmImfExamples/rgbaInterfaceExamples.h
-  IlmImfExamples/generalInterfaceExamples.h
-  IlmImfExamples/rgbaInterfaceTiledExamples.h
-  IlmImfExamples/lowLevelIoExamples.h
-  IlmImfExamples/previewImageExamples.h
-  IlmImfExamples/namespaceAlias.h
-  DESTINATION
-  ${CMAKE_INSTALL_PREFIX}/share/doc/OpenEXR-${OPENEXR_VERSION}/examples
-  )
+option(INSTALL_OPENEXR_DOCS "Install OpenEXR documentation" ON)
+if(INSTALL_OPENEXR_DOCS)
+  add_subdirectory(doc)
+endif()

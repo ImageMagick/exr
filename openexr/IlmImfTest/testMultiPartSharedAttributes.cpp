@@ -32,7 +32,12 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
+#ifdef NDEBUG
+#    undef NDEBUG
+#endif
+
 #include "testMultiPartSharedAttributes.h"
+#include "random.h"
 
 #include <ImfMultiPartInputFile.h>
 #include <ImfMultiPartOutputFile.h>
@@ -84,8 +89,8 @@ generateRandomHeaders (int partCount, vector<Header> & headers)
     for (int i = 0; i < partCount; i++)
     {
         Header header(width, height);
-        int pixelType = rand() % 3;
-        int partType = rand() % 2;
+        int pixelType = random_int(3);
+        int partType = random_int(2);
 
         stringstream ss;
         ss << i;
@@ -119,10 +124,10 @@ generateRandomHeaders (int partCount, vector<Header> & headers)
         int levelMode;
         if (partType == 1)
         {
-            tileX = rand() % width + 1;
-            tileY = rand() % height + 1;
-            levelMode = rand() % 3;
-            LevelMode lm;
+            tileX = random_int(width) + 1;
+            tileY = random_int(height) + 1;
+            levelMode = random_int(3);
+            LevelMode lm = NUM_LEVELMODES;
             switch (levelMode)
             {
                 case 0:
@@ -147,19 +152,21 @@ testMultiPartOutputFileForExpectedFailure (const vector<Header> & headers,
                                            const std::string & fn,
                                            const string & failMessage="")
 {
+    bool caught = false;
+
     try
     {
         remove(fn.c_str());
-        MultiPartOutputFile file(fn.c_str(), &headers[0],headers.size());
+        MultiPartOutputFile file(fn.c_str(), headers.data() , headers.size() );
         cerr << "ERROR -- " << failMessage << endl;
         assert (false);
     }
     catch (const IEX_NAMESPACE::ArgExc & e)
     {
         // expected behaviour
+        caught = true;
     }
-
-    return;
+    assert (caught);
 }
 
 
@@ -184,7 +191,6 @@ testPixelAspectRatio (const vector<Header> & hs, const std::string & fn)
 {
     vector<Header> headers(hs);
 
-    IMATH_NAMESPACE::Box2i newDisplayWindow = headers[0].displayWindow();
     Header newHeader (headers[0].displayWindow().size().x+1,
                       headers[0].displayWindow().size().y+1,
                       headers[0].pixelAspectRatio() + 1.f);
@@ -223,7 +229,7 @@ testTimeCode (const vector<Header> & hs, const std::string & fn)
     // Test against a vector of headers that has chromaticities attribute
     // but of differing value
     //
-    for (int i=0; i<headers.size(); i++)
+    for (size_t i=0; i<headers.size(); i++)
         headers[i].insert (TimeCodeAttribute::staticTypeName(), ta);
 
     t.setTimeAndFlags (t.timeAndFlags()+1);
@@ -263,7 +269,7 @@ testChromaticities (const vector<Header> & hs, const std::string & fn)
     // Test against a vector of headers that has chromaticities attribute
     // but of differing value
     //
-    for (int i=0; i<headers.size(); i++)
+    for (size_t i=0; i<headers.size(); i++)
         headers[i].insert (ChromaticitiesAttribute::staticTypeName(), ca);
 
     c.red += IMATH_NAMESPACE::V2f (1.0f, 1.0f);
@@ -373,6 +379,7 @@ testHeaders (const std::string & fn)
     //
     // expect this to fail - header has incorrect image attribute type
     //
+    bool caught = false;
     try
     {
         headers[0].setType ("invalid image type");
@@ -382,7 +389,9 @@ testHeaders (const std::string & fn)
     catch (const IEX_NAMESPACE::ArgExc & e)
     {
         // expected behaviour
+        caught = true;
     }
+    assert (caught);
 
 
     //
@@ -393,7 +402,7 @@ testHeaders (const std::string & fn)
     Chromaticities c;
     ChromaticitiesAttribute ca(c);
     vector<IntAttribute> ia;
-    for (int i=0; i<headers.size(); i++)
+    for (size_t i=0; i<headers.size(); i++)
     {
         stringstream ss;
         ss << i;
@@ -484,6 +493,7 @@ testHeaders (const std::string & fn)
     //
     try
     {
+        caught = false;
         MultiPartInputFile file (ILM_IMF_TEST_IMAGEDIR "invalid_shared_attrs_multipart.exr");
         cerr << "Shared Attributes : InputFile : incorrect input file passed\n";
         assert (false);
@@ -491,9 +501,9 @@ testHeaders (const std::string & fn)
     catch (const IEX_NAMESPACE::InputExc &e)
     {
         // expectected behaviour
+        caught = true;
     }
-
-    return;
+    assert (caught);
 }
 
 
@@ -505,6 +515,8 @@ testMultiPartSharedAttributes (const std::string & tempDir)
     try
     {
         cout << "Testing multi part APIs : shared attributes, header... " << endl;
+
+        random_reseed(1);
 
         std::string fn = tempDir +  "imf_test_multipart_shared_attrs.exr";
 
@@ -524,4 +536,3 @@ testMultiPartSharedAttributes (const std::string & tempDir)
         assert (false);
     }
 }
-

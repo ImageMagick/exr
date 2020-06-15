@@ -1,3 +1,12 @@
+//
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenEXR Project.
+//
+
+#ifdef NDEBUG
+#    undef NDEBUG
+#endif
+
 #include <testSize.h>
 #include <testArithmetic.h>
 #include <testError.h>
@@ -5,6 +14,7 @@
 #include <testClassification.h>
 #include <testLimits.h>
 #include <testFunction.h>
+#include <testToFloat.h>
 
 #include <iostream>
 #include <string.h>
@@ -18,6 +28,7 @@ main (int argc, char *argv[])
 {
     std::cout << "\ntesting type half:\n\n" << std::flush;
 
+    TEST (testToFloat);
     TEST (testSize);
     TEST (testArithmetic);
     TEST (testNormalizedConversionError);
@@ -27,6 +38,6 @@ main (int argc, char *argv[])
     TEST (testClassification);
     TEST (testLimits);
     TEST (testFunction);
-
+    
     return 0;
 }

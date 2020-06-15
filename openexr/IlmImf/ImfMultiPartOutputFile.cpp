@@ -124,6 +124,12 @@ struct MultiPartOutputFile::Data: public OutputStreamMutex
             for (size_t i = 0; i < parts.size(); i++)
                 delete parts[i];
         }
+
+    Data (const Data& other) = delete;
+    Data& operator = (const Data& other) = delete;
+    Data (Data&& other) = delete;
+    Data& operator = (Data&& other) = delete;
+    
 };
 
 void
@@ -498,7 +504,7 @@ MultiPartOutputFile::Data::writeChunkTableOffsets (vector<OutputPartData*> &part
 
         Int64 pos = os->tellp();
 
-        if (pos == -1)
+        if (pos == static_cast<Int64>(-1))
             IEX_NAMESPACE::throwErrnoExc ("Cannot determine current file position (%T).");
 
         parts[i]->chunkOffsetTablePosition = os->tellp();

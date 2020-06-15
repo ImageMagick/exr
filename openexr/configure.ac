@@ -1,11 +1,16 @@
+dnl
+dnl SPDX-License-Identifier: BSD-3-Clause
+dnl Copyright Contributors to the OpenEXR Project.
+dnl
+
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(OpenEXR, 2.3.0)
+AC_INIT(OpenEXR, 2.5.1)
 AC_CONFIG_MACRO_DIR([m4])
 
 AC_SUBST(OPENEXR_VERSION_MAJOR, 2)
-AC_SUBST(OPENEXR_VERSION_MINOR, 3)
-AC_SUBST(OPENEXR_VERSION_PATCH, 0)
+AC_SUBST(OPENEXR_VERSION_MINOR, 5)
+AC_SUBST(OPENEXR_VERSION_PATCH, 1)
 
 AC_SUBST(OPENEXR_VERSION, ${OPENEXR_VERSION_MAJOR}.${OPENEXR_VERSION_MINOR}.${OPENEXR_VERSION_PATCH})
 AC_SUBST(OPENEXR_VERSION_API, ${OPENEXR_VERSION_MAJOR}_${OPENEXR_VERSION_MINOR})
@@ -13,11 +18,12 @@ AC_SUBST(OPENEXR_VERSION_API, ${OPENEXR_VERSION_MAJOR}_${OPENEXR_VERSION_MINOR})
 AC_CANONICAL_HOST
 AC_CONFIG_SRCDIR(IlmImfTest/main.cpp)
 AC_CONFIG_HEADERS([config/OpenEXRConfig.h])
+AC_CONFIG_HEADERS([config/OpenEXRConfigInternal.h])
 AM_INIT_AUTOMAKE(1.6.3)  dnl Require automake 1.6.3 or better
 AM_MAINTAINER_MODE
 
 
-LIBTOOL_CURRENT=24
+LIBTOOL_CURRENT=25
 LIBTOOL_REVISION=0
 LIBTOOL_AGE=0
 LIBTOOL_VERSION=$LIBTOOL_CURRENT:$LIBTOOL_REVISION:$LIBTOOL_AGE
@@ -70,30 +76,30 @@ AC_ARG_ENABLE(cxxstd,
                              [enable ISO c++ standard 11/14 [[default=auto]]]),
               [cxxstd="${enableval}"], [cxxstd=14])
 
-if test "${cxxstd}" == 17 ; then
+if test "${cxxstd}" = 17 ; then
     AX_CXX_COMPILE_STDCXX([17], [noext], [mandatory])
 	CXXFLAGS="$CXXFLAGS -std=c++17"
 else
-  if test "${cxxstd}" == 14 ; then
+  if test "${cxxstd}" = 14 ; then
       AX_CXX_COMPILE_STDCXX([14], [noext], [mandatory])
   	CXXFLAGS="$CXXFLAGS -std=c++14"
   else
-    if test "${cxxstd}" == 11 ; then
+    if test "${cxxstd}" = 11 ; then
       AX_CXX_COMPILE_STDCXX([11], [noext], [mandatory])
       CXXFLAGS="$CXXFLAGS -std=c++11"
     else
-      if test "${cxxstd}" == 03 ; then
+      if test "${cxxstd}" = 03 ; then
         CXXFLAGS="$CXXFLAGS -std=c++03"
       else
         dnl automatically determine...
         AX_CXX_COMPILE_STDCXX([11], [noext], [optional])
         AX_CXX_COMPILE_STDCXX([14], [noext], [optional])
         AX_CXX_COMPILE_STDCXX([17], [noext], [optional])
-        if test "$HAVE_CXX14" == 1 ; then
+        if test "$HAVE_CXX14" = 1 ; then
   	      CXXFLAGS="$CXXFLAGS -std=c++14"
           cxxstd = 14
         else
-          if test "$HAVE_CXX11" == 1 ; then
+          if test "$HAVE_CXX11" = 1 ; then
   	        CXXFLAGS="$CXXFLAGS -std=c++11"
             cxxstd = 11
           fi
@@ -127,33 +133,6 @@ AS_IF([test "x${multithread}" != xno], [
 	CXXFLAGS="${CXXFLAGS} ${PTHREAD_CFLAGS}"
 	LIBS="${LIBS} ${PTHREAD_CFLAGS}"
 ])
-
-
-dnl --enable-large-stack
-case "$host" in
-*linux*)
-  AC_ARG_ENABLE(large-stack,
-		AC_HELP_STRING([--enable-large-stack],
-			       [enable optimizations for systems that support
-			       large stack sizes [[default=yes]]]),
-		[large_stack="${enableval}"],
-		[large_stack=yes])
-  ;;
-*)
-  AC_ARG_ENABLE(large-stack,
-		AC_HELP_STRING([--enable-large-stack],
-			       [enable optimizations for systems that support
-			       large stack sizes [[default=no]]]),
-		[large_stack="${enableval}"],
-		[large_stack=no])
-  ;;
-esac
-
-if test "x${large_stack}" != xno ; then
-    AC_DEFINE([OPENEXR_IMF_HAVE_LARGE_STACK], [1], [Define if large stack sizes are supported])
-fi
-
-
 
 save_CXXFLAGS="${CXXFLAGS}"
 save_LIBS="${LIBS}"
@@ -237,7 +216,7 @@ AC_COMPILE_IFELSE(
    [sysconf_nproc="no"]
 )
 AC_MSG_RESULT([$sysconf_nproc])
-if test "x${sysconf_nproc}" == xyes ; then
+if test "x${sysconf_nproc}" = xyes ; then
     AC_DEFINE([OPENEXR_IMF_HAVE_SYSCONF_NPROCESSORS_ONLN], [1], [Define if sysconf(_SC_NPROCESSORS_ONLN) can be used for CPU count])
 fi
 
@@ -318,14 +297,14 @@ LIB_SUFFIX=""
 lib_suffix_valid="no"
 
 lib_namespace="Imf"
-if test "x${library_namespace_versioning}" == xyes ; then
+if test "x${library_namespace_versioning}" = xyes ; then
     AC_DEFINE_UNQUOTED([OPENEXR_IMF_INTERNAL_NAMESPACE], [Imf_${OPENEXR_VERSION_API}], [OpenEXR])
     AC_DEFINE([OPENEXR_IMF_INTERNAL_NAMESPACE_CUSTOM], [1], [OpenEXR])
 
     lib_namespace="Imf_${OPENEXR_VERSION_API}"
     LIB_SUFFIX="${OPENEXR_VERSION_API}"
     lib_suffix_valid="yes"
-elif test "x${library_namespace_versioning}" == xno ; then
+elif test "x${library_namespace_versioning}" = xno ; then
     AC_DEFINE_UNQUOTED([OPENEXR_IMF_INTERNAL_NAMESPACE], [Imf], [OpenEXR])
 
     lib_namespace="Imf"
@@ -339,7 +318,7 @@ else
 fi
 AC_SUBST(LIB_SUFFIX)
 
-if test "x${lib_suffix_valid}" == xyes ; then
+if test "x${lib_suffix_valid}" = xyes ; then
 AC_SUBST(LIB_SUFFIX_DASH,"-${LIB_SUFFIX}")
 AM_CONDITIONAL(LIB_SUFFIX_EXISTS,true)
 else
@@ -359,11 +338,11 @@ AC_ARG_ENABLE(customusernamespace,
         [custom_usr_namespace="${enableval}"], 
         [custom_usr_namespace=no])
 
-if test "x${custom_usr_namespace}" == xyes ; then
+if test "x${custom_usr_namespace}" = xyes ; then
     AC_MSG_WARN([Enabling 'custom user namespace' requires an additional argument, reverting to 'Imf'])
     AC_DEFINE_UNQUOTED([OPENEXR_IMF_NAMESPACE], [Imf], [OpenEXR])
     usr_namespace="Imf"
-elif test "x${custom_usr_namespace}" == xno ; then
+elif test "x${custom_usr_namespace}" = xno ; then
     AC_DEFINE_UNQUOTED([OPENEXR_IMF_NAMESPACE], [Imf], [OpenEXR])
     usr_namespace="Imf"
 else
@@ -385,6 +364,7 @@ IlmImfUtil/Makefile
 IlmImfUtilTest/Makefile
 IlmImfFuzzTest/Makefile
 exrheader/Makefile
+exr2aces/Makefile
 exrmaketiled/Makefile
 IlmImfExamples/Makefile
 doc/Makefile
@@ -406,7 +386,7 @@ enable large stack optimizations                $large_stack
 internal library namespace                      $lib_namespace
 user-client namespace                           $usr_namespace])
 
-if test "x$build_osxuniversal" == xyes; then
+if test "x$build_osxuniversal" = xyes; then
 AC_MSG_RESULT([
 build OS X universal binaries                   $build_osxuniversal])
 fi
@@ -414,5 +394,3 @@ fi
 AC_MSG_RESULT([
 ---------------------------------------------
 ])
-
-

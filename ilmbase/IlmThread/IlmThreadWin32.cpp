@@ -40,10 +40,11 @@
 
 
 #include "IlmBaseConfig.h"
+#include "IlmThread.h"
 
 #ifdef ILMBASE_FORCE_CXX03
+#if (defined (_WIN32) || defined (_WIN64)) && !defined(HAVE_PTHREAD)
 
-#include "IlmThread.h"
 #include "Iex.h"
 #include <iostream>
 #include <assert.h>
@@ -98,4 +99,5 @@ Thread::start ()
 
 ILMTHREAD_INTERNAL_NAMESPACE_SOURCE_EXIT
 
+#endif // _WIN32
 #endif

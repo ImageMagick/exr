@@ -32,7 +32,12 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
+#ifdef NDEBUG
+#    undef NDEBUG
+#endif
+
 #include "testCopyDeepTiled.h"
+#include "random.h"
 
 
 #include <assert.h>
@@ -96,7 +101,7 @@ generateRandomFile (int channelCount,
 
     for (int i = 0; i < channelCount; i++)
     {
-        int type = rand() % 3;
+        int type = random_int(3);
         stringstream ss;
         ss << i;
         string str = ss.str();
@@ -111,7 +116,7 @@ generateRandomFile (int channelCount,
 
     header.setType(DEEPTILE);
     header.setTileDescription(
-        TileDescription(rand() % width + 1, rand() % height + 1, RIPMAP_LEVELS));
+        TileDescription(random_int(width) + 1, random_int(height) + 1, RIPMAP_LEVELS));
 
     Array<Array2D< void* > > data(channelCount);
     for (int i = 0; i < channelCount; i++)
@@ -145,7 +150,7 @@ generateRandomFile (int channelCount,
 
     for (int i = 0; i < channelCount; i++)
     {
-        PixelType type;
+        PixelType type = NUM_PIXELTYPES;
         if (channelTypes[i] == 0)
             type = IMF::UINT;
         if (channelTypes[i] == 1)
@@ -157,7 +162,7 @@ generateRandomFile (int channelCount,
         ss << i;
         string str = ss.str();
 
-        int sampleSize;
+        int sampleSize = 0;
         if (channelTypes[i] == 0) sampleSize = sizeof (unsigned int);
         if (channelTypes[i] == 1) sampleSize = sizeof (half);
         if (channelTypes[i] == 2) sampleSize = sizeof (float);
@@ -199,7 +204,7 @@ generateRandomFile (int channelCount,
                             {
                                 int dwy = y - dataWindowL.min.y;
                                 int dwx = x - dataWindowL.min.x;
-                                sampleCount[dwy][dwx] = rand() % 10 + 1;
+                                sampleCount[dwy][dwx] = random_int(10) + 1;
                                 sampleCountWhole[ly][lx][dwy][dwx] = sampleCount[dwy][dwx];
                                 for (int k = 0; k < channelCount; k++)
                                 {
@@ -209,7 +214,7 @@ generateRandomFile (int channelCount,
                                         data[k][dwy][dwx] = new half[sampleCount[dwy][dwx]];
                                     if (channelTypes[k] == 2)
                                         data[k][dwy][dwx] = new float[sampleCount[dwy][dwx]];
-                                    for (int l = 0; l < sampleCount[dwy][dwx]; l++)
+                                    for (unsigned int l = 0; l < sampleCount[dwy][dwx]; l++)
                                     {
                                         if (channelTypes[k] == 0)
                                             ((unsigned int*)data[k][dwy][dwx])[l] = (dwy * width + dwx) % 2049;
@@ -240,6 +245,7 @@ generateRandomFile (int channelCount,
         }    
 }
 
+#if 0
 void
 checkValue (void* sampleRawData, int sampleCount, int channelType, int dwx, int dwy)
 {
@@ -274,6 +280,7 @@ checkValue (void* sampleRawData, int sampleCount, int channelType, int dwx, int 
         }
     }
 }
+#endif
 
 void
 readFile (int channelCount, const std::string & cpyFn)
@@ -315,7 +322,7 @@ readFile (int channelCount, const std::string & cpyFn)
 
     for (int i = 0; i < channelCount; i++)
     {
-        PixelType type;
+        PixelType type = NUM_PIXELTYPES;
         if (channelTypes[i] == 0)
             type = IMF::UINT;
         if (channelTypes[i] == 1)
@@ -327,7 +334,7 @@ readFile (int channelCount, const std::string & cpyFn)
         ss << i;
         string str = ss.str();
 
-        int sampleSize;
+        int sampleSize = 0;
         if (channelTypes[i] == 0) sampleSize = sizeof (unsigned int);
         if (channelTypes[i] == 1) sampleSize = sizeof (half);
         if (channelTypes[i] == 2) sampleSize = sizeof (float);
@@ -372,7 +379,7 @@ readFile (int channelCount, const std::string & cpyFn)
                                 int dwx = x - dataWindowL.min.x;
                                 assert(localSampleCount[dwy][dwx] == sampleCountWhole[ly][lx][dwy][dwx]);
 
-                                for (int k = 0; k < channelTypes.size(); k++)
+                                for (size_t k = 0; k < channelTypes.size(); k++)
                                 {
                                     if (channelTypes[k] == 0)
                                         data[k][dwy][dwx] = new unsigned int[localSampleCount[dwy][dwx]];
@@ -392,16 +399,16 @@ readFile (int channelCount, const std::string & cpyFn)
                     for (int j = 0; j < file.levelWidth(lx); j++)
                         for (int k = 0; k < channelCount; k++)
                         {
-                            for (int l = 0; l < localSampleCount[i][j]; l++)
+                            for (unsigned int l = 0; l < localSampleCount[i][j]; l++)
                             {
                                 if (channelTypes[k] == 0)
                                 {
                                     unsigned int* value = (unsigned int*)(data[k][i][j]);
-                                    if (value[l] != (i * width + j) % 2049)
+                                    if (value[l] != static_cast<unsigned int>(i * width + j) % 2049)
                                         cout << j << ", " << i << " error, should be "
                                              << (i * width + j) % 2049 << ", is " << value[l]
                                              << endl << flush;
-                                    assert (value[l] == (i * width + j) % 2049);
+                                    assert (value[l] == static_cast<unsigned int>(i * width + j) % 2049);
                                 }
                                 if (channelTypes[k] == 1)
                                 {
@@ -498,7 +505,7 @@ void testCopyDeepTiled  (const std::string & tempDir)
     {
         cout << "Testing raw copy in DeepTiledInput/OutputFile " << endl;
 
-        srand(1);
+        random_reseed(1);
 
         int numThreads = ThreadPool::globalThreadPool().numThreads();
         ThreadPool::globalThreadPool().setNumThreads(2);

@@ -1,12 +1,20 @@
+##
+## SPDX-License-Identifier: BSD-3-Clause
+## Copyright Contributors to the OpenEXR Project.
+##
+
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = -I$(top_srcdir)/config
+AM_CPPFLAGS = -I$(top_srcdir)/config
 
 lib_LTLIBRARIES = libHalf.la
 
 libHalf_la_SOURCES = half.cpp half.h halfFunction.h halfLimits.h
 
 libHalf_la_LDFLAGS = -version-info @LIBTOOL_VERSION@ -no-undefined
+if LIB_SUFFIX_EXISTS
+libHalf_la_LDFLAGS += -release @LIB_SUFFIX@
+endif
 
 libHalfincludedir = $(includedir)/OpenEXR
 

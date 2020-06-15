@@ -32,7 +32,9 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
-
+#ifdef NDEBUG
+#    undef NDEBUG
+#endif
 
 #include "fuzzFile.h"
 
@@ -198,7 +200,7 @@ void generateRandomFile(const char filename[], int channelCount, int parts , Com
                                 for (int k = 0; k < channelCount; k++)
                                 {
                                     data[k][dwy][dwx] = new float[sampleCount[dwy][dwx]];
-                                    for (int l = 0; l < sampleCount[dwy][dwx]; l++)
+                                    for (unsigned int l = 0; l < sampleCount[dwy][dwx]; l++)
                                     {
                                         ((float*)data[k][dwy][dwx])[l] = (dwy * width + dwx) % 2049;
                                     }
@@ -217,7 +219,7 @@ void generateRandomFile(const char filename[], int channelCount, int parts , Com
                     {
                         for(int x=0;x<data[k].width();x++)
                         {
-                            delete data[k][y][x];
+                            delete [] reinterpret_cast<char *>( data[k][y][x] );
                             data[k][y][x]=0;
                         }
                     }
@@ -321,6 +323,7 @@ void readFile(const char filename[])
                  }catch(...)
                  {
                      // catch exceptions thrown by readTiles, clean up anyway
+                     assert (true);
                  }
                  for (int i = 0; i < file.levelHeight(ly); i++)
                  {
@@ -338,6 +341,7 @@ void readFile(const char filename[])
     }catch(std::exception & e)
     {
         /* expect to get exceptions*/
+        assert (true);
     }
     
     
@@ -433,7 +437,7 @@ void readFile(const char filename[])
                         part.readTiles(0, part.numXTiles(lx) - 1, 0, part.numYTiles(ly) - 1, lx, ly);
                     }catch(...)
                     {
-                        
+                        assert (true);
                     }
                     
                     for (int i = 0; i < part.levelHeight(ly); i++)
@@ -452,6 +456,7 @@ void readFile(const char filename[])
     }catch(std::exception & e)
     {
         /* expect to get exceptions*/
+        assert (true);
     }
         
 }
@@ -498,23 +503,30 @@ fuzzDeepTiles (int numThreads, Rand48 &random)
 
 
 void
-testFuzzDeepTiles ()
+testFuzzDeepTiles (const char* file)
 {
     
     
     try
     {
-	cout << "Testing deep tile-based files "
-		"with randomly inserted errors" << endl;
+        if(file)
+        {
+            readFile(file);
+        }
+        else
+        {
+            cout << "Testing deep tile-based files "
+                    "with randomly inserted errors" << endl;
 
-	Rand48 random (1);
+            Rand48 random (1);
 
-	fuzzDeepTiles (0, random);
+            fuzzDeepTiles (0, random);
 
-	if (ILMTHREAD_NAMESPACE::supportsThreads())
-	    fuzzDeepTiles (2, random);
+            if (ILMTHREAD_NAMESPACE::supportsThreads())
+                fuzzDeepTiles (2, random);
 
-	cout << "ok\n" << endl;
+            cout << "ok\n" << endl;
+        }
     }
     catch (const std::exception &e)
     {

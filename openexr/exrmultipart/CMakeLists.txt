@@ -1,19 +1,9 @@
-# yue.nicholas@gmail.com
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright Contributors to the OpenEXR Project.
 
-ADD_EXECUTABLE ( exrmultipart exrmultipart.cpp )
-SET_ILMBASE_INCLUDE_DIRS( exrmultipart )
-
-TARGET_LINK_LIBRARIES ( exrmultipart
-  OpenEXR::IlmImf${OPENEXR_TARGET_SUFFIX}
-  IlmBase::IlmThread${OPENEXR_TARGET_SUFFIX}
-  IlmBase::Iex${OPENEXR_TARGET_SUFFIX}
-  IlmBase::Half${OPENEXR_TARGET_SUFFIX}
-  ${PTHREAD_LIB}
-  ${ZLIB_LIBRARIES}
+add_executable(exrmultipart exrmultipart.cpp)
+target_link_libraries(exrmultipart OpenEXR::IlmImf)
+set_target_properties(exrmultipart PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
-
-INSTALL ( TARGETS
-  exrmultipart
-  DESTINATION
-  ${CMAKE_INSTALL_PREFIX}/bin
-)
+install(TARGETS exrmultipart DESTINATION ${CMAKE_INSTALL_BINDIR})

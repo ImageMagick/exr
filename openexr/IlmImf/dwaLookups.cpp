@@ -43,6 +43,11 @@
 #include <vector>
 
 #include <OpenEXRConfig.h>
+#include <OpenEXRConfigInternal.h>
+
+#if __cplusplus >= 201103L
+#include <thread>
+#endif
 
 #ifdef OPENEXR_IMF_HAVE_SYSCONF_NPROCESSORS_ONLN
 #include <unistd.h>
@@ -70,7 +75,6 @@ namespace {
                         _worker(worker),
                         _output(output)
                     {
-                        start();
                     }
 
                     virtual ~Runner()
@@ -102,6 +106,11 @@ namespace {
                 _elements(new unsigned short[1024*1024*2])
             {
             }
+
+            LutHeaderWorker(const LutHeaderWorker& other) = delete;
+            LutHeaderWorker& operator = (const LutHeaderWorker& other) = delete;
+            LutHeaderWorker(LutHeaderWorker&& other) = delete;
+            LutHeaderWorker& operator = (LutHeaderWorker&& other) = delete;
 
             ~LutHeaderWorker()
             {
@@ -162,6 +171,7 @@ namespace {
                     half inputHalf, closestHalf;
 
                     inputHalf.setBits(input);
+                    closestHalf.setBits(0);
 
                     _offset[input - _startValue] = _numElements;
 
@@ -440,6 +450,10 @@ cpuCount()
 
     int cpuCount = 1;
 
+#if __cplusplus >= 201103L
+    cpuCount = std::thread::hardware_concurrency();
+#else
+
 #if defined (OPENEXR_IMF_HAVE_SYSCONF_NPROCESSORS_ONLN)
 
     cpuCount = sysconf(_SC_NPROCESSORS_ONLN);
@@ -452,6 +466,7 @@ cpuCount()
 
 #endif
 
+#endif
     if (cpuCount < 1) cpuCount = 1;
     return cpuCount;
 }
@@ -496,6 +511,7 @@ generateLutHeader()
         std::vector<LutHeaderWorker::Runner*> runners;
         for (size_t i=0; i<workers.size(); ++i) {
             runners.push_back( new LutHeaderWorker::Runner(*workers[i], (i==0)) );
+            runners.back()->start();
         }
 
         for (size_t i=0; i<workers.size(); ++i) {
@@ -507,7 +523,7 @@ generateLutHeader()
         }
     }
 
-    printf("static unsigned int closestDataOffset[] = {\n");
+    printf("const unsigned int closestDataOffset[] = {\n");
     int offsetIdx  = 0;
     int offsetPrev = 0;
     for (size_t i=0; i<workers.size(); ++i) {
@@ -527,7 +543,7 @@ generateLutHeader()
     printf("};\n\n\n");
 
 
-    printf("static unsigned short closestData[] = {\n");
+    printf("const unsigned short closestData[] = {\n");
     int elementIdx = 0;
     for (size_t i=0; i<workers.size(); ++i) {
         for (size_t element=0; element<workers[i]->numElements(); ++element) {
@@ -552,7 +568,6 @@ generateLutHeader()
 int
 main(int argc, char **argv)
 {
-    printf("#include <cstddef>\n");
     printf("\n\n\n");
 
     generateNoop();

@@ -41,7 +41,7 @@
 
 #include "IlmBaseConfig.h"
 
-#if HAVE_PTHREAD && HAVE_POSIX_SEMAPHORES
+#if defined (HAVE_PTHREAD) && defined(HAVE_POSIX_SEMAPHORES)
 
 #include "IlmThreadSemaphore.h"
 #include "Iex.h"
@@ -60,8 +60,12 @@ Semaphore::Semaphore (unsigned int value)
 
 Semaphore::~Semaphore ()
 {
+#ifdef NDEBUG
+    ::sem_destroy (&_semaphore);
+#else
     int error = ::sem_destroy (&_semaphore);
     assert (error == 0);
+#endif
 }
 
 

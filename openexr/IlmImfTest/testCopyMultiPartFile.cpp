@@ -34,6 +34,10 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
+#ifdef NDEBUG
+#    undef NDEBUG
+#endif
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -43,6 +47,7 @@
 
 #include "tmpDir.h"
 #include "testCopyMultiPartFile.h"
+#include "random.h"
 
 #include <IlmThreadPool.h>
 #include <ImfMultiPartInputFile.h>
@@ -100,7 +105,7 @@ void fillPixels (Array2D<unsigned int>& sampleCount, Array2D<T*> &ph, int width,
         for (int x = 0; x < width; ++x)
         {
             ph[y][x] = new T[sampleCount[y][x]];
-            for (int i = 0; i < sampleCount[y][x]; i++)
+            for (unsigned int i = 0; i < sampleCount[y][x]; i++)
             {
                 //
                 // We do this because half cannot store number bigger than 2048 exactly.
@@ -159,7 +164,7 @@ bool checkPixels (Array2D<T> &ph, int lx, int rx, int ly, int ry, int width)
 {
     for (int y = ly; y <= ry; ++y)
         for (int x = lx; x <= rx; ++x)
-            if (ph[y][x] != (y * width + x) % 2049)
+            if (ph[y][x] != static_cast<T>(((y * width + x) % 2049)))
             {
                 cout << "value at " << x << ", " << y << ": " << ph[y][x]
                      << ", should be " << (y * width + x) % 2049 << endl << flush;
@@ -181,9 +186,9 @@ bool checkPixels (Array2D<unsigned int>& sampleCount, Array2D<T*> &ph,
     for (int y = ly; y <= ry; ++y)
         for (int x = lx; x <= rx; ++x)
         {
-            for (int i = 0; i < sampleCount[y][x]; i++)
+            for (unsigned int i = 0; i < sampleCount[y][x]; i++)
             {
-                if (ph[y][x][i] != (y * width + x) % 2049)
+                if (ph[y][x][i] != static_cast<T>(((y * width + x) % 2049)))
                 {
                     cout << "value at " << x << ", " << y << ", sample " << i << ": " << ph[y][x][i]
                          << ", should be " << (y * width + x) % 2049 << endl << flush;
@@ -200,6 +205,7 @@ bool checkPixels (Array2D<unsigned int>& sampleCount, Array2D<T*> &ph, int width
     return checkPixels<T> (sampleCount, ph, 0, width - 1, 0, height - 1, width);
 }
 
+#if 0
 bool checkSampleCount(Array2D<unsigned int>& sampleCount, int x1, int x2, int y1, int y2, int width)
 {
     for (int i = y1; i <= y2; i++)
@@ -215,10 +221,12 @@ bool checkSampleCount(Array2D<unsigned int>& sampleCount, int x1, int x2, int y1
     return true;
 }
 
+
 bool checkSampleCount(Array2D<unsigned int>& sampleCount, int width, int height)
 {
     return checkSampleCount(sampleCount, 0, width - 1, 0, height - 1, width);
 }
+#endif
 
 void generateRandomHeaders(int partCount, vector<Header>& headers)
 {
@@ -235,8 +243,8 @@ void generateRandomHeaders(int partCount, vector<Header>& headers)
                        INCREASING_Y, 
                        ZIPS_COMPRESSION);
                    
-        int pixelType = rand() % 3;
-        int partType = rand() % 4;
+        int pixelType = random_int(3);
+        int partType = random_int(4);
         
         pixelTypes[i] = pixelType;
         partTypes[i] = partType;
@@ -279,11 +287,11 @@ void generateRandomHeaders(int partCount, vector<Header>& headers)
         int levelMode;
         if (partType == 1 || partType == 3)
         {
-            tileX = rand() % width + 1;
-            tileY = rand() % height + 1;
-            levelMode = rand() % 3;
+            tileX = random_int(width) + 1;
+            tileY = random_int(height) + 1;
+            levelMode = random_int(3);
             levelModes[i] = levelMode;
-            LevelMode lm;
+            LevelMode lm  = NUM_LEVELMODES;
             switch (levelMode)
             {
                 case 0:
@@ -300,13 +308,13 @@ void generateRandomHeaders(int partCount, vector<Header>& headers)
         }
 
  
-        int order = rand() % NUM_LINEORDERS;
+        int order = random_int(NUM_LINEORDERS);
         if(partType==0 || partType ==2)
         {
             // can't write random scanlines
-            order = rand() % (NUM_LINEORDERS-1);
+            order = random_int(NUM_LINEORDERS-1);
         }
-        LineOrder l;
+        LineOrder l = NUM_LINEORDERS;
         switch(order)
         {
              case 0 : 
@@ -671,7 +679,7 @@ readWholeFiles (const std::string & cpyFn)
     Array2D<unsigned int> sampleCount;
 
     MultiPartInputFile file(cpyFn.c_str());
-    for (size_t i = 0; i < file.parts(); i++)
+    for (int i = 0; i < file.parts(); i++)
     {
         const Header& header = file.header(i);
         assert (header.displayWindow() == headers[i].displayWindow());
@@ -692,12 +700,13 @@ readWholeFiles (const std::string & cpyFn)
     // Shuffle part numbers.
     //
     vector<int> shuffledPartNumber;
-    for (int i = 0; i < headers.size(); i++)
+    int nHeaders = static_cast<int>(headers.size());
+    for (int i = 0; i < nHeaders; i++)
         shuffledPartNumber.push_back(i);
-    for (int i = 0; i < headers.size(); i++)
+    for (int i = 0; i < nHeaders; i++)
     {
-        int a = rand() % headers.size();
-        int b = rand() % headers.size();
+        int a = random_int(nHeaders);
+        int b = random_int(nHeaders);
         swap (shuffledPartNumber[a], shuffledPartNumber[b]);
     }
 
@@ -708,7 +717,7 @@ readWholeFiles (const std::string & cpyFn)
     int partNumber;
     try
     {
-        for (i = 0; i < headers.size(); i++)
+        for (i = 0; i < nHeaders; i++)
         {
             partNumber = shuffledPartNumber[i];
             switch (partTypes[partNumber])
@@ -897,7 +906,7 @@ copyFile (const std::string & srcFn, const std::string & cpyFn)
     }
     
     MultiPartOutputFile out(cpyFn.c_str(),&in_hdr[0],in.parts());
-    for(size_t i=0;i<in.parts();i++)
+    for(int i=0;i<in.parts();i++)
     {
         std::string part_type = in.header(i).type();
         if(part_type == DEEPSCANLINE)
@@ -958,7 +967,7 @@ void testCopyMultiPartFile (const std::string & tempDir)
     {
         cout << "Testing copying multi-part files" << endl;
 
-        srand(1);
+        random_reseed(1);
 
         int numThreads = ThreadPool::globalThreadPool().numThreads();
         ThreadPool::globalThreadPool().setNumThreads(4);

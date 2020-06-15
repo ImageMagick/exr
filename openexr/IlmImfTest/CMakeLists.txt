@@ -1,8 +1,7 @@
-# yue.nicholas@gmail.com
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright Contributors to the OpenEXR Project.
 
-# IlmImfTest
-
-ADD_EXECUTABLE ( IlmImfTest
+add_executable(IlmImfTest
   compareB44.cpp
   compareDwa.cpp
   compareFloat.cpp
@@ -60,16 +59,14 @@ ADD_EXECUTABLE ( IlmImfTest
   testWav.cpp
   testXdr.cpp
   testYca.cpp
- )
-
-SET_ILMBASE_INCLUDE_DIRS( IlmImfTest )
-
-ADD_TEST ( TestIlmImf IlmImfTest )
-TARGET_LINK_LIBRARIES ( IlmImfTest
-  OpenEXR::IlmImf${OPENEXR_TARGET_SUFFIX}
-  IlmBase::Half${OPENEXR_TARGET_SUFFIX}
-  IlmBase::Iex${OPENEXR_TARGET_SUFFIX}
-  IlmBase::Imath${OPENEXR_TARGET_SUFFIX}
-  IlmBase::IlmThread${OPENEXR_TARGET_SUFFIX}
-  ${PTHREAD_LIB} ${ZLIB_LIBRARIES}
-  )
+  testLargeDataWindowOffsets.cpp
+  testB44ExpLogTable.cpp
+  testDwaLookups.cpp
+  random.cpp
+)
+target_compile_definitions(IlmImfTest PRIVATE ILM_IMF_TEST_IMAGEDIR="${CMAKE_CURRENT_SOURCE_DIR}/")
+target_link_libraries(IlmImfTest OpenEXR::IlmImf)
+set_target_properties(IlmImfTest PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+add_test(NAME OpenEXR.IlmImf COMMAND $<TARGET_FILE:IlmImfTest>)

@@ -31,7 +31,12 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
+#ifdef NDEBUG
+#    undef NDEBUG
+#endif
+
 #include "testCompositeDeepScanLine.h"
+#include "random.h"
 
 #include <ImfDeepScanLineOutputFile.h>
 #include <ImfDeepScanLineInputFile.h>
@@ -51,8 +56,6 @@
 
 namespace{
 
-const char source_filename[] = IMF_TMP_DIR "imf_test_multiple_read.exr";
-    
 using std::cout;
 using std::endl;
 using std::flush;
@@ -146,7 +149,7 @@ static void read_file(const char * filename)
     
     for(int count=0;count<4000;count++)
     {
-        int row = rand() % height + y_offset;
+        int row = random_int(height) + y_offset;
         
         //
         // read row y (at random)
@@ -161,14 +164,14 @@ static void read_file(const char * filename)
         for(int i=0;i<width;i++)
         {
             
-            if( samplecounts[i]!= row)
+            if( samplecounts[i]!= static_cast<unsigned int>(row))
             {
               cout << i << ", " << row << " error, sample counts hould be "
               << row  << ", is " << samplecounts[i]
               << endl << flush;
             }
             
-            assert (samplecounts[i]== row);
+            assert (samplecounts[i]== static_cast<unsigned int>(row));
             
             total_samples+=samplecounts[i];
         }
@@ -218,7 +221,7 @@ testDeepScanLineMultipleRead(const std::string & tempDir)
     cout << "\n\nTesting random re-reads from deep scanline file:\n" << endl;
     
     std::string source_filename = tempDir + "imf_test_multiple_read";
-    srand(1);
+    random_reseed(1);
     
     make_file(source_filename.c_str());
     read_file(source_filename.c_str());

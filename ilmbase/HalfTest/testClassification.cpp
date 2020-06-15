@@ -1,12 +1,25 @@
+//
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenEXR Project.
+//
+
+#ifdef NDEBUG
+#    undef NDEBUG
+#endif
+
 #include <testClassification.h>
 #include "half.h"
 #include <iostream>
 #include <assert.h>
-
+#include <type_traits>
 
 using namespace std;
 
 namespace {
+
+#if __cplusplus >= 201402L
+static_assert(std::is_trivially_default_constructible<half>::value, "half is trivial and default constructible");
+#endif
 
 void
 testClass (half h,

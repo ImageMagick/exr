@@ -31,7 +31,12 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
+#ifdef NDEBUG
+#    undef NDEBUG
+#endif
+
 #include "testCompositeDeepScanLine.h"
+#include "random.h"
 
 #include <vector>
 #include <string>
@@ -122,7 +127,7 @@ class data
     
     data() : _inserting_result(false),_started(false)
     {  
-        if(typeid(T)==typeid(half))
+        if(typeid(T).hash_code()==typeid(half).hash_code())
         {
             _type = OPENEXR_IMF_NAMESPACE::HALF;
         }
@@ -245,10 +250,10 @@ class data
         {
             // copy sample to a random part
             
-            for(int s=0;s<_samples[i].size();s++)
+            for(size_t s=0;s<_samples[i].size();s++)
             {
-              int part = rand()% parts.size();
-              parts[part]._samples[i].push_back(_samples[i][s]);
+                int part = random_int(parts.size());
+                parts[part]._samples[i].push_back(_samples[i][s]);
             }
         }
     }
@@ -452,7 +457,6 @@ make_pattern(data<DATA> & bob,int pattern_number)
         // set channels
         
         bob << string("Z") << string("ZBack") << string("A") << string("R");
-        PixelType t;
 
         // regular two-pixel composite
         bob << 1.0 << 2.0 << 0.0 << 1.0 << end();
@@ -519,10 +523,10 @@ write_file(const char * filename, const data<T> & master, int number_of_parts)
     // all headers are the same in this test
     headers[0].displayWindow().max.x=164;
     headers[0].displayWindow().max.y=216;
-    headers[0].dataWindow().min.x=rand()%400 - 200;
-    headers[0].dataWindow().max.x=headers[0].dataWindow().min.x+40+rand()%400;
-    headers[0].dataWindow().min.y=rand()%400 - 200;
-    headers[0].dataWindow().max.y=headers[0].dataWindow().min.y+40+rand()%400;
+    headers[0].dataWindow().min.x=random_int(400) - 200;
+    headers[0].dataWindow().max.x=headers[0].dataWindow().min.x+40+random_int(400);
+    headers[0].dataWindow().min.y=random_int(400) - 200;
+    headers[0].dataWindow().max.y=headers[0].dataWindow().min.y+40+random_int(400);
     cout << "data window: " << headers[0].dataWindow().min.x << ',' << headers[0].dataWindow().min.y << ' ' << 
     headers[0].dataWindow().max.x << ',' << headers[0].dataWindow().max.y << endl;
     headers[0].setType(DEEPSCANLINE);
@@ -613,7 +617,7 @@ test_parts (int pattern_number,
            int low = comp.dataWindow().min.y;
            while(low<comp.dataWindow().max.y)
            {
-               int high = low + rand()%64;
+               int high = low + random_int(64);
                if(high>comp.dataWindow().max.y) 
                    high = comp.dataWindow().max.y;
                comp.readPixels(low,high);
@@ -644,7 +648,7 @@ test_parts (int pattern_number,
              int low = dataWindow.min.y;
              while(low<dataWindow.max.y)
              {
-                 int high = low + rand()%64;
+                 int high = low + random_int(64);
                  if(high>dataWindow.max.y) 
                      high = dataWindow.max.y;
                  file.readPixels(low,high);
@@ -671,8 +675,7 @@ void testCompositeDeepScanLine (const std::string & tempDir)
             passes=1;
     }
   
-
-    srand(1);
+    random_reseed(1);
     
     for(int pass=0;pass<2;pass++)
     {

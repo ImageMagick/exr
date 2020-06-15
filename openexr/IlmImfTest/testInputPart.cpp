@@ -33,7 +33,11 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 ///////////////////////////////////////////////////////////////////////////
-  
+
+#ifdef NDEBUG
+#    undef NDEBUG
+#endif
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -43,6 +47,7 @@
 
 #include "tmpDir.h"
 #include "testInputPart.h"
+#include "random.h"
 
 #include <IlmThreadPool.h>
 #include <ImfMultiPartInputFile.h>
@@ -53,7 +58,7 @@
 #include <ImfInputPart.h>
 #include <ImfTiledOutputPart.h>
 #include <ImfPartType.h>
-#include <ImfMisc.h>
+//#include <ImfMisc.h>
 
 namespace IMF = OPENEXR_IMF_NAMESPACE;
 using namespace IMF;
@@ -94,7 +99,7 @@ void fillPixels (Array2D<unsigned int>& sampleCount, Array2D<T*> &ph, int width,
         for (int x = 0; x < width; ++x)
         {
             ph[y][x] = new T[sampleCount[y][x]];
-            for (int i = 0; i < sampleCount[y][x]; i++)
+            for (unsigned int i = 0; i < sampleCount[y][x]; i++)
             {
                 //
                 // We do this because half cannot store number bigger than 2048 exactly.
@@ -104,6 +109,7 @@ void fillPixels (Array2D<unsigned int>& sampleCount, Array2D<T*> &ph, int width,
         }
 }
 
+#if 0
 void allocatePixels(int type, Array2D<unsigned int>& sampleCount,
                     Array2D<unsigned int*>& uintData, Array2D<float*>& floatData,
                     Array2D<half*>& halfData, int x1, int x2, int y1, int y2)
@@ -147,13 +153,14 @@ void releasePixels(int type, Array2D<unsigned int*>& uintData, Array2D<float*>& 
 {
     releasePixels(type, uintData, floatData, halfData, 0, width - 1, 0, height - 1);
 }
+#endif
 
 template <class T>
 bool checkPixels (Array2D<T> &ph, int lx, int rx, int ly, int ry, int width)
 {
     for (int y = ly; y <= ry; ++y)
         for (int x = lx; x <= rx; ++x)
-            if (ph[y][x] != (y * width + x) % 2049)
+            if (ph[y][x] != static_cast<T>(((y * width + x) % 2049)))
             {
                 cout << "value at " << x << ", " << y << ": " << ph[y][x]
                      << ", should be " << (y * width + x) % 2049 << endl << flush;
@@ -175,7 +182,7 @@ bool checkPixels (Array2D<unsigned int>& sampleCount, Array2D<T*> &ph,
     for (int y = ly; y <= ry; ++y)
         for (int x = lx; x <= rx; ++x)
         {
-            for (int i = 0; i < sampleCount[y][x]; i++)
+            for (unsigned int i = 0; i < sampleCount[y][x]; i++)
             {
                 if (ph[y][x][i] != (y * width + x) % 2049)
                 {
@@ -194,12 +201,13 @@ bool checkPixels (Array2D<unsigned int>& sampleCount, Array2D<T*> &ph, int width
     return checkPixels<T> (sampleCount, ph, 0, width - 1, 0, height - 1, width);
 }
 
+#if 0
 bool checkSampleCount(Array2D<unsigned int>& sampleCount, int x1, int x2, int y1, int y2, int width)
 {
     for (int i = y1; i <= y2; i++)
         for (int j = x1; j <= x2; j++)
         {
-            if (sampleCount[i][j] != ((i * width) + j) % 10 + 1)
+            if (sampleCount[i][j] != static_cast<unsigned int>(((i * width) + j) % 10 + 1))
             {
                 cout << "sample count at " << j << ", " << i << ": " << sampleCount[i][j]
                      << ", should be " << (i * width + j) % 10 + 1 << endl << flush;
@@ -213,6 +221,7 @@ bool checkSampleCount(Array2D<unsigned int>& sampleCount, int width, int height)
 {
     return checkSampleCount(sampleCount, 0, width - 1, 0, height - 1, width);
 }
+#endif
 
 void generateRandomHeaders(int partCount, vector<Header>& headers)
 {
@@ -229,8 +238,8 @@ void generateRandomHeaders(int partCount, vector<Header>& headers)
                        INCREASING_Y, 
                        ZIPS_COMPRESSION);
                    
-        int pixelType = rand() % 3;
-        int partType = rand() % 2;
+        int pixelType = random_int(3);
+        int partType = random_int(2);
         
         pixelTypes[i] = pixelType;
         partTypes[i] = partType;
@@ -267,11 +276,11 @@ void generateRandomHeaders(int partCount, vector<Header>& headers)
         int levelMode;
         if (partType == 1)
         {
-            tileX = rand() % width + 1;
-            tileY = rand() % height + 1;
-            levelMode = rand() % 3;
+            tileX = random_int(width) + 1;
+            tileY = random_int(height) + 1;
+            levelMode = random_int(3);
             levelModes[i] = levelMode;
-            LevelMode lm;
+            LevelMode lm  = NUM_LEVELMODES;
             switch (levelMode)
             {
                 case 0:
@@ -288,13 +297,13 @@ void generateRandomHeaders(int partCount, vector<Header>& headers)
         }
 
  
-        int order = rand() % NUM_LINEORDERS;
+        int order = random_int(NUM_LINEORDERS);
         if(partType==0 || partType ==2)
         {
             // can't write random scanlines
-            order = rand() % (NUM_LINEORDERS-1);
+            order = random_int(NUM_LINEORDERS-1);
         }
-        LineOrder l;
+        LineOrder l = NUM_LINEORDERS;
         switch(order)
         {
              case 0 : 
@@ -507,7 +516,7 @@ readWholeFiles (const std::string & fn)
     Array2D<unsigned int> sampleCount;
 
     MultiPartInputFile file(fn.c_str());
-    for (size_t i = 0; i < file.parts(); i++)
+    for (int i = 0; i < file.parts(); i++)
     {
         const Header& header = file.header(i);
         assert (header.displayWindow() == headers[i].displayWindow());
@@ -528,12 +537,13 @@ readWholeFiles (const std::string & fn)
     // Shuffle part numbers.
     //
     vector<int> shuffledPartNumber;
-    for (int i = 0; i < headers.size(); i++)
+    int nHeaders = static_cast<int>(headers.size());
+    for (int i = 0; i < nHeaders; i++)
         shuffledPartNumber.push_back(i);
-    for (int i = 0; i < headers.size(); i++)
+    for (int i = 0; i < nHeaders; i++)
     {
-        int a = rand() % headers.size();
-        int b = rand() % headers.size();
+        int a = random_int(nHeaders);
+        int b = random_int(nHeaders);
         swap (shuffledPartNumber[a], shuffledPartNumber[b]);
     }
 
@@ -544,7 +554,7 @@ readWholeFiles (const std::string & fn)
     int partNumber;
     try
     {
-        for (i = 0; i < headers.size(); i++)
+        for (i = 0; i < nHeaders; i++)
         {
             partNumber = shuffledPartNumber[i];
             FrameBuffer frameBuffer;
@@ -590,11 +600,11 @@ readFirstPart (const std::string & fn)
     
     cout << "Reading first part " << flush;
     int pixelType = pixelTypes[0];
-    int levelMode = levelModes[0];
+    //int levelMode = levelModes[0];
 
     int l1, l2;
-    l1 = rand() % height;
-    l2 = rand() % height;
+    l1 = random_int(height);
+    l2 = random_int(height);
     if (l1 > l2) swap(l1, l2);
 
     InputFile part(fn.c_str());
@@ -638,14 +648,14 @@ readPartialFiles (int randomReadCount, const std::string & fn)
 
     for (int i = 0; i < randomReadCount; i++)
     {
-        int partNumber = rand() % file.parts();
-        int partType = partTypes[partNumber];
+        int partNumber = random_int(file.parts());
+        //int partType = partTypes[partNumber];
         int pixelType = pixelTypes[partNumber];
-        int levelMode = levelModes[partNumber];
+        //int levelMode = levelModes[partNumber];
 
         int l1, l2;
-        l1 = rand() % height;
-        l2 = rand() % height;
+        l1 = random_int(height);
+        l2 = random_int(height);
         
         if (l1 > l2) swap(l1, l2);
 
@@ -707,7 +717,7 @@ void testInputPart (const std::string & tempDir)
     {
         cout << "Testing reading multipart tiles and scanlines with InputPart" << endl;
 
-        srand(1);
+        random_reseed(1);
 
         int numThreads = ThreadPool::globalThreadPool().numThreads();
         ThreadPool::globalThreadPool().setNumThreads(4);

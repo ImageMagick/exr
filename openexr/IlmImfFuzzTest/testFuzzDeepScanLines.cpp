@@ -32,7 +32,9 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
-
+#ifdef NDEBUG
+#    undef NDEBUG
+#endif
 
 #include "fuzzFile.h"
 
@@ -174,7 +176,7 @@ void generateRandomFile(const char filename[], int channelCount,int parts , Comp
                 for (int k = 0; k < channelCount; k++)
                 {
                     data[k][i][j] = new float[sampleCount[i][j]];
-                    for (int l = 0; l < sampleCount[i][j]; l++)
+                    for (unsigned int l = 0; l < sampleCount[i][j]; l++)
                     {
                         ((float*)data[k][i][j])[l] = (i * width + j) % 2049;
                     }
@@ -247,8 +249,6 @@ void readFile(const char filename[])
         file.readPixelSampleCounts(dataWindow.min.y, dataWindow.max.y);
         for (int i = 0; i < dataWindow.max.y - dataWindow.min.y + 1; i++)
         {
-            int y = i + dataWindow.min.y;
-            
             for (int j = 0; j < width; j++)
             {
                 for (int k = 0; k < channelCount; k++)
@@ -264,6 +264,7 @@ void readFile(const char filename[])
         }catch(...)
         {
             // if readPixels excepts we must clean up
+            assert (true);
         }
         
         for (int i = 0; i < height; i++)
@@ -276,6 +277,7 @@ void readFile(const char filename[])
     }catch(std::exception & e)
     {
         /* ... yeah, that's likely to happen a lot ... */
+        assert (true);
     }
     
     
@@ -338,8 +340,6 @@ void readFile(const char filename[])
             inpart.readPixelSampleCounts(dataWindow.min.y, dataWindow.max.y);
             for (int i = 0; i < dataWindow.max.y - dataWindow.min.y + 1; i++)
             {
-                int y = i + dataWindow.min.y;
-                
                 for (int j = 0; j < width; j++)
                 {
                     for (int k = 0; k < channelCount; k++)
@@ -352,7 +352,7 @@ void readFile(const char filename[])
                 inpart.readPixels(dataWindow.min.y, dataWindow.max.y);
             }catch(...)
             {
-                
+                assert (true);
             }
     
             for (int i = 0; i < height; i++)
@@ -369,6 +369,7 @@ void readFile(const char filename[])
     }catch(...)
     {
         // nothing
+        assert (true);
     }
 }
 
@@ -407,21 +408,29 @@ fuzzDeepScanLines (int numThreads, Rand48 &random)
 
 
 void
-testFuzzDeepScanLines ()
+testFuzzDeepScanLines (const char* file)
 {
     try
     {
-	cout << "Testing deep scanline-based files "
-		"with randomly inserted errors" << endl;
+        if(file)
+        {
+            readFile(file);
+        }
+        else
+        {
 
-	Rand48 random (1);
+            cout << "Testing deep scanline-based files "
+                    "with randomly inserted errors" << endl;
 
-	fuzzDeepScanLines (0, random);
+            Rand48 random (1);
 
-	if (ILMTHREAD_NAMESPACE::supportsThreads())
-	    fuzzDeepScanLines (2, random);
+            fuzzDeepScanLines (0, random);
 
-	cout << "ok\n" << endl;
+            if (ILMTHREAD_NAMESPACE::supportsThreads())
+                fuzzDeepScanLines (2, random);
+
+            cout << "ok\n" << endl;
+        }
     }
     catch (const std::exception &e)
     {

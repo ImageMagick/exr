@@ -36,6 +36,10 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 
+#ifdef NDEBUG
+#    undef NDEBUG
+#endif
+
 #include <ImfRgbaFile.h>
 #include <ImfArray.h>
 #include <ImfThreading.h>
@@ -165,6 +169,10 @@ writeReadYca (const char fileName[],
 	    }
 
 	    break;
+		case NUM_LINEORDERS:
+		default:
+			cerr << "invalid line order " << int(readOrder) << std::endl;
+			break;
 	}
     }
 

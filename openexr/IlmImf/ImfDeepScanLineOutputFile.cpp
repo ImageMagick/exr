@@ -75,7 +75,6 @@ using IMATH_NAMESPACE::divp;
 using IMATH_NAMESPACE::modp;
 using std::string;
 using std::vector;
-using std::ofstream;
 using std::min;
 using std::max;
 using ILMTHREAD_NAMESPACE::Mutex;
@@ -235,6 +234,10 @@ struct DeepScanLineOutputFile::Data
     Data (int numThreads);
     ~Data ();
 
+    Data (const Data& other) = delete;
+    Data& operator = (const Data& other) = delete;
+    Data (Data&& other) = delete;
+    Data& operator = (Data&& other) = delete;
 
     inline LineBuffer *         getLineBuffer (int number);// hash function from line
                                                            // buffer indices into our
@@ -297,7 +300,7 @@ writeLineOffsets (OPENEXR_IMF_INTERNAL_NAMESPACE::OStream &os, const vector<Int6
 {
     Int64 pos = os.tellp();
 
-    if (pos == -1)
+    if (pos == static_cast<Int64>(-1))
         IEX_NAMESPACE::throwErrnoExc ("Cannot determine current file position (%T).");
 
     for (unsigned int i = 0; i < lineOffsets.size(); i++)
@@ -1001,7 +1004,7 @@ DeepScanLineOutputFile::~DeepScanLineOutputFile ()
                 //
                 _data->_streamData->os->seekp (originalPosition);
             }
-            catch (...)
+            catch (...) //NOSONAR - suppress vulnerability reports from SonarCloud.
             {
                 //
                 // We cannot safely throw any exceptions from here.

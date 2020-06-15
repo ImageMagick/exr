@@ -2,9 +2,9 @@
 //
 // Copyright (c) 2004-2014, Industrial Light & Magic, a division of Lucas
 // Digital Ltd. LLC
-// 
+//
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
@@ -16,8 +16,8 @@
 // distribution.
 // *       Neither the name of Industrial Light & Magic nor the names of
 // its contributors may be used to endorse or promote products derived
-// from this software without specific prior written permission. 
-// 
+// from this software without specific prior written permission.
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 // "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 // LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -248,7 +248,7 @@ struct SetAttr
     string      name;
     int         part;
     Attribute * attr;
-    
+
     SetAttr (const string &name, int part, Attribute *attr):
         name (name), part (part), attr (attr) {}
 };
@@ -371,7 +371,7 @@ getFloat (const char attrName[],
     if (i > argc - 2)
 	usageMessage (argv[0]);
 
-    float f = strtod (argv[i + 1], 0);
+    float f = static_cast<float>(strtod (argv[i + 1], 0));
 
     if (check)
 	check (attrName, f);
@@ -393,14 +393,14 @@ getPosFloatOrInf (const char attrName[],
 	usageMessage (argv[0]);
 
     float f;
-    
+
     if (!strcmp (argv[i + 1], "inf") || !strcmp (argv[i + 1], "infinity"))
     {
 	f = float (half::posInf());
     }
     else
     {
-	f = strtod (argv[i + 1], 0);
+	f = static_cast<float>(strtod (argv[i + 1], 0));
 
 	if (f <= 0)
 	{
@@ -427,7 +427,8 @@ getV2f (const char attrName[],
     if (i > argc - 3)
 	usageMessage (argv[0]);
 
-    V2f v (strtod (argv[i + 1], 0), strtod (argv[i + 2], 0));
+    V2f v (static_cast<float>(strtod (argv[i + 1], 0)),
+           static_cast<float>(strtod (argv[i + 2], 0)));
 
     if (check)
 	check (attrName, v);
@@ -509,7 +510,7 @@ getNameAndFloat (int argc,
 	usageMessage (argv[0]);
 
     const char *attrName = argv[i + 1];
-    float f = strtod (argv[i + 2], 0);
+    float f = static_cast<float>(strtod (argv[i + 2], 0));
     attrs.push_back (SetAttr (attrName, part, new FloatAttribute (f)));
     i += 3;
 }
@@ -546,14 +547,14 @@ getChromaticities (const char attrName[],
     ChromaticitiesAttribute *a = new ChromaticitiesAttribute;
     attrs.push_back (SetAttr (attrName, part, a));
 
-    a->value().red.x   = strtod (argv[i + 1], 0);
-    a->value().red.y   = strtod (argv[i + 2], 0);
-    a->value().green.x = strtod (argv[i + 3], 0);
-    a->value().green.y = strtod (argv[i + 4], 0);
-    a->value().blue.x  = strtod (argv[i + 5], 0);
-    a->value().blue.y  = strtod (argv[i + 6], 0);
-    a->value().white.x = strtod (argv[i + 7], 0);
-    a->value().white.y = strtod (argv[i + 8], 0);
+    a->value().red.x   = static_cast<float>(strtod (argv[i + 1], 0));
+    a->value().red.y   = static_cast<float>(strtod (argv[i + 2], 0));
+    a->value().green.x = static_cast<float>(strtod (argv[i + 3], 0));
+    a->value().green.y = static_cast<float>(strtod (argv[i + 4], 0));
+    a->value().blue.x  = static_cast<float>(strtod (argv[i + 5], 0));
+    a->value().blue.y  = static_cast<float>(strtod (argv[i + 6], 0));
+    a->value().white.x = static_cast<float>(strtod (argv[i + 7], 0));
+    a->value().white.y = static_cast<float>(strtod (argv[i + 8], 0));
     i += 9;
 }
 
@@ -834,7 +835,7 @@ main(int argc, char **argv)
         {
             Header h = in.header (part);
 
-            for (int i = 0; i < attrs.size(); ++i)
+            for (size_t i = 0; i < attrs.size(); ++i)
             {
                 const SetAttr &attr = attrs[i];
 

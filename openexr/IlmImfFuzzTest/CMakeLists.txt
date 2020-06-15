@@ -1,31 +1,23 @@
-# yue.nicholas@gmail.com
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright Contributors to the OpenEXR Project.
 
-ADD_EXECUTABLE ( IlmImfFuzzTest
-  fuzzFile.cpp
-  main.cpp
-  testFuzzDeepTiles.cpp
-  testFuzzDeepScanLines.cpp
-  testFuzzScanLines.cpp
-  testFuzzTiles.cpp
+option(OPENEXR_RUN_FUZZ_TESTS  "Controls whether to include the fuzz tests (slow) in default test cases, there is a custom fuzz target" OFF)
+if(OPENEXR_RUN_FUZZ_TESTS)
+  add_executable( IlmImfFuzzTest
+    fuzzFile.cpp
+    main.cpp
+    testFuzzDeepTiles.cpp
+    testFuzzDeepScanLines.cpp
+    testFuzzScanLines.cpp
+    testFuzzTiles.cpp
   )
+  target_link_libraries(IlmImfFuzzTest OpenEXR::IlmImf)
+  set_target_properties(IlmImfFuzzTest PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+  )
+  add_test(NAME OpenEXR.ImfFuzz COMMAND $<TARGET_FILE:IlmImfFuzzTest>)
+  set_tests_properties(OpenEXR.ImfFuzz PROPERTIES TIMEOUT 36000)
 
-SET_ILMBASE_INCLUDE_DIRS( IlmImfFuzzTest )
-
-TARGET_LINK_LIBRARIES ( IlmImfFuzzTest
-  OpenEXR::IlmImf${OPENEXR_TARGET_SUFFIX}
-  IlmBase::Half${OPENEXR_TARGET_SUFFIX}
-  IlmBase::Iex${OPENEXR_TARGET_SUFFIX}
-  IlmBase::Imath${OPENEXR_TARGET_SUFFIX}
-  IlmBase::IlmThread${OPENEXR_TARGET_SUFFIX}
-  ${PTHREAD_LIB} ${ZLIB_LIBRARIES})
-
-IF ( OPENEXR_RUN_FUZZ_TESTS )
-  ADD_TEST ( TestIlmImfFuzz IlmImfFuzzTest )
-  # This takes a really long time to run... the default timeout is 1500 seconds or
-  # but this can take 10 hours to run on an older machine
-  SET_TESTS_PROPERTIES ( TestIlmImfFuzz PROPERTIES TIMEOUT 36000 )
-ENDIF ()
-
-ADD_CUSTOM_TARGET(fuzz ${CMAKE_CURRENT_BINARY_DIR}/IlmImfFuzzTest)
-# the depends you can add in ADD_CUSTOM_TARGET only works for other add_custom_command
-ADD_DEPENDENCIES(fuzz IlmImfFuzzTest)
+  add_custom_target(fuzz $<TARGET_FILE:IlmImfFuzzTest>)
+  add_dependencies(fuzz IlmImfFuzzTest)
+endif()

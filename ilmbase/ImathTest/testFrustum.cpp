@@ -32,7 +32,9 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
-
+#ifdef NDEBUG
+#    undef NDEBUG
+#endif
 
 #include <testFrustum.h>
 #include "ImathFrustum.h"
@@ -55,17 +57,17 @@ testFrustumPlanes  (IMATH_INTERNAL_NAMESPACE::Frustumf &frustum)
     IMATH_INTERNAL_NAMESPACE::V3f o (0.0f, 0.0f, 0.0f);
     float eps = 5.0e-4;
 
-    for (float xRo = 0.0f; xRo < 360.0f; xRo += 100.0f)
+    for (auto xRo : {0.0f, 100.0f, 200.0f})
     {
-        for (float yRo = 0.0f; yRo < 360.0f; yRo += 105.0f)
+        for (auto yRo : {0.0f, 105.0f, 210.0f, 315.0f})
         {
-            for (float zRo = 0.0f; zRo < 360.0f; zRo += 110.0f)
+            for (auto zRo : {0.0f, 110.0f, 220.0f, 330.0f})
             {
-                for (float xTr = -10.0f; xTr < 10.0f; xTr += 2)
+                for (auto xTr : {-10.0f, -8.0f, -6.0f, -4.0f, -2.0f, 0.0f, 2.0f, 4.0f, 6.0f, 8.0f})
                 {
-                    for (float yTr = -10.0f; yTr < 10.0f; yTr += 3)
+                    for (auto yTr : {-10.0f, -7.0f, -4.0f, -1.0f, 2.0f, 5.0f, 8.0f})
                     {
-                        for (float zTr = -10.0f; zTr < 10.0f; zTr += 4)
+                        for (auto zTr : {-10.0f, -6.0f, -2.0f, 2.0f, 6.0f})
                         {
                             float xRoRad = xRo * (2.0f * float(M_PI) / 360.0f);
                             float yRoRad = yRo * (2.0f * float(M_PI) / 360.0f);
@@ -216,31 +218,48 @@ testFrustum ()
     cout << "\nexceptions ";
     IMATH_INTERNAL_NAMESPACE::Frustum<float> badFrustum;
 
+    bool caught;
+
     badFrustum.set (n, n, l, r, t, b, false);
+    caught = false;
     try
     {
 	(void)badFrustum.projectionMatrix();
 	assert (!"near == far didn't throw an exception");
     }
-    catch (IEX_NAMESPACE::DivzeroExc) {}
+    catch (IEX_NAMESPACE::DivzeroExc &)
+    {
+        caught = true;
+    }
+    assert (caught);
     cout << "1";
 
     badFrustum.set (n, f, l, l, t, b, false);
+    caught = false;
     try
     {
 	(void)badFrustum.projectionMatrix();
 	assert (!"left == right didn't throw an exception");
     }
-    catch (IEX_NAMESPACE::DivzeroExc) {}
+    catch (IEX_NAMESPACE::DivzeroExc &)
+    {
+        caught = true;
+    }
+    assert (caught);
     cout << "2";
 
     badFrustum.set (n, f, l, r, t, t, false);
+    caught = false;
     try
     {
 	(void)badFrustum.projectionMatrix();
 	assert (!"top == bottom didn't throw an exception");
     }
-    catch (IEX_NAMESPACE::DivzeroExc) {}
+    catch (IEX_NAMESPACE::DivzeroExc &)
+    {
+        caught = true;
+    }
+    assert (caught);
     cout << "3";
 
     cout << "\northographic ";

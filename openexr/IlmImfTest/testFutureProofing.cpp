@@ -33,17 +33,23 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 ///////////////////////////////////////////////////////////////////////////
-  
+
+#ifdef NDEBUG
+#    undef NDEBUG
+#endif
+
 #include <iostream>
 #include <string>
 #include <vector>
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include "bswap_32.h"
 
 #include "tmpDir.h"
 #include "testFutureProofing.h"
 #include "testMultiPartFileMixingBasic.h"
+#include "random.h"
 
 #include <IlmThreadPool.h>
 #include <ImfMultiPartInputFile.h>
@@ -64,6 +70,7 @@
 #include <ImfNamespace.h>
 #include <ImathNamespace.h>
 #include <IlmThreadNamespace.h>
+#include <ImfSystemSpecific.h>
 
 namespace IMF = OPENEXR_IMF_NAMESPACE;
 using namespace IMF;
@@ -106,7 +113,7 @@ fillPixels (Array2D<unsigned int>& sampleCount, Array2D<T*> &ph, int width, int 
         for (int x = 0; x < width; ++x)
         {
             ph[y][x] = new T[sampleCount[y][x]];
-            for (int i = 0; i < sampleCount[y][x]; i++)
+            for (unsigned int i = 0; i < sampleCount[y][x]; i++)
             {
                 //
                 // We do this because half cannot store number bigger than 2048 exactly.
@@ -188,7 +195,7 @@ checkPixels (Array2D<T> &ph, int lx, int rx, int ly, int ry, int width)
     {
         for (int x = lx; x <= rx; ++x)
         {
-            if (ph[y][x] != (y * width + x) % 2049)
+            if (ph[y][x] != static_cast<T>(((y * width + x) % 2049)))
             {
                 cout << "value at " << x << ", " << y << ": " << ph[y][x]
                      << ", should be " << (y * width + x) % 2049 << endl << flush;
@@ -217,9 +224,9 @@ checkPixels (Array2D<unsigned int>& sampleCount,
     {
         for (int x = lx; x <= rx; ++x)
         {
-            for (int i = 0; i < sampleCount[y][x]; i++)
+            for (unsigned int i = 0; i < sampleCount[y][x]; i++)
             {
-                if (ph[y][x][i] != (y * width + x) % 2049)
+                if (ph[y][x][i] != static_cast<T>(((y * width + x) % 2049)))
                 {
                     cout << "value at " << x << ", " << y << ", sample " << i << ": " << ph[y][x][i]
                          << ", should be " << (y * width + x) % 2049 << endl << flush;
@@ -249,7 +256,7 @@ checkSampleCount (Array2D<unsigned int>& sampleCount,
     {
         for (int j = x1; j <= x2; j++)
         {
-            if (sampleCount[i][j] != ((i * width) + j) % 10 + 1)
+            if (sampleCount[i][j] != static_cast<unsigned int>(((i * width) + j) % 10 + 1))
             {
                 cout << "sample count at " << j << ", " << i << ": " << sampleCount[i][j]
                      << ", should be " << (i * width + j) % 10 + 1 << endl << flush;
@@ -260,11 +267,13 @@ checkSampleCount (Array2D<unsigned int>& sampleCount,
     return true;
 }
 
+#if 0
 bool
 checkSampleCount (Array2D<unsigned int>& sampleCount, int width, int height)
 {
     return checkSampleCount(sampleCount, 0, width - 1, 0, height - 1, width);
 }
+#endif
 
 void
 generateRandomHeaders (int partCount, vector<Header>& headers)
@@ -282,8 +291,8 @@ generateRandomHeaders (int partCount, vector<Header>& headers)
                        INCREASING_Y, 
                        ZIPS_COMPRESSION);
                    
-        int pixelType = rand() % 3;
-        int partType = rand() % 4;
+        int pixelType = random_int(3);
+        int partType = random_int(4);
         
         pixelTypes[i] = pixelType;
         partTypes[i] = partType;
@@ -326,11 +335,11 @@ generateRandomHeaders (int partCount, vector<Header>& headers)
         int levelMode;
         if (partType == 1 || partType == 3)
         {
-            tileX = rand() % width + 1;
-            tileY = rand() % height + 1;
-            levelMode = rand() % 3;
+            tileX = random_int(width) + 1;
+            tileY = random_int(height) + 1;
+            levelMode = random_int(3);
             levelModes[i] = levelMode;
-            LevelMode lm;
+            LevelMode lm  = NUM_LEVELMODES;
             switch (levelMode)
             {
                 case 0:
@@ -347,13 +356,13 @@ generateRandomHeaders (int partCount, vector<Header>& headers)
         }
 
  
-        int order = rand() % NUM_LINEORDERS;
+        int order = random_int(NUM_LINEORDERS);
         if(partType==0 || partType ==2)
         {
             // can't write random scanlines
-            order = rand() % (NUM_LINEORDERS-1);
+            order = random_int(NUM_LINEORDERS-1);
         }
-        LineOrder l;
+        LineOrder l = NUM_LINEORDERS;
         switch(order)
         {
              case 0 : 
@@ -737,7 +746,7 @@ readWholeFiles (int modification)
     Array2D<unsigned int> sampleCount;
 
     MultiPartInputFile file(filename.c_str());
-    for (size_t i = 0; i < file.parts(); i++)
+    for (int i = 0; i < file.parts(); i++)
     {
         const Header& header = file.header(i);
         assert (header.displayWindow() == headers[i].displayWindow());
@@ -765,12 +774,12 @@ readWholeFiles (int modification)
     // Shuffle part numbers.
     //
     vector<int> shuffledPartNumber;
-    for (int i = modification>0 ? 1 : 0; i < headers.size(); i++)
+    for (int i = modification>0 ? 1 : 0; i < static_cast<int>(headers.size()); i++)
         shuffledPartNumber.push_back(i);
-    for (int i = 0; i < shuffledPartNumber.size(); i++)
+    for (size_t i = 0; i < shuffledPartNumber.size(); i++)
     {
-        int a = rand() % shuffledPartNumber.size();
-        int b = rand() % shuffledPartNumber.size();
+        size_t a = random_int(shuffledPartNumber.size());
+        size_t b = random_int(shuffledPartNumber.size());
         swap (shuffledPartNumber[a], shuffledPartNumber[b]);
     }
 
@@ -780,11 +789,10 @@ readWholeFiles (int modification)
     //
     // Start reading whole files.
     //
-    int i;
     int partNumber;
     try
     {
-        for (i = 0; i < shuffledPartNumber.size(); i++)
+        for (size_t i = 0; i < shuffledPartNumber.size(); i++)
         {
             partNumber = shuffledPartNumber[i];
             switch (partTypes[partNumber])
@@ -980,8 +988,8 @@ readFirstPart()
         case 0:
         {
         int l1, l2;
-        l1 = rand() % height;
-        l2 = rand() % height;
+        l1 = random_int(height);
+        l2 = random_int(height);
         if (l1 > l2) swap(l1, l2);
 
         InputFile part(filename.c_str());
@@ -1018,8 +1026,8 @@ readFirstPart()
         int numXLevels = part.numXLevels();
         int numYLevels = part.numYLevels();
 
-        lx = rand() % numXLevels;
-        ly = rand() % numYLevels;
+        lx = random_int(numXLevels);
+        ly = random_int(numYLevels);
         if (levelMode == 1) ly = lx;
 
         int w = part.levelWidth(lx);
@@ -1027,10 +1035,10 @@ readFirstPart()
 
         int numXTiles = part.numXTiles(lx);
         int numYTiles = part.numYTiles(ly);
-        tx1 = rand() % numXTiles;
-        tx2 = rand() % numXTiles;
-        ty1 = rand() % numYTiles;
-        ty2 = rand() % numYTiles;
+        tx1 = random_int(numXTiles);
+        tx2 = random_int(numXTiles);
+        ty1 = random_int(numYTiles);
+        ty2 = random_int(numYTiles);
         if (tx1 > tx2) swap(tx1, tx2);
         if (ty1 > ty2) swap(ty1, ty2);
 
@@ -1080,8 +1088,8 @@ readFirstPart()
         part.setFrameBuffer(frameBuffer);
 
         int l1, l2;
-        l1 = rand() % height;
-        l2 = rand() % height;
+        l1 = random_int(height);
+        l2 = random_int(height);
         if (l1 > l2) swap(l1, l2);
 
         part.readPixelSampleCounts(l1, l2);
@@ -1117,8 +1125,8 @@ readFirstPart()
 
         int tx1, tx2, ty1, ty2;
         int lx, ly;
-        lx = rand() % numXLevels;
-        ly = rand() % numYLevels;
+        lx = random_int(numXLevels);
+        ly = random_int(numYLevels);
         if (levelMode == 1) ly = lx;
 
         int w = part.levelWidth(lx);
@@ -1126,10 +1134,10 @@ readFirstPart()
 
         int numXTiles = part.numXTiles(lx);
         int numYTiles = part.numYTiles(ly);
-        tx1 = rand() % numXTiles;
-        tx2 = rand() % numXTiles;
-        ty1 = rand() % numYTiles;
-        ty2 = rand() % numYTiles;
+        tx1 = random_int(numXTiles);
+        tx2 = random_int(numXTiles);
+        ty1 = random_int(numYTiles);
+        ty2 = random_int(numYTiles);
         if (tx1 > tx2) swap(tx1, tx2);
         if (ty1 > ty2) swap(ty1, ty2);
 
@@ -1204,7 +1212,7 @@ modifyType (bool modify_version)
     }
     
     // skip over each header
-    for(int i=0;i<headers.size();i++)
+    for(size_t i=0;i<headers.size();i++)
     {
         // read each attribute in header i
         while(1)
@@ -1233,7 +1241,15 @@ modifyType (bool modify_version)
             
             
             //length of attribute
-            fread(&length,4,1,f);
+            size_t nr = fread (&length,4,1,f);
+            if ( nr != 1 )
+                throw IEX_NAMESPACE::IoExc (
+                    "unable to read length of attribute");
+            if (!GLOBAL_SYSTEM_LITTLE_ENDIAN)
+            {
+        	length = bswap_32(length);
+            }
+
             if(!modify_version && attrib_name=="type")
             {
                 // modify the type of part 1 to be 'X<whatevever>'
@@ -1308,12 +1324,15 @@ testWriteRead (int partNumber)
         readWholeFiles(0);
         
         
+        bool caught = false;
+
         // for deep images, check that "version 2" files don't load
         if(headers[0].type()==DEEPSCANLINE || headers[0].type()==DEEPTILE)
         {
             modifyType(true);
             try
             {
+                caught = false;
                 readFirstPart();
                 cerr << " part reading succeeded but should have failed\n";
                 assert(false);
@@ -1321,17 +1340,18 @@ testWriteRead (int partNumber)
             catch(std::exception & e)
             {
                 cout << "recieved exception (" << e.what() << ") as expected\n";
+                caught = true;
                 // that's what we thought would happen
             }
+            assert (caught);
             readWholeFiles(2);
-            
         }
         
         modifyType(false);
         
-        
         try
         {
+            caught = false;
             readFirstPart();
             cerr << " part reading succeeded but should have failed\n";
             assert(false);
@@ -1339,8 +1359,10 @@ testWriteRead (int partNumber)
         catch(std::exception & e)
         {
             cout << "recieved exception (" << e.what() << ") as expected\n";
+            caught = true;
             // that's what we thought would happen
         }
+        assert (caught);
         
         // this should always succeed: it doesn't try to read the strange new type in part 0
         readWholeFiles(1);
@@ -1364,7 +1386,7 @@ testFutureProofing (const std::string & tempDir)
     {
         cout << "Testing reading future-files" << endl;
 
-        srand(1);
+        random_reseed(1);
 
         int numThreads = ThreadPool::globalThreadPool().numThreads();
         ThreadPool::globalThreadPool().setNumThreads(4);

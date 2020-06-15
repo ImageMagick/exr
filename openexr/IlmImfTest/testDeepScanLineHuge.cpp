@@ -32,7 +32,12 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
+#ifdef NDEBUG
+#    undef NDEBUG
+#endif
+
 #include "testDeepScanLineBasic.h"
+#include "random.h"
 
 #include "ImfDeepScanLineInputFile.h"
 #include "ImfDeepScanLineOutputFile.h"
@@ -98,7 +103,7 @@ generateRandomFile (int channelCount,
 
     for (int i = 0; i < channelCount; i++)
     {
-        int type = rand() % 3;
+        int type = random_int(3);
         stringstream ss;
         ss << i;
         string str = ss.str();
@@ -136,7 +141,7 @@ generateRandomFile (int channelCount,
     Int64 bytes_per_sample = 0;
     for (int i = 0; i < channelCount; i++)
     {
-        PixelType type;
+        PixelType type = NUM_PIXELTYPES;
         if (channelTypes[i] == 0)
             type = IMF::UINT;
         if (channelTypes[i] == 1)
@@ -148,7 +153,7 @@ generateRandomFile (int channelCount,
         ss << i;
         string str = ss.str();
 
-        int sampleSize;
+        int sampleSize = 0;
         if (channelTypes[i] == 0) sampleSize = sizeof (unsigned int);
         if (channelTypes[i] == 1) sampleSize = sizeof (half);
         if (channelTypes[i] == 2) sampleSize = sizeof (float);
@@ -185,7 +190,7 @@ generateRandomFile (int channelCount,
     {
             for (int j = 0; j < width; j++)
             {
-                sampleCount[i][j] = (rand() % 4000) + (samples_per_pixel-2000);
+                sampleCount[i][j] = random_int(4000) + (samples_per_pixel-2000);
                 total_number_of_samples += sampleCount[i][j];
             }
     }
@@ -228,19 +233,19 @@ generateRandomFile (int channelCount,
                     
                     if(random_channel_data)
                     {
-                        for (int l = 0; l < sampleCount[i][j]; l++)
+                        for (unsigned int l = 0; l < sampleCount[i][j]; l++)
                         {
                             if (channelTypes[k] == 0)
-                                ((unsigned int*)data[k][i][j])[l] = rand();
+                                ((unsigned int*)data[k][i][j])[l] = random_int();
                             if (channelTypes[k] == 1)
-                                ((half*)data[k][i][j])[l] = rand()/RAND_MAX;
+                                ((half*)data[k][i][j])[l] = random_float();
                             if (channelTypes[k] == 2)
-                                ((float*)data[k][i][j])[l] = rand()/RAND_MAX;
+                                ((float*)data[k][i][j])[l] = random_float();
                         }
                     }
                     else
                     {
-                      for (int l = 0; l < sampleCount[i][j]; l++)
+                      for (unsigned int l = 0; l < sampleCount[i][j]; l++)
                       {
                           if (channelTypes[k] == 0)
                               ((unsigned int*)data[k][i][j])[l] = (i * width + j) % 2049;
@@ -299,7 +304,7 @@ readFile (int channelCount, bool bulkRead, const std::string & fn)
     
     for (int i = 0; i < channelCount; i++)
     {
-        PixelType type;
+        PixelType type = NUM_PIXELTYPES;
         if (channelTypes[i] == 0)
             type = IMF::UINT;
         if (channelTypes[i] == 1)
@@ -311,7 +316,7 @@ readFile (int channelCount, bool bulkRead, const std::string & fn)
         ss << i;
         string str = ss.str();
 
-        int sampleSize;
+        int sampleSize = 0;
         if (channelTypes[i] == 0) sampleSize = sizeof (unsigned int);
         if (channelTypes[i] == 1) sampleSize = sizeof (half);
         if (channelTypes[i] == 2) sampleSize = sizeof (float);
@@ -337,9 +342,6 @@ readFile (int channelCount, bool bulkRead, const std::string & fn)
     
     for (int i = 0; i < dataWindow.max.y - dataWindow.min.y + 1; i++)
     {
-         int y = i + dataWindow.min.y;
-
-         
          for (int j = 0; j < width; j++)
          {
               assert(localSampleCount[i][j] == sampleCount[i][j]);
@@ -422,7 +424,7 @@ void testDeepScanLineHuge (const std::string & tempDir)
     {
         cout << "\n\nTesting the DeepScanLineInput/OutputFile for huge scanlines:\n" << endl;
 
-        srand(1);
+        random_reseed(1);
         std::string fn = tempDir + "imf_test_deep_scanline_huge.exr";
 
         readWriteTest (10, 5 , false, fn);
@@ -435,4 +437,3 @@ void testDeepScanLineHuge (const std::string & tempDir)
         assert (false);
     }
 }
-

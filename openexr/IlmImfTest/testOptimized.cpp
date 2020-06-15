@@ -32,6 +32,9 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
+#ifdef NDEBUG
+#    undef NDEBUG
+#endif
 
 #include <ImfOutputFile.h>
 #include <ImfInputFile.h>
@@ -321,7 +324,6 @@ readPixels (const char pFilename[], int pNbChannels, Array2D<half>& pPixels)
     IMATH::Box2i lDataWindow = lFile.header().dataWindow();
 
     int lWidth = lDataWindow.max.x - lDataWindow.min.x + 1;
-    int lHeight = lDataWindow.max.y - lDataWindow.min.y + 1;
 
     FrameBuffer lInputFrameBuffer;
 
@@ -380,7 +382,6 @@ readPixels (const char pFilename[],
     IMATH::Box2i lDataWindow = lFile.header().dataWindow();
 
     int lWidth = lDataWindow.max.x - lDataWindow.min.x + 1;
-    int lHeight = lDataWindow.max.y - lDataWindow.min.y + 1;
 
     FrameBuffer lInputFrameBuffer;
 

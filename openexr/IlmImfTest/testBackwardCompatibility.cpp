@@ -32,7 +32,12 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
+#ifdef NDEBUG
+#    undef NDEBUG
+#endif
+
 #include "testBackwardCompatibility.h"
+#include "TestUtilFStream.h"
 
 #include <ImfArray.h>
 #include <ImfHeader.h>
@@ -69,10 +74,6 @@
 #include <fstream>
 #include <string>
 #include <assert.h>
-#include <time.h>
-#ifndef WIN32
-#include <sys/times.h>
-#endif // WIN32
 
 #ifndef ILM_IMF_TEST_IMAGEDIR
     #define ILM_IMF_TEST_IMAGEDIR
@@ -104,8 +105,9 @@ const int H = 197;
 void
 diffImageFiles (const char * fn1, const char * fn2)
 {
-    ifstream i1 (fn1, ios::binary);
-    ifstream i2 (fn2, ios::binary);
+    ifstream i1, i2;
+    testutil::OpenStreamWithUTF8Name (i1, fn1, ios::in | ios::binary);
+    testutil::OpenStreamWithUTF8Name (i2, fn2, ios::in | ios::binary);
 
     if(!i1.good()){THROW (IEX_NAMESPACE::BaseExc, string("cannot open ") + string(fn1));}
     if(!i2.good()){THROW (IEX_NAMESPACE::BaseExc, string("cannot open ") + string(fn2));}
@@ -122,6 +124,7 @@ diffImageFiles (const char * fn1, const char * fn2)
     }
 }
 
+#if 0
 void
 addPreviewImageToHeader (OPENEXR_IMF_NAMESPACE::Header & hdr)
 {
@@ -138,6 +141,7 @@ addPreviewImageToHeader (OPENEXR_IMF_NAMESPACE::Header & hdr)
     }
     hdr.setPreviewImage (OPENEXR_IMF_NAMESPACE::PreviewImage (pW, pH, &previewPixels[0][0]));
 }
+#endif
 
 void
 addUserAttributesToHeader (OPENEXR_IMF_NAMESPACE::Header & hdr)

@@ -151,13 +151,14 @@
 #include "half.h"
 #include "halfLimits.h"
 
-#include "dwaLookups.h"
-
 #include <vector>
 #include <string>
 #include <cctype>
 #include <cassert>
 #include <algorithm>
+
+#include <cstddef>
+
 
 // Windows specific addition to prevent the indirect import of the redefined min/max macros
 #if defined _WIN32 || defined _WIN64
@@ -171,6 +172,7 @@
 
 OPENEXR_IMF_INTERNAL_NAMESPACE_SOURCE_ENTER
 
+#include "dwaLookups.h"
 
 namespace {
 
@@ -266,13 +268,14 @@ struct DwaCompressor::Classifier
                                 " (truncated rule).");
             
         {
-            char suffix[Name::SIZE];
-            memset (suffix, 0, Name::SIZE);
+            // maximum length of string plus one byte for terminating NULL
+            char suffix[Name::SIZE+1];
+            memset (suffix, 0, Name::SIZE+1);
             Xdr::read<CharPtrIO> (ptr, std::min(size, Name::SIZE-1), suffix);
             _suffix = std::string(suffix);
         }
 
-        if (size < _suffix.length() + 1 + 2*Xdr::size<char>()) 
+        if (static_cast<size_t>(size) < _suffix.length() + 1 + 2*Xdr::size<char>()) 
             throw IEX_NAMESPACE::InputExc("Error uncompressing DWA data"
                                 " (truncated rule).");
 
@@ -700,7 +703,7 @@ DwaCompressor::LossyDctDecoderBase::~LossyDctDecoderBase () {}
 void
 DwaCompressor::LossyDctDecoderBase::execute ()
 {
-    int numComp        = _rowPtrs.size();
+    size_t numComp        = _rowPtrs.size();
     int lastNonZero    = 0;
     int numBlocksX     = (int) ceil ((float)_width  / 8.0f);
     int numBlocksY     = (int) ceil ((float)_height / 8.0f);
@@ -743,7 +746,7 @@ DwaCompressor::LossyDctDecoderBase::execute ()
             rowBlock[0] = (unsigned short *)(rowBlockHandle + i);
     }
 
-    for (int comp = 1; comp < numComp; ++comp)
+    for (size_t comp = 1; comp < numComp; ++comp)
         rowBlock[comp] = rowBlock[comp - 1] + numBlocksX * 64;
  
     //
@@ -754,7 +757,7 @@ DwaCompressor::LossyDctDecoderBase::execute ()
 
     currDcComp[0] = (unsigned short *)_packedDc;
 
-    for (unsigned int comp = 1; comp < numComp; ++comp)
+    for (size_t comp = 1; comp < numComp; ++comp)
         currDcComp[comp] = currDcComp[comp - 1] + numBlocksX * numBlocksY;
 
     for (int blocky = 0; blocky < numBlocksY; ++blocky)
@@ -783,7 +786,7 @@ DwaCompressor::LossyDctDecoderBase::execute ()
 
             bool blockIsConstant = true;
 
-            for (unsigned int comp = 0; comp < numComp; ++comp)
+            for (size_t comp = 0; comp < numComp; ++comp)
             {
 
                 //
@@ -939,7 +942,7 @@ DwaCompressor::LossyDctDecoderBase::execute ()
             // If the block has a constant value, just convert the first pixel.
             //
 
-            for (unsigned int comp = 0; comp < numComp; ++comp)
+            for (size_t comp = 0; comp < numComp; ++comp)
             {
                 if (!blockIsConstant)
                 {
@@ -995,7 +998,7 @@ DwaCompressor::LossyDctDecoderBase::execute ()
         //   * full 8-element wide blocks
         //
 
-        for (int comp = 0; comp < numComp; ++comp)
+        for (size_t comp = 0; comp < numComp; ++comp)
         {
             //
             // Test if we can use the fast path
@@ -1137,7 +1140,7 @@ DwaCompressor::LossyDctDecoderBase::execute ()
     // Convert from HALF XDR back to FLOAT XDR.
     //
 
-    for (unsigned int chan = 0; chan < numComp; ++chan)
+    for (size_t chan = 0; chan < numComp; ++chan)
     {
 
         if (_type[chan] != FLOAT)
@@ -2340,8 +2343,9 @@ DwaCompressor::uncompress
     int minY = range.min.y;
     int maxY = std::min (range.max.y, _max[1]);
 
-    int headerSize = NUM_SIZES_SINGLE*sizeof(Int64);
-    if (inSize < headerSize) 
+    Int64 iSize = static_cast<Int64>( inSize );
+    Int64 headerSize = NUM_SIZES_SINGLE*sizeof(Int64);
+    if (iSize < headerSize) 
     {
         throw IEX_NAMESPACE::InputExc("Error uncompressing DWA data"
                             "(truncated header).");
@@ -2387,11 +2391,11 @@ DwaCompressor::uncompress
     const char *dataPtr            = inPtr + NUM_SIZES_SINGLE * sizeof(Int64);
 
     /* Both the sum and individual sizes are checked in case of overflow. */
-    if (inSize < (headerSize + compressedSize) ||
-        inSize < unknownCompressedSize ||
-        inSize < acCompressedSize ||
-        inSize < dcCompressedSize ||
-        inSize < rleCompressedSize)
+    if (iSize < (headerSize + compressedSize) ||
+        iSize < unknownCompressedSize ||
+        iSize < acCompressedSize ||
+        iSize < dcCompressedSize ||
+        iSize < rleCompressedSize)
     {
         throw IEX_NAMESPACE::InputExc("Error uncompressing DWA data"
                             "(truncated file).");
@@ -2418,12 +2422,12 @@ DwaCompressor::uncompress
         unsigned short ruleSize = 0;
         Xdr::read<CharPtrIO>(dataPtr, ruleSize);
 
-        if (ruleSize < 0) 
+        if (ruleSize < Xdr::size<unsigned short>() ) 
             throw IEX_NAMESPACE::InputExc("Error uncompressing DWA data"
                                 " (corrupt header file).");
 
         headerSize += ruleSize;
-        if (inSize < headerSize + compressedSize)
+        if (iSize < headerSize + compressedSize)
             throw IEX_NAMESPACE::InputExc("Error uncompressing DWA data"
                                 " (truncated file).");
 
@@ -2446,9 +2450,9 @@ DwaCompressor::uncompress
     // Allocate _outBuffer, if we haven't done so already
     //
 
-    if (_maxScanLineSize * numScanLines() > _outBufferSize) 
+    if (static_cast<size_t>(_maxScanLineSize * numScanLines()) > _outBufferSize) 
     {
-        _outBufferSize = _maxScanLineSize * numScanLines();
+        _outBufferSize = static_cast<size_t>(_maxScanLineSize * numScanLines());
         if (_outBuffer != 0)
             delete[] _outBuffer;
         _outBuffer = new char[_maxScanLineSize * numScanLines()];
@@ -2594,9 +2598,9 @@ DwaCompressor::uncompress
                                 "(corrupt header).");
         }
 
-        if (_zip->uncompress
-                    (compressedDcBuf, (int)dcCompressedSize, _packedDcBuffer)
-            != (int)totalDcUncompressedCount * sizeof (unsigned short))
+        if (static_cast<Int64>(_zip->uncompress
+                    (compressedDcBuf, (int)dcCompressedSize, _packedDcBuffer))
+            != totalDcUncompressedCount * sizeof (unsigned short))
         {
             throw IEX_NAMESPACE::BaseExc("DC data corrupt.");
         }
@@ -2630,11 +2634,11 @@ DwaCompressor::uncompress
         if (dstLen != rleUncompressedSize)
             throw IEX_NAMESPACE::BaseExc("RLE data corrupted");
 
-        if (rleUncompress
+        if (static_cast<Int64>(rleUncompress
                 ((int)rleUncompressedSize, 
                  (int)rleRawSize,
                  (signed char *)_rleBuffer,
-                 _planarUncBuffer[RLE]) != rleRawSize)
+                 _planarUncBuffer[RLE])) != rleRawSize)
         {        
             throw IEX_NAMESPACE::BaseExc("RLE data corrupted");
         }
@@ -2812,6 +2816,14 @@ DwaCompressor::uncompress
                 {
                     if (IMATH_NAMESPACE::modp (y, cd->ySampling) != 0)
                         continue;
+
+                    //
+                    // sanity check for buffer data lying within range
+                    //
+                    if (cd->planarUncBufferEnd + dstScanlineSize - _planarUncBuffer[UNKNOWN] > _planarUncBufferSize[UNKNOWN] )
+                    {
+                        throw Iex::InputExc("DWA data corrupt");
+                    }
 
                     memcpy (rowPtrs[chan][row],
                             cd->planarUncBufferEnd,
@@ -2998,7 +3010,7 @@ DwaCompressor::initializeBuffers (size_t &outBufferSize)
 
     if (_zip == 0) 
         _zip = new Zip (maxLossyDctDcSize * numLossyDctChans);
-    else if (_zip->maxRawSize() < maxLossyDctDcSize * numLossyDctChans)
+    else if (_zip->maxRawSize() < static_cast<size_t>(maxLossyDctDcSize * numLossyDctChans))
     {
         delete _zip;
         _zip = new Zip (maxLossyDctDcSize * numLossyDctChans);
@@ -3035,7 +3047,7 @@ DwaCompressor::initializeBuffers (size_t &outBufferSize)
     // to Huffman encoding
     //
 
-    if (maxLossyDctAcSize * numLossyDctChans > _packedAcBufferSize)
+    if (static_cast<size_t>(maxLossyDctAcSize * numLossyDctChans) > _packedAcBufferSize)
     {
         _packedAcBufferSize = maxLossyDctAcSize * numLossyDctChans;
         if (_packedAcBuffer != 0) 
@@ -3047,7 +3059,7 @@ DwaCompressor::initializeBuffers (size_t &outBufferSize)
     // _packedDcBuffer holds one quantized DCT coef per 8x8 block
     //
 
-    if (maxLossyDctDcSize * numLossyDctChans > _packedDcBufferSize)
+    if (static_cast<size_t>(maxLossyDctDcSize * numLossyDctChans) > _packedDcBufferSize)
     {
         _packedDcBufferSize = maxLossyDctDcSize * numLossyDctChans;
         if (_packedDcBuffer != 0) 
@@ -3055,7 +3067,7 @@ DwaCompressor::initializeBuffers (size_t &outBufferSize)
         _packedDcBuffer     = new char[_packedDcBufferSize];
     }
 
-    if (rleBufferSize > _rleBufferSize) 
+    if (static_cast<size_t>(rleBufferSize) > _rleBufferSize) 
     {
         _rleBufferSize = rleBufferSize;
         if (_rleBuffer != 0) 
@@ -3116,7 +3128,7 @@ DwaCompressor::initializeBuffers (size_t &outBufferSize)
 
     for (int i = 0; i < NUM_COMPRESSOR_SCHEMES; ++i)
     {
-        if (planarUncBufferSize[i] > _planarUncBufferSize[i]) 
+        if (static_cast<size_t>(planarUncBufferSize[i]) > _planarUncBufferSize[i]) 
         {
             _planarUncBufferSize[i] = planarUncBufferSize[i];
             if (_planarUncBuffer[i] != 0) 

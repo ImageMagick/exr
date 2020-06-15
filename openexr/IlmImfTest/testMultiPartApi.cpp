@@ -32,6 +32,10 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
+#ifdef NDEBUG
+#    undef NDEBUG
+#endif
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -41,6 +45,7 @@
 
 #include "tmpDir.h"
 #include "testMultiPartApi.h"
+#include "random.h"
 
 #include <ImfPartType.h>
 #include <ImfMultiPartInputFile.h>
@@ -109,7 +114,7 @@ bool checkPixels (Array2D<T> &ph, int lx, int rx, int ly, int ry, int width)
 {
     for (int y = ly; y <= ry; ++y)
         for (int x = lx; x <= rx; ++x)
-            if (ph[y][x] != (y * width + x) % 2049)
+            if (ph[y][x] != static_cast<T>(((y * width + x) % 2049)))
             {
                 cout << "value at " << x << ", " << y << ": " << ph[y][x]
                      << ", should be " << (y * width + x) % 2049 << endl << flush;
@@ -130,8 +135,8 @@ void generateRandomHeaders(int partCount, vector<Header>& headers, vector<Task>&
     for (int i = 0; i < partCount; i++)
     {
         Header header(width, height);
-        int pixelType = rand() % 3;
-        int partType = rand() % 2;
+        int pixelType = random_int(3);
+        int partType = random_int(2);
         pixelTypes[i] = pixelType;
         partTypes[i] = partType;
 
@@ -164,14 +169,14 @@ void generateRandomHeaders(int partCount, vector<Header>& headers, vector<Task>&
 
         int tileX;
         int tileY;
-        int levelMode;
+        int levelMode = 0;
         if (partType == 1)
         {
-            tileX = rand() % width + 1;
-            tileY = rand() % height + 1;
-            levelMode = rand() % 3;
+            tileX = random_int(width) + 1;
+            tileY = random_int(height) + 1;
+            levelMode = random_int(3);
             levelModes[i] = levelMode;
-            LevelMode lm;
+            LevelMode lm = NUM_LEVELMODES;
             switch (levelMode)
             {
                 case 0:
@@ -345,8 +350,8 @@ generateRandomFile (int partCount, const std::string & fn)
     for (int i = 0; i < taskListSize; i++)
     {
         int a, b;
-        a = rand() % taskListSize;
-        b = rand() % taskListSize;
+        a = random_int(taskListSize);
+        b = random_int(taskListSize);
         swap(taskList[a], taskList[b]);
     }
 
@@ -440,8 +445,7 @@ generateRandomFile (int partCount, const std::string & fn)
     {
         int partNumber = taskList[i].partNumber;
         int partType = partTypes[partNumber];
-        int pixelType = pixelTypes[partNumber];
-        int levelMode = levelModes[partNumber];
+
         if (partType == 0)
         {
             OutputPart* part = (OutputPart*) parts[partNumber];
@@ -459,6 +463,21 @@ generateRandomFile (int partCount, const std::string & fn)
         }
     }
 
+    for (size_t i = 0 ; i < parts.size() ; ++i )
+    {
+        int partType = partTypes[i];
+
+        if (partType == 0)
+        {
+            delete (OutputPart*) parts[i];
+        }
+        else
+        {
+            delete (TiledOutputPart*) parts[i];
+        }
+
+    }
+
     delete[] tiledHalfData;
     delete[] tiledUintData;
     delete[] tiledFloatData;
@@ -472,7 +491,7 @@ readWholeFiles (const std::string & fn)
     Array2D<half> hData;
 
     MultiPartInputFile file(fn.c_str());
-    for (size_t i = 0; i < file.parts(); i++)
+    for (size_t i = 0; i < static_cast<size_t>(file.parts()); i++)
     {
         const Header& header = file.header(i);
         assert (header.displayWindow() == headers[i].displayWindow());
@@ -509,12 +528,13 @@ readWholeFiles (const std::string & fn)
     // Shuffle part numbers.
     //
     vector<int> shuffledPartNumber;
-    for (int i = 0; i < headers.size(); i++)
+    int nHeaders = static_cast<int>(headers.size());
+    for (int i = 0; i < nHeaders; i++)
         shuffledPartNumber.push_back(i);
-    for (int i = 0; i < headers.size(); i++)
+    for (int i = 0; i < nHeaders; i++)
     {
-        int a = rand() % headers.size();
-        int b = rand() % headers.size();
+        int a = random_int(nHeaders);
+        int b = random_int(nHeaders);
         swap (shuffledPartNumber[a], shuffledPartNumber[b]);
     }
 
@@ -525,7 +545,7 @@ readWholeFiles (const std::string & fn)
     int partNumber;
     try
     {
-        for (i = 0; i < headers.size(); i++)
+        for (i = 0; i < nHeaders; i++)
         {
             partNumber = shuffledPartNumber[i];
             if (partTypes[partNumber] == 0)
@@ -607,7 +627,7 @@ readPartialFiles (int randomReadCount, const std::string & fn)
     //const vector<Header>& headers = file.parts();
     for (int i = 0; i < randomReadCount; i++)
     {
-        int partNumber = rand() % headers.size();
+        int partNumber = random_int(headers.size());
         int partType = partTypes[partNumber];
         int pixelType = pixelTypes[partNumber];
         int levelMode = levelModes[partNumber];
@@ -615,8 +635,8 @@ readPartialFiles (int randomReadCount, const std::string & fn)
         if (partType == 0)
         {
             int l1, l2;
-            l1 = rand() % height;
-            l2 = rand() % height;
+            l1 = random_int(height);
+            l2 = random_int(height);
             if (l1 > l2) swap(l1, l2);
 
             InputPart part(file, partNumber);
@@ -651,8 +671,8 @@ readPartialFiles (int randomReadCount, const std::string & fn)
             int numXLevels = part.numXLevels();
             int numYLevels = part.numYLevels();
 
-            lx = rand() % numXLevels;
-            ly = rand() % numYLevels;
+            lx = random_int(numXLevels);
+            ly = random_int(numYLevels);
             if (levelMode == 1) ly = lx;
 
             int w = part.levelWidth(lx);
@@ -660,10 +680,10 @@ readPartialFiles (int randomReadCount, const std::string & fn)
 
             int numXTiles = part.numXTiles(lx);
             int numYTiles = part.numYTiles(ly);
-            tx1 = rand() % numXTiles;
-            tx2 = rand() % numXTiles;
-            ty1 = rand() % numYTiles;
-            ty2 = rand() % numYTiles;
+            tx1 = random_int(numXTiles);
+            tx2 = random_int(numXTiles);
+            ty1 = random_int(numYTiles);
+            ty2 = random_int(numYTiles);
             if (tx1 > tx2) swap(tx1, tx2);
             if (ty1 > ty2) swap(ty1, ty2);
 
@@ -727,7 +747,7 @@ void testMultiPartApi (const std::string & tempDir)
     {
         cout << "Testing the multi part APIs for normal use" << endl;
 
-        srand(1);
+        random_reseed(1);
 
         testWriteRead ( 1, 2,   5, tempDir);
         testWriteRead ( 2, 5,  10, tempDir);

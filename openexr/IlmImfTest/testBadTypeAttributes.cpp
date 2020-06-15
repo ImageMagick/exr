@@ -32,6 +32,10 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
+#ifdef NDEBUG
+#    undef NDEBUG
+#endif
+
 #include "ImfInputFile.h"
 #include "ImfInputPart.h"
 #include "ImfTiledInputFile.h"
@@ -115,7 +119,7 @@ template<class T> void readTiledThing(T & input,bool test)
         case ONE_LEVEL :
             x_levels = 1;
             y_levels = 1;
-        break;
+            break;
         case MIPMAP_LEVELS :
             x_levels = input.numXLevels();
             y_levels = 1;
@@ -123,8 +127,14 @@ template<class T> void readTiledThing(T & input,bool test)
         case RIPMAP_LEVELS :
             x_levels = input.numXLevels();
             y_levels = input.numYLevels();
+            break;
+        case NUM_LEVELMODES:
+        default:
+            std::cerr << "Invalid tile mode " << int(t.mode) << std::endl;
+            x_levels = y_levels = 0;
+            break;
     }
-        
+
     for(int x_level = 0 ; x_level < x_levels ; x_level++)
     {
         for(int y_level = 0 ; y_level < y_levels ;y_level++)
@@ -161,41 +171,62 @@ template<class T> void readScanlineThing(T& input,bool test)
 
 void checkDeepTypesFailToLoad(const char * file)
 {
-        
+    bool caught = false;
+
     // trying to open it as a deep tiled file should fail
-    try{
+
+    try
+    {
+        caught = false;
         DeepTiledInputFile f(file);
         assert(false);
-    }catch(...)
-    {
     }
+    catch(...)
+    {
+        caught = true;
+    }
+    assert (caught);
+
     // trying to open it as a deep tiled part of a multipart file should fail
-    try{
+    try
+    {
+        caught = false;
         MultiPartInputFile multiin(file);
         DeepTiledInputPart p(multiin,0);
         assert(false);
-    }catch(...)
-    {
     }
+    catch(...)
+    {
+        caught = true;
+    }
+    assert (caught);
     
     // trying to open it as a deep scanline file should fail
-    try{
+    try
+    {
+        caught = false;
         DeepScanLineInputFile f(file);
         assert(false);
-    }catch(...)
-    {
-        
     }
+    catch(...)
+    {
+        caught = true;
+    }
+    assert (caught);
+
     // trying to open it as a deep scanline part of a multipart file should fail
-    try{
+    try
+    {
+        caught = false;
         MultiPartInputFile multiin(file);
         DeepScanLineInputPart p(multiin,0);
         assert(false);
-    }catch(...)
-    {
-        
     }
-    
+    catch(...)
+    {
+        caught = true;
+    }
+    assert (caught);
 }
 
 
@@ -230,6 +261,8 @@ void testTiledWithBadAttribute(const char* file)
 
 void testScanLineWithBadAttribute(const char * file)
 {
+    bool caught;
+
     InputFile in(file);
     readScanlineThing(in,false);
  
@@ -241,20 +274,31 @@ void testScanLineWithBadAttribute(const char * file)
     checkDeepTypesFailToLoad(file);
     
     // trying to open it as a tiled file should also fail
-    try{
+    try
+    {
+        caught = false;
         TiledInputFile f(file);
         assert(false);
-    }catch(...)
-    {
     }
+    catch(...)
+    {
+        caught = true;
+    }
+    assert (caught);
+    
     // trying to open it as a tiled part of a multipart file should fail
-    try{
+    try
+    {
+        caught = false;
         MultiPartInputFile multiin(file);
         TiledInputPart p(multiin,0);
         assert(false);
-    }catch(...)
-    {
     }
+    catch(...)
+    {
+        caught = true;
+    }
+    assert (caught);
 }
 
 const std::string & NOTYPEATTR="";
@@ -370,4 +414,3 @@ void testBadTypeAttributes(const std::string & tempDir)
       
       cout << "ok\n" << endl;
 }
-

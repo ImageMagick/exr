@@ -32,6 +32,9 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
+#ifdef NDEBUG
+#    undef NDEBUG
+#endif
 
 #include <testLineAlgo.h>
 #include "ImathLineAlgo.h"
@@ -399,7 +402,6 @@ testIntersect ()
 	    V3f p1 = v0 * b.x + v1 * b.y + v2 * b.z;
 
 	    V3f p0;
-	    int j = 0;
 
 	    do
 	    {

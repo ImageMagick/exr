@@ -32,6 +32,9 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
+#ifdef NDEBUG
+#    undef NDEBUG
+#endif
 
 #include <ImfFlatImage.h>
 #include <ImfDeepImage.h>
@@ -112,7 +115,7 @@ testFlatTiledImage1 (const string &fileName)
     delete img2;
 }
 
-
+#if 0
 void
 testFlatTiledImage2 (const string &fileName)
 {
@@ -134,7 +137,7 @@ testFlatTiledImage2 (const string &fileName)
 
     delete img2;
 }
-
+#endif
 
 void
 testDeepScanLineImage1 (const string &fileName)
@@ -247,4 +250,5 @@ testIO (const string &tempDir)
 	cerr << "ERROR -- caught exception: " << e.what() << endl;
 	assert (false);
     }
+    remove ((tempDir + "io.exr").c_str());
 }

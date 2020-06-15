@@ -32,6 +32,9 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
+#ifdef NDEBUG
+#    undef NDEBUG
+#endif
 
 #include <ImfTiledOutputFile.h>
 #include <ImfTiledInputFile.h>
@@ -238,6 +241,10 @@ writeRead (const Array2D<unsigned int> &pi1,
             }
           }
           break;
+			case NUM_LEVELMODES:
+			default:
+				std::cerr << "Invalid tile mode " << int(mode) << std::endl;
+				break;
         }
     }
 

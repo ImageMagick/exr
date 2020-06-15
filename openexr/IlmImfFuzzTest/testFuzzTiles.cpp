@@ -32,6 +32,9 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
+#ifdef NDEBUG
+#    undef NDEBUG
+#endif
 
 #include <tmpDir.h>
 #include <fuzzFile.h>
@@ -168,6 +171,7 @@ readImageONE (const char fileName[])
     catch (...)
     {
         // empty
+        assert (true);
     }
     try
     {
@@ -197,7 +201,8 @@ readImageONE (const char fileName[])
     }
     catch (...)
     {
-                // empty
+        // empty
+        assert (true);
     }
 }
 
@@ -270,6 +275,7 @@ readImageMIP (const char fileName[])
     catch (...)
     {
 	// empty
+        assert (true);
     }
 }
 
@@ -350,6 +356,7 @@ readImageRIP (const char fileName[])
     catch (...)
     {
 	// empty
+        assert (true);
     }
 }
 
@@ -399,21 +406,30 @@ fuzzTiles (int numThreads, Rand48 &random)
 
 
 void
-testFuzzTiles ()
+testFuzzTiles (const char* file)
 {
     try
     {
-	cout << "Testing tile-based files "
-		"with randomly inserted errors" << endl;
+        if(file)
+        {
+            readImageONE(file);
+            readImageMIP(file);
+            readImageRIP(file);
+        }
+        else
+        {
+            cout << "Testing tile-based files "
+                    "with randomly inserted errors" << endl;
 
-	Rand48 random (5);
+            Rand48 random (5);
 
-	fuzzTiles (0, random);
+            fuzzTiles (0, random);
 
-	if (ILMTHREAD_NAMESPACE::supportsThreads())
-	    fuzzTiles (2, random);
+            if (ILMTHREAD_NAMESPACE::supportsThreads())
+                fuzzTiles (2, random);
 
-	cout << "ok\n" << endl;
+            cout << "ok\n" << endl;
+        }
     }
     catch (const std::exception &e)
     {

@@ -1,3 +1,12 @@
+//
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright Contributors to the OpenEXR Project.
+//
+
+#ifdef NDEBUG
+#    undef NDEBUG
+#endif
+
 #include <testFunction.h>
 #include "halfFunction.h"
 #include <iostream>

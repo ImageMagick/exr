@@ -1,10 +1,13 @@
-# yue.nicholas@gmail.com
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright Contributors to the OpenEXR Project.
 
-ADD_EXECUTABLE ( IexTest
+add_executable(IexTest
   main.cpp
   testBaseExc.cpp
-  )
+)
 
-TARGET_LINK_LIBRARIES ( IexTest IlmBase::Iex${OPENEXR_TARGET_SUFFIX} )
-
-ADD_TEST ( TestIex IexTest )
+target_link_libraries(IexTest IlmBase::Iex)
+set_target_properties(IexTest PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+add_test(NAME IlmBase.Iex COMMAND $<TARGET_FILE:IexTest>)

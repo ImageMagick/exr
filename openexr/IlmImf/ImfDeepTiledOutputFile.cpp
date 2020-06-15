@@ -81,7 +81,6 @@ using IMATH_NAMESPACE::Box2i;
 using IMATH_NAMESPACE::V2i;
 using std::string;
 using std::vector;
-using std::ofstream;
 using std::map;
 using std::min;
 using std::max;
@@ -203,6 +202,11 @@ struct BufferedTile
         delete [] pixelData;
         delete [] sampleCountTableData;
     }
+
+    BufferedTile (const BufferedTile& other) = delete;
+    BufferedTile& operator = (const BufferedTile& other) = delete;
+    BufferedTile (BufferedTile&& other) = delete;
+    BufferedTile& operator = (BufferedTile&& other) = delete;
 };
 
 
@@ -312,6 +316,11 @@ struct DeepTiledOutputFile::Data
      Data (int numThreads);
     ~Data ();
 
+    Data (const Data& other) = delete;
+    Data& operator = (const Data& other) = delete;
+    Data (Data&& other) = delete;
+    Data& operator = (Data&& other) = delete;
+    
     inline TileBuffer * getTileBuffer (int number);
                                                 // hash function from tile
                                                 // buffer coords into our
@@ -1273,7 +1282,7 @@ DeepTiledOutputFile::~DeepTiledOutputFile ()
                     //
                     _data->_streamData->os->seekp (originalPosition);
                 }
-                catch (...)
+                catch (...) //NOSONAR - suppress vulnerability reports from SonarCloud.
                 {
                     //
                     // We cannot safely throw any exceptions from here.
@@ -1465,13 +1474,11 @@ DeepTiledOutputFile::writeTiles (int dx1, int dx2, int dy1, int dy2,
             swap (dy1, dy2);
 
         int dyStart = dy1;
-        int dyStop  = dy2 + 1;
         int dY      = 1;
 
         if (_data->lineOrder == DECREASING_Y)
         {
             dyStart = dy2;
-            dyStop  = dy1 - 1;
             dY      = -1;
         }
 

@@ -1,3 +1,8 @@
+##
+## SPDX-License-Identifier: BSD-3-Clause
+## Copyright Contributors to the OpenEXR Project.
+##
+
 ## Process this file with automake to produce Makefile.in
 
 lib_LTLIBRARIES = libIlmImf.la
@@ -31,7 +36,7 @@ libIlmImf_la_SOURCES = ImfForward.h ImfAttribute.cpp ImfBoxAttribute.cpp ImfCRgb
 		       ImfName.h ImfPixelType.h ImfVersion.h ImfXdr.h \
 		       ImfCompressor.h ImfRleCompressor.h ImfZipCompressor.h \
 		       ImfPizCompressor.h ImfDwaCompressor.h \
-	               ImfDwaCompressorSimd.h ImfMisc.h ImfAutoArray.h \
+	               ImfDwaCompressorSimd.h ImfAutoArray.h \
 		       ImfConvert.cpp ImfConvert.h ImfPreviewImage.cpp \
 		       ImfPreviewImage.h ImfPreviewImageAttribute.cpp \
 		       ImfPreviewImageAttribute.h ImfVersion.cpp \
@@ -110,7 +115,7 @@ libIlmImfinclude_HEADERS = ImfForward.h ImfAttribute.h ImfBoxAttribute.h \
 			   ImfCRgbaFile.h ImfChannelList.h \
 			   ImfChannelListAttribute.h \
 			   ImfCompressionAttribute.h \
-			   ImfDoubleAttribute.h ImfFloatAttribute.h \
+			   ImfDoubleAttribute.h ImfFloatAttribute.h ImfFloatVectorAttribute.h \
 			   ImfFrameBuffer.h ImfHeader.h ImfIO.h \
 			   ImfInputFile.h ImfIntAttribute.h \
 			   ImfLineOrderAttribute.h ImfMatrixAttribute.h \
@@ -160,7 +165,6 @@ libIlmImfinclude_HEADERS = ImfForward.h ImfAttribute.h ImfBoxAttribute.h \
 			   ImfDeepFrameBuffer.h \
 			   ImfDeepCompositing.h ImfCompositeDeepScanLine.h \
 			   ImfNamespace.h ImfForward.h ImfExport.h \
-			   ImfMisc.h          \
 			   ImfPartHelper.h \
 			   ImfDeepImageState.h \
 			   ImfDeepImageStateAttribute.h
@@ -181,33 +185,17 @@ noinst_HEADERS = ImfCompressor.h    \
 		 ImfOutputStreamMutex.h \
 		 ImfInputPartData.h     \
 		 ImfOutputPartData.h    \
-		 ImfScanLineInputFile.h \
 		 ImfSystemSpecific.h    \
-		 ImfOptimizedPixelReading.h
+		 ImfOptimizedPixelReading.h \
+		 b44ExpLogTable.h \
+                 dwaLookups.h 
 
 
-EXTRA_DIST = $(noinst_HEADERS) b44ExpLogTable.cpp b44ExpLogTable.h dwaLookups.cpp dwaLookups.h CMakeLists.txt
+EXTRA_DIST = $(noinst_HEADERS) CMakeLists.txt
 
 
-INCLUDES = @ILMBASE_CXXFLAGS@ \
+AM_CPPFLAGS = @ILMBASE_CXXFLAGS@ \
 	   -I$(top_builddir) \
 	   -I$(top_srcdir)/config \
 	   $(ILMBASE_CFLAGS) $(ZLIB_CFLAGS)
 
-CLEANFILES = b44ExpLogTable b44ExpLogTable.h dwaLookups dwaLookups.h
-
-b44ExpLogTable_SOURCES = b44ExpLogTable.cpp
-b44ExpLogTable_LDADD = @ILMBASE_LDFLAGS@ $(ILMBASE_LIBS)
-
-b44ExpLogTable.h: b44ExpLogTable
-	./b44ExpLogTable > b44ExpLogTable.h
-
-dwaLookups_SOURCES = dwaLookups.cpp
-dwaLookups_LDADD = @ILMBASE_LDFLAGS@ $(ILMBASE_LIBS)
-
-dwaLookups.h: dwaLookups
-	./dwaLookups > dwaLookups.h
-
-BUILT_SOURCES = b44ExpLogTable.h dwaLookups.h
-
-noinst_PROGRAMS = b44ExpLogTable dwaLookups

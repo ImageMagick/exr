@@ -167,9 +167,10 @@ cachePadding (ptrdiff_t size)
     // we are running on.  (It is ok if CACHE_LINE_SIZE is larger
     // than a real cache line.)
     //
+    // CACHE_LINE_SIZE = (1 << LOG2_CACHE_LINE_SIZE)
+    //
 
     static int LOG2_CACHE_LINE_SIZE = 8;
-    static const ptrdiff_t CACHE_LINE_SIZE = (1 << LOG2_CACHE_LINE_SIZE);
 
     int i = LOG2_CACHE_LINE_SIZE + 2;
 
@@ -194,6 +195,11 @@ class RgbaOutputFile::ToYca: public Mutex
 
      ToYca (OutputFile &outputFile, RgbaChannels rgbaChannels);
     ~ToYca ();
+
+    ToYca (const ToYca& other) = delete;
+    ToYca& operator = (const ToYca& other) = delete;
+    ToYca (ToYca&& other) = delete;
+    ToYca& operator = (ToYca&& other) = delete;
 
     void		setYCRounding (unsigned int roundY,
 	    			       unsigned int roundC);
@@ -810,6 +816,11 @@ class RgbaInputFile::FromYca: public Mutex
 
      FromYca (InputFile &inputFile, RgbaChannels rgbaChannels);
     ~FromYca ();
+
+    FromYca (const FromYca& other) = delete;
+    FromYca& operator = (const FromYca& other) = delete;
+    FromYca (FromYca&& other) = delete;
+    FromYca& operator = (FromYca&& other) = delete;
 
     void		setFrameBuffer (Rgba *base,
 					size_t xStride,
