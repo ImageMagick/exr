@@ -1,88 +1,128 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright Contributors to the OpenEXR Project.
+# Copyright (c) Contributors to the OpenEXR Project.
 
-# We require this to get object library link library support and
-# combined python 2 + 3 support
-if(OPENEXR_BUILD_BOTH_STATIC_SHARED)
-  if (${CMAKE_VERSION} VERSION_LESS "3.12.0")
-    message(FATAL_ERROR "CMake 3.12 or newer is required for object library support when building both static and shared libraries")
-  endif()
-  cmake_minimum_required(VERSION 3.12)
-else()
-  cmake_minimum_required(VERSION 3.10)
-endif()
+# We require this to get object library link library support
+cmake_minimum_required(VERSION 3.12)
 
 if(POLICY CMP0074)
+  # enable find_package(<Package>) to use <Package>_ROOT as a hint
   cmake_policy(SET CMP0074 NEW)
 endif()
 
-# we include this first to parse configure.ac and extract the version
-# numbers
-include(config/ParseConfigure.cmake)
-
-project(OpenEXR VERSION ${OPENEXR_VERSION} LANGUAGES C CXX)
+if(POLICY CMP0077)
+  # enable variables set outside to override options
+  cmake_policy(SET CMP0077 NEW)
+endif()
 
 #######################################
+# Create project and include cmake
+# configuration files
 #######################################
-# This declares all the configuration variables visible
-# in cmake-gui or similar and the rest of the global
-# project setup
+
+project(OpenEXR VERSION 3.1.3 LANGUAGES C CXX)
+
+set(OPENEXR_VERSION_RELEASE_TYPE "" CACHE STRING "Extra version tag string for OpenEXR build, such as -dev, -beta1, etc.")
+
+set(OPENEXR_VERSION ${OpenEXR_VERSION})
+set(OPENEXR_VERSION_API "${OpenEXR_VERSION_MAJOR}_${OpenEXR_VERSION_MINOR}")
+
+# Library/shared-object version using libtool versioning policy.
+# See https://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html
 #
-# Please look at this file to see what is configurable
-#######################################
-#######################################
-include(config/OpenEXRSetup.cmake)
+# Library API version (CMake's library VERSION attribute) is of the
+# form CURRENT.REVISION.AGE; the CMake SOVERSION attribute corresonds
+# to just CURRENT. These produce a .so and a symlink symlink, e.g.:
+# libOpenEXR-3_1.so.29 -> libOpenEXR-3_1.so.29.0.0
+#                    ^                       ^ ^ ^
+#                    |                       | | |
+#                    CURRENT                 | | AGE
+#                                            | REVISION 
+#                                            CURRENT
+# When updating:
+#   1. no API change: CURRENT.REVISION+1.AGE
+#   2. API added:     CURRENT+1.0.AGE+1
+#   3. API changed:   CURRENT+1.0.0
+#
+set(OPENEXR_LIBTOOL_CURRENT 30)
+set(OPENEXR_LIBTOOL_REVISION 3)
+set(OPENEXR_LIBTOOL_AGE 0)
+set(OPENEXR_LIB_VERSION "${OPENEXR_LIBTOOL_CURRENT}.${OPENEXR_LIBTOOL_REVISION}.${OPENEXR_LIBTOOL_AGE}")
+set(OPENEXR_LIB_SOVERSION ${OPENEXR_LIBTOOL_CURRENT})
 
-# Everyone depends on IlmBase, and we currently rely on
-# the version matched with our release
-find_package(IlmBase ${OPENEXR_VERSION} EXACT REQUIRED CONFIG)
-
-# generates config headers, package config files
-add_subdirectory(config)
-
-# utility function for the repeated boilerplate of defining
-# the libraries
-include(config/LibraryDefine.cmake)
-
-##########################
-
-add_subdirectory( IlmImf )
-add_subdirectory( IlmImfUtil )
-
-option(INSTALL_OPENEXR_EXAMPLES "Install OpenEXR examples" ON)
-if(INSTALL_OPENEXR_EXAMPLES)
-  add_subdirectory( IlmImfExamples )
+option(OPENEXR_INSTALL "Install OpenEXR libraries" ON)
+option(OPENEXR_INSTALL_TOOLS "Install OpenEXR tools" ON)
+if(OPENEXR_INSTALL_TOOLS AND NOT OPENEXR_INSTALL)
+  message(SEND_ERROR "OPENEXR_INSTALL_TOOLS requires OPENEXR_INSTALL")
 endif()
 
-##########################
-# Tests
-##########################
-# Can't seem to do EXCLUDE_FROM_ALL on the test executables
-# since you can't then create a dependency on the internal
-# "test" target such that it is auto built
+include(cmake/LibraryDefine.cmake)
+include(cmake/OpenEXRSetup.cmake)
+add_subdirectory(cmake)
+
+message(STATUS "Configure ${OPENEXR_PACKAGE_NAME}, library API version: ${OPENEXR_LIB_VERSION}")
+
+# Hint: This can be set to enable custom find_package
+# search paths, probably best to set it when configuring
+# on the command line to cmake instead of setting it
+# here.
+###set(CMAKE_PREFIX_PATH "/prefix")
+
+#######################################
+# Add all source in subdirectories
+#######################################
+
+# Include these two modules without enable/disable options
+add_subdirectory(src/lib)
+add_subdirectory(src/bin)
+
+# Tell CMake where to find the OpenEXRConfig.cmake file. Makes it posible to call 
+# find_package(OpenEXR) in downstream projects
+set(OpenEXR_DIR "${CMAKE_CURRENT_BINARY_DIR}/cmake" CACHE PATH "" FORCE)
+# Add an empty OpenEXRTargets.cmake file for the config to use. 
+# Can be empty since we already defined the targets in add_subdirectory
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/cmake/OpenEXRTargets.cmake" "# Dummy file")
+
+option(OPENEXR_INSTALL_EXAMPLES "Install OpenEXR examples" ON)
+if(OPENEXR_INSTALL_EXAMPLES)
+  add_subdirectory( src/examples )
+endif()
+
+# If you want to use ctest to configure, build and
+# upload the results, cmake has builtin support for
+# submitting to CDash, or any server who speaks the
+# same protocol
+# 
+# These settings will need to be set for your environment,
+# and then a script such as the example in
+#
+# cmake/SampleCTestScript.cmake
+#
+# edited and placed into the CI system, then run:
+#
+# cmake -S cmake/SampleCTestScript.cmake
+#
+# [or whatever you name the file you edit]
+# 
+#set(CTEST_PROJECT_NAME "OpenEXR")
+#set(CTEST_NIGHTLY_START_TIME "01:01:01 UTC")
+#set(CTEST_DROP_METHOD "http") # there are others...
+#set(CTEST_DROP_SITE "open.cdash.org")
+#set(CTEST_DROP_LOCATION "/submit.php?project=MyProject")
+#set(CTEST_DROP_SITE_CDASH TRUE)
 include(CTest)
-if(BUILD_TESTING)
+
+if(BUILD_TESTING AND NOT OPENEXR_IS_SUBPROJECT)
   enable_testing()
-  add_subdirectory( IlmImfTest )
-  add_subdirectory( IlmImfUtilTest )
-  add_subdirectory( IlmImfFuzzTest )
+  add_subdirectory(src/test)
 endif()
 
-##########################
-# Binaries / Utilities
-##########################
-if(OPENEXR_BUILD_UTILS)
-  add_subdirectory( exr2aces )
-  add_subdirectory( exrheader )
-  add_subdirectory( exrmaketiled )
-  add_subdirectory( exrstdattr )
-  add_subdirectory( exrmakepreview )
-  add_subdirectory( exrenvmap )
-  add_subdirectory( exrmultiview )
-  add_subdirectory( exrmultipart )
+# Including this module will add a `clang-format` target to the build if
+# the clang-format executable can be found. Only do this if we are top level
+if(NOT OPENEXR_IS_SUBPROJECT)
+  include(cmake/clang-format.cmake)
 endif()
 
-option(INSTALL_OPENEXR_DOCS "Install OpenEXR documentation" ON)
-if(INSTALL_OPENEXR_DOCS)
-  add_subdirectory(doc)
+option(DOCS "Set ON to build html documentation")
+if (DOCS)
+  add_subdirectory(docs)
 endif()
