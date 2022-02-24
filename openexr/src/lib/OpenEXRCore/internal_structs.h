@@ -36,7 +36,7 @@
 using atomic_uintptr_t = std::atomic_uintptr_t;
 #else
 #    if defined __has_include
-#        if __has_include(<stdatomic.h>)
+#        if __has_include(<stdatomic.h>) && !_MSC_VER
 #            define EXR_HAS_STD_ATOMICS 1
 #        endif
 #    endif
