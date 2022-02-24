@@ -16,7 +16,7 @@
 
 /* for testing, we include a bunch of internal stuff into the unit tests which are in c++ */
 #if defined __has_include
-#    if __has_include(<stdatomic.h>) && !_MSC_VER
+#    if __has_include(<stdatomic.h>) && !defined(_MSC_VER)
 #        define EXR_HAS_STD_ATOMICS 1
 #    endif
 #endif
