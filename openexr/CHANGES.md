@@ -1,5 +1,7 @@
 # OpenEXR Release Notes
 
+* [Version 3.1.5](#version-315-april-11-2022) April 11, 2022
+* [Version 3.1.4](#version-314-january-26-2022) January 27, 2022
 * [Version 3.1.3](#version-313-october-27-2021) October 27, 2021
 * [Version 3.1.2](#version-312-october-4-2021) October 4, 2021
 * [Version 3.1.1](#version-311-august-2-2021) August 2, 2021
@@ -11,6 +13,7 @@
 * [Version 3.0.1](#version-301-april-1-2021) April 1, 2021
 * [Version 3.0.1-beta](#version-301-beta-march-28-2021) March 28, 2021
 * [Version 3.0.0-beta](#version-300-beta-march-16-2021) March 16, 2021
+* [Version 2.5.8](#version-258-march-18-2022) March 18, 2022
 * [Version 2.5.7](#version-257-june-16-2021) June 16, 2021
 * [Version 2.5.6](#version-256-may-17-2021) May 17, 2021
 * [Version 2.5.5](#version-255-february-12-2021) February 12, 2021
@@ -52,6 +55,145 @@
 * [Version 1.0.2](#version-102)
 * [Version 1.0.1](#version-101)
 * [Version 1.0](#version-10)
+
+## Version 3.1.5 (April 11, 2022)
+
+Patch release that address various bug/build/doc issues:
+
+* Add backwards-compatibilty flags to the core library to match
+  original behavior of the the c++ library. Fixes reading of certain
+  files by the new core.
+* Fix build failures on MSVC14 and MSVC 2022
+* Fix build failure on latest 64-bit Ubuntu 
+* Documentation refers to primary branch as "main"
+* Update the CI workflow matrix to VFX-CY2022
+* Update auto-fetch Imath version to v3.1.5
+
+Specific OSS-fuzz issues:
+
+* OSS-fuzz [46309](https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=46309)
+Heap-buffer-overflow in Imf_3_1::memstream_read
+* OSS-fuzz [46083](https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=46083)
+Out-of-memory in openexr_exrcheck_fuzzer
+* OSS-fuzz [45899](https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=45899)
+Integer-overflow in internal_exr_compute_chunk_offset_size
+* OSS-fuzz [44084](https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=44084)
+Out-of-memory in openexr_exrcheck_fuzzer
+
+Merged Pull Requests:
+
+* [1251](https://github.cmo/AcademySoftwareFoundation/openexr/pull/1251)
+Add disable reconstruct flag
+* [1250](https://github.cmo/AcademySoftwareFoundation/openexr/pull/1250)
+handle potential overflow in CheckFile core reading
+* [1249](https://github.cmo/AcademySoftwareFoundation/openexr/pull/1249)
+prevent excessive internal memory in CheckFile deep tests
+* [1247](https://github.com/AcademySoftwareFoundation/openexr/pull/1247)
+Update to zlib 1.2.12 and Imath 3.1.5 
+* [1246](https://github.com/AcademySoftwareFoundation/openexr/pull/1246)
+move out of bounds check inside loop 
+* [1245](https://github.com/AcademySoftwareFoundation/openexr/pull/1245)
+Implement corrupt chunk table reconstruction for Core 
+* [1244](https://github.com/AcademySoftwareFoundation/openexr/pull/1244)
+Match cpp header checks 
+* [1239](https://github.com/AcademySoftwareFoundation/openexr/pull/1239)
+Add #include <algorithm> for MSVC14
+* [1238](https://github.com/AcademySoftwareFoundation/openexr/pull/1238)
+Update release notes for v2.5.8
+* [1237](https://github.com/AcademySoftwareFoundation/openexr/pull/1237)
+Fix MSVC 2022 build
+* [1232](https://github.com/AcademySoftwareFoundation/openexr/pull/1232)
+Fix logic for detecting _libc_fpstate API
+* [1230](https://github.com/AcademySoftwareFoundation/openexr/pull/1230)
+Add maximumSampleCount limit to CompositeDeepScanLine
+* [1227](https://github.com/AcademySoftwareFoundation/openexr/pull/1227)
+Update CI for VFX reference platform 2022
+* [1219](https://github.com/AcademySoftwareFoundation/openexr/pull/1219)
+Make local build with Imath
+
+## Version 3.1.4 (January 26, 2022)
+
+Patch release that addresses various issues:
+
+* Several bug fixes to properly reject invalid input upon read 
+* A check to enable SSE2 when building with Visual Studio
+* A check to fix building with VisualStudio on ARM64
+* Update the automatically-downloaded version of Imath to v3.1.4
+* Miscellaneous documentation improvements
+
+This addresses one public security vulnerability:
+
+* [CVE-2021-45942](https://nvd.nist.gov/vuln/detail/CVE-2021-45942) Heap-buffer-overflow in Imf_3_1::LineCompositeTask::execute
+
+Specific OSS-fuzz issues:
+
+* OSS-fuzz [43961](https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=43961) Heap-buffer-overflow in generic_unpack
+* OSS-fuzz [43916](https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=43916) Heap-buffer-overflow in hufDecode
+* OSS-fuzz [43763](https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=43763) Heap-buffer-overflow in internal_huf_decompress
+* OSS-fuzz [43745](https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=43745) Floating-point-exception in internal_exr_compute_tile_information
+* OSS-fuzz [43744](https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=43744) Divide-by-zero in internal_exr_compute_tile_information
+* OSS-fuzz [42197](https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=42197) Out-of-memory in openexr_exrcheck_fuzzer
+* OSS-fuzz [42001](https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=42001) Timeout in openexr_exrcheck_fuzzer
+* OSS-fuzz [41999](https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=41999) Heap-buffer-overflow in Imf_3_1::LineCompositeTask::execute
+* OSS-fuzz [41669](https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=41669) Integer-overflow in Imf_3_1::rleUncompress
+* OSS-fuzz [41625](https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=41625) Heap-buffer-overflow in uncompress_b44_impl
+* OSS-fuzz [41416](https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=41416) Heap-buffer-overflow in Imf_3_1::LineCompositeTask::execute
+* OSS-fuzz [41075](https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=41075) Integer-overflow in Imf_3_1::copyIntoDeepFrameBuffer
+* OSS-fuzz [40704](https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=40704) Crash in Imf_3_1::DeepTiledInputFile::readPixelSampleCounts
+* OSS-fuzz [40702](https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=40702) Null-dereference in bool Imf_3_1::readDeepTile<Imf_3_1::DeepTiledInputFile>
+* OSS-fuzz [40701](https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=40701) Null-dereference in bool Imf_3_1::readDeepTile<Imf_3_1::DeepTiledInputPart>
+* OSS-fuzz [40423](https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=40423) Out-of-memory in openexr_exrcheck_fuzzer
+* OSS-fuzz [40234](https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=40234) Heap-buffer-overflow in generic_unpack
+* OSS-fuzz [40231](https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=40231) Heap-buffer-overflow in hufDecode
+* OSS-fuzz [40091](https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=40091) Heap-buffer-overflow in hufDecode
+
+Merged Pull Requests:
+
+* [1225](https://github.com/AcademySoftwareFoundation/openexr/pull/1225)
+Bazel build: Update Imath
+* [1224](https://github.com/AcademySoftwareFoundation/openexr/pull/1224)
+Add error check to prevent corrupt files trying to unpack 
+* [1223](https://github.com/AcademySoftwareFoundation/openexr/pull/1223)
+Fix issues with a a "short" huf table and checking boundary conditions, missing return value
+* [1222](https://github.com/AcademySoftwareFoundation/openexr/pull/1222)
+Fix OSS Fuzz 43763, 43745 
+* [1218](https://github.com/AcademySoftwareFoundation/openexr/pull/1218)
+OSS-Fuzz pass 15jan2022
+* [1217](https://github.com/AcademySoftwareFoundation/openexr/pull/1217)
+Added missing check _M_IX86 or _M_X64 when using __lzcnt.
+* [1216](https://github.com/AcademySoftwareFoundation/openexr/pull/1216)
+Corrected the check to enable SSE2 when building with Visual Studio.
+* [1214](https://github.com/AcademySoftwareFoundation/openexr/pull/1214)
+prevent overflow in allocation of RLE buufer
+* [1213](https://github.com/AcademySoftwareFoundation/openexr/pull/1213)
+add check for decompressed deepscanline datasize
+* [1209](https://github.com/AcademySoftwareFoundation/openexr/pull/1209)
+enforce xSampling/ySampling==1 in CompositeDeepScanLine
+* [1208](https://github.com/AcademySoftwareFoundation/openexr/pull/1208)
+Reduce memory consumption with very large deepscanline images
+* [1206](https://github.com/AcademySoftwareFoundation/openexr/pull/1206)
+Update INSTALL.md
+* [1205](https://github.com/AcademySoftwareFoundation/openexr/pull/1205)
+DeepScanlineInputFile now uses chunk size test from DeepTiledInputFile
+* [1203](https://github.com/AcademySoftwareFoundation/openexr/pull/1203)
+Remove deprecated CI scripts
+* [1202](https://github.com/AcademySoftwareFoundation/openexr/pull/1202)
+Missed a backslash in example code correction
+* [1200](https://github.com/AcademySoftwareFoundation/openexr/pull/1200)
+Corrected Deep Docs & Example Code
+* [1199](https://github.com/AcademySoftwareFoundation/openexr/pull/1199)
+Fix C++ DeepTile reading in Imf::CheckFile
+* [1195](https://github.com/AcademySoftwareFoundation/openexr/pull/1195)
+Fix bugs in ImfCheckFile.cpp:readDeepTile()
+* [1193](https://github.com/AcademySoftwareFoundation/openexr/pull/1193)
+mention multipart files in multiview doc
+* [1191](https://github.com/AcademySoftwareFoundation/openexr/pull/1191)
+Replace Doxygen/Sphinx targets with "docs"
+* [1190](https://github.com/AcademySoftwareFoundation/openexr/pull/1190)
+Add Compression section to "Reading and Writing Image Files" doc
+* [1189](https://github.com/AcademySoftwareFoundation/openexr/pull/1189)
+Fix typo in readthedocs url
+
 
 ## Version 3.1.3 (October 27, 2021)
 
@@ -669,6 +811,13 @@ Specific OSS-fuzz issues addressed include:
 * [796](https://github.com/AcademySoftwareFoundation/openexr/pull/796)  Initial rename of OpenEXR and IlmBase directories and seperation of Test
 * [791](https://github.com/AcademySoftwareFoundation/openexr/pull/791)  Initial removal of all Imath source files and minimal cmake adjustments
 * [769](https://github.com/AcademySoftwareFoundation/openexr/pull/769)  Bugfix/arkellr remove cvsignore files
+
+## Version 2.5.8 (March 18, 2022)
+
+Patch release that backports two fixes:
+
+* [1235](https://github.com/AcademySoftwareFoundation/openexr/pull/1235) Fix MinGW build by dropping export on defaulted KeyCode::~KeyCode
+* [1061](https://github.com/AcademySoftwareFoundation/openexr/pull/1061) Use CMAKE_INSTALL_FULL_LIBDIR/INCLUDEDIR in pkgconfig
 
 ## Version 2.5.7 (June 16, 2021)
 

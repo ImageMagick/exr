@@ -74,12 +74,12 @@ solve (double a,
     // Solve the equation a*x^3 + b*x^2 + c*x +d
     //
 
-    double x[3];
-    int n = IMATH_INTERNAL_NAMESPACE::solveCubic (a, b, c, d, x);
+    double x[3] = { 0, 0, 0 };
+    int    n = IMATH_INTERNAL_NAMESPACE::solveCubic (a, b, c, d, x);
 
     //
     // Sort the numerical solutions.
-    // Sorte the expected solutions.
+    // Sort the expected solutions.
     //
     sort (nx, x0, x1, x2);
     sort (n, x);
@@ -206,6 +206,7 @@ testRoots()
     solve (0, 0, 1, 0, 1, 0, 0, 0);      // real solutions: 0
     solve (0, 0, 0, 1, 0, 0, 0, 0);      // real solutions: none
     solve (0, 0, 0, 0, -1, 0, 0, 0);     // real solutions: [-inf, inf]
+    solve (36, -37, 0, 12, 1, -0.4715155, 0, 0);
 
     cout << endl << "solveQuadratic" << endl;
     // Solve quadratic equations

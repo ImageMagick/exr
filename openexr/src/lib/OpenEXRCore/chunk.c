@@ -15,9 +15,12 @@
 /**************************************/
 
 /* for testing, we include a bunch of internal stuff into the unit tests which are in c++ */
-#if defined __has_include
-#    if __has_include(<stdatomic.h>) && !defined(_MSC_VER)
-#        define EXR_HAS_STD_ATOMICS 1
+/* see internal_structs.h for details on the msvc guard. */
+#if !defined(_MSC_VER)
+#    if defined __has_include
+#        if __has_include(<stdatomic.h>)
+#            define EXR_HAS_STD_ATOMICS 1
+#        endif
 #    endif
 #endif
 
@@ -47,6 +50,466 @@ atomic_compare_exchange_strong (
 
 /**************************************/
 
+static exr_result_t extract_chunk_table (
+    const struct _internal_exr_context* ctxt,
+    const struct _internal_exr_part*    part,
+    uint64_t**                          chunktable,
+    uint64_t*                           chunkminoffset);
+
+/**************************************/
+
+static exr_result_t
+validate_and_compute_tile_chunk_off (
+    const struct _internal_exr_context* ctxt,
+    const struct _internal_exr_part*    part,
+    int                                 tilex,
+    int                                 tiley,
+    int                                 levelx,
+    int                                 levely,
+    int32_t*                            chunkoffout)
+{
+    int                        numx, numy;
+    const exr_attr_tiledesc_t* tiledesc;
+    int64_t                    chunkoff = 0;
+
+    if (!part->tiles || part->num_tile_levels_x <= 0 ||
+        part->num_tile_levels_y <= 0 || !part->tile_level_tile_count_x ||
+        !part->tile_level_tile_count_y)
+    {
+        return ctxt->print_error (
+            ctxt,
+            EXR_ERR_MISSING_REQ_ATTR,
+            "Tile descriptor data missing or corrupt");
+    }
+
+    if (tilex < 0 || tiley < 0 || levelx < 0 || levely < 0)
+        return ctxt->print_error (
+            ctxt,
+            EXR_ERR_INVALID_ARGUMENT,
+            "Invalid tile indices provided (%d, %d, level %d, %d)",
+            tilex,
+            tiley,
+            levelx,
+            levely);
+
+    tiledesc = part->tiles->tiledesc;
+    switch (EXR_GET_TILE_LEVEL_MODE ((*tiledesc)))
+    {
+        case EXR_TILE_ONE_LEVEL:
+        case EXR_TILE_MIPMAP_LEVELS:
+            if (levelx != levely)
+            {
+                return ctxt->print_error (
+                    ctxt,
+                    EXR_ERR_INVALID_ARGUMENT,
+                    "Request for tile (%d, %d) level (%d, %d), but single level and mipmap tiles must have same level x and y",
+                    tilex,
+                    tiley,
+                    levelx,
+                    levely);
+            }
+            if (levelx >= part->num_tile_levels_x)
+            {
+                return ctxt->print_error (
+                    ctxt,
+                    EXR_ERR_INVALID_ARGUMENT,
+                    "Request for tile (%d, %d) level %d, but level past available levels (%d)",
+                    tilex,
+                    tiley,
+                    levelx,
+                    part->num_tile_levels_x);
+            }
+
+            numx = part->tile_level_tile_count_x[levelx];
+            numy = part->tile_level_tile_count_y[levelx];
+
+            if (tilex >= numx || tiley >= numy)
+            {
+                return ctxt->print_error (
+                    ctxt,
+                    EXR_ERR_INVALID_ARGUMENT,
+                    "Request for tile (%d, %d) level %d, but level only has %d x %d tiles",
+                    tilex,
+                    tiley,
+                    levelx,
+                    numx,
+                    numy);
+            }
+
+            for (int l = 0; l < levelx; ++l)
+                chunkoff +=
+                    ((int64_t) part->tile_level_tile_count_x[l] *
+                     (int64_t) part->tile_level_tile_count_y[l]);
+            chunkoff += tiley * numx + tilex;
+            break;
+
+        case EXR_TILE_RIPMAP_LEVELS:
+            if (levelx >= part->num_tile_levels_x)
+            {
+                return ctxt->print_error (
+                    ctxt,
+                    EXR_ERR_INVALID_ARGUMENT,
+                    "Request for tile (%d, %d) level %d, %d, but x level past available levels (%d)",
+                    tilex,
+                    tiley,
+                    levelx,
+                    levely,
+                    part->num_tile_levels_x);
+            }
+            if (levely >= part->num_tile_levels_y)
+            {
+                return ctxt->print_error (
+                    ctxt,
+                    EXR_ERR_INVALID_ARGUMENT,
+                    "Request for tile (%d, %d) level %d, %d, but y level past available levels (%d)",
+                    tilex,
+                    tiley,
+                    levelx,
+                    levely,
+                    part->num_tile_levels_y);
+            }
+
+            numx = part->tile_level_tile_count_x[levelx];
+            numy = part->tile_level_tile_count_y[levely];
+
+            if (tilex >= numx || tiley >= numy)
+            {
+                return ctxt->print_error (
+                    ctxt,
+                    EXR_ERR_INVALID_ARGUMENT,
+                    "Request for tile (%d, %d) at rip level %d, %d level only has %d x %d tiles",
+                    tilex,
+                    tiley,
+                    levelx,
+                    levely,
+                    numx,
+                    numy);
+            }
+
+            for (int ly = 0; ly < levely; ++ly)
+            {
+                for (int lx = 0; lx < levelx; ++lx)
+                {
+                    chunkoff +=
+                        ((int64_t) part->tile_level_tile_count_x[lx] *
+                         (int64_t) part->tile_level_tile_count_y[ly]);
+                }
+            }
+            for (int lx = 0; lx < levelx; ++lx)
+            {
+                chunkoff +=
+                    ((int64_t) part->tile_level_tile_count_x[lx] *
+                     (int64_t) numy);
+            }
+            chunkoff += tiley * numx + tilex;
+            break;
+        case EXR_TILE_LAST_TYPE:
+        default:
+            return ctxt->print_error (
+                ctxt, EXR_ERR_UNKNOWN, "Invalid tile description");
+    }
+
+    if (chunkoff >= part->chunk_count)
+    {
+        return ctxt->print_error (
+            ctxt,
+            EXR_ERR_UNKNOWN,
+            "Invalid tile chunk offset %" PRId64 " (%d avail)",
+            chunkoff,
+            part->chunk_count);
+    }
+
+    *chunkoffout = (int32_t) chunkoff;
+    return EXR_ERR_SUCCESS;
+}
+
+/**************************************/
+
+struct priv_chunk_leader
+{
+    int32_t partnum;
+    union
+    {
+        int32_t scanline_y;
+        struct
+        {
+            int32_t tile_x;
+            int32_t tile_y;
+            int32_t level_x;
+            int32_t level_y;
+        };
+    };
+    union
+    {
+        int64_t deep_data[3];
+        struct
+        {
+            uint64_t deep_samples;
+            uint64_t deep_packed_size;
+            uint64_t deep_unpacked_size;
+        };
+    };
+    uint64_t packed_size;
+};
+
+static exr_result_t
+extract_chunk_leader (
+    const struct _internal_exr_context* ctxt,
+    const struct _internal_exr_part*    part,
+    int                                 partnum,
+    uint64_t                            offset,
+    uint64_t*                           next_offset,
+    struct priv_chunk_leader*           leaderdata)
+{
+    exr_result_t rv = EXR_ERR_SUCCESS;
+    int32_t      data[6];
+    uint64_t     nextoffset = offset;
+    int          rdcnt, ntoread;
+    int64_t      maxval = (int64_t) INT_MAX; // 2GB
+
+    if (ctxt->file_size > 0) maxval = ctxt->file_size;
+
+    if (part->storage_mode == EXR_STORAGE_SCANLINE ||
+        part->storage_mode == EXR_STORAGE_DEEP_SCANLINE)
+    {
+        ntoread = (ctxt->is_multipart) ? 2 : 1;
+        if (part->storage_mode != EXR_STORAGE_DEEP_SCANLINE) ++ntoread;
+    }
+    else if (part->storage_mode == EXR_STORAGE_DEEP_TILED)
+    {
+        if (ctxt->is_multipart)
+            ntoread = 5;
+        else
+            ntoread = 4;
+    }
+    else if (ctxt->is_multipart)
+        ntoread = 6;
+    else
+        ntoread = 5;
+
+    rv = ctxt->do_read (
+        ctxt,
+        data,
+        ntoread * sizeof (int32_t),
+        &nextoffset,
+        NULL,
+        EXR_MUST_READ_ALL);
+    if (rv != EXR_ERR_SUCCESS) return rv;
+
+    priv_to_native32 (data, ntoread);
+
+    rdcnt = 0;
+    if (ctxt->is_multipart)
+    {
+        if (data[rdcnt] != partnum)
+        {
+            return ctxt->print_error (
+                ctxt,
+                EXR_ERR_BAD_CHUNK_LEADER,
+                "Invalid part number reconstructing chunk table: expect %d, found %d",
+                partnum,
+                data[rdcnt]);
+        }
+        leaderdata->partnum = partnum;
+        ++rdcnt;
+    }
+    else
+        leaderdata->partnum = 0;
+
+    if (part->storage_mode == EXR_STORAGE_SCANLINE ||
+        part->storage_mode == EXR_STORAGE_DEEP_SCANLINE)
+    {
+        leaderdata->scanline_y = data[rdcnt];
+    }
+    else
+    {
+        leaderdata->tile_x  = data[rdcnt++];
+        leaderdata->tile_y  = data[rdcnt++];
+        leaderdata->level_x = data[rdcnt++];
+        leaderdata->level_y = data[rdcnt];
+    }
+
+    if (part->storage_mode == EXR_STORAGE_DEEP_SCANLINE ||
+        part->storage_mode == EXR_STORAGE_DEEP_TILED)
+    {
+        rv = ctxt->do_read (
+            ctxt,
+            leaderdata->deep_data,
+            3 * sizeof (int64_t),
+            &nextoffset,
+            NULL,
+            EXR_MUST_READ_ALL);
+        if (rv != EXR_ERR_SUCCESS) return rv;
+        priv_to_native64 (leaderdata->deep_data, 3);
+
+        if (leaderdata->deep_data[1] < 0 || leaderdata->deep_data[1] > maxval)
+        {
+            return ctxt->print_error (
+                ctxt,
+                EXR_ERR_BAD_CHUNK_LEADER,
+                "Invalid chunk size reconstructing chunk table: found out of range %ld",
+                leaderdata->deep_data[1]);
+        }
+        leaderdata->packed_size = leaderdata->deep_packed_size;
+        nextoffset += leaderdata->deep_packed_size;
+    }
+    else
+    {
+        ++rdcnt;
+
+        if (data[rdcnt] < 0 || data[rdcnt] > maxval)
+        {
+            return ctxt->print_error (
+                ctxt,
+                EXR_ERR_BAD_CHUNK_LEADER,
+                "Invalid chunk size reconstructing chunk table: found out of range %d",
+                data[rdcnt]);
+        }
+        leaderdata->packed_size = (uint64_t) data[rdcnt];
+        nextoffset += leaderdata->packed_size;
+    }
+
+    *next_offset = nextoffset;
+    return rv;
+}
+
+static exr_result_t
+extract_chunk_size (
+    const struct _internal_exr_context* ctxt,
+    const struct _internal_exr_part*    part,
+    int                                 partnum,
+    uint64_t                            offset,
+    uint64_t*                           next_offset)
+{
+    struct priv_chunk_leader leader;
+
+    return extract_chunk_leader (
+        ctxt, part, partnum, offset, next_offset, &leader);
+}
+
+/**************************************/
+
+static exr_result_t
+read_and_validate_chunk_leader (
+    const struct _internal_exr_context* ctxt,
+    const struct _internal_exr_part*    part,
+    int                                 partnum,
+    uint64_t                            offset,
+    int*                                indexio,
+    uint64_t*                           next_offset)
+{
+    exr_result_t             rv = EXR_ERR_SUCCESS;
+    struct priv_chunk_leader leader;
+
+    rv = extract_chunk_leader (
+        ctxt, part, partnum, offset, next_offset, &leader);
+    if (rv != EXR_ERR_SUCCESS) return rv;
+
+    if (part->storage_mode == EXR_STORAGE_SCANLINE ||
+        part->storage_mode == EXR_STORAGE_DEEP_SCANLINE)
+    {
+        *indexio = (leader.scanline_y - part->data_window.min.y) /
+                   part->lines_per_chunk;
+    }
+    else
+    {
+        // because of random order, just go with it if the coordinates look sane
+        int32_t cidx = 0;
+
+        rv = validate_and_compute_tile_chunk_off (
+            ctxt,
+            part,
+            leader.tile_x,
+            leader.tile_y,
+            leader.level_x,
+            leader.level_y,
+            &cidx);
+
+        *indexio = cidx;
+    }
+
+    return rv;
+}
+
+// this should behave the same as the old ImfMultiPartInputFile
+static exr_result_t
+reconstruct_chunk_table (
+    const struct _internal_exr_context* ctxt,
+    const struct _internal_exr_part*    part,
+    uint64_t*                           chunktable)
+{
+    exr_result_t                     rv = EXR_ERR_SUCCESS;
+    uint64_t                         offset_start, chunk_start, max_offset;
+    uint64_t*                        curctable;
+    const struct _internal_exr_part* curpart = NULL;
+    int                              maxidx, found_ci, computed_ci, partnum = 0;
+
+    curpart      = ctxt->parts[ctxt->num_parts - 1];
+    offset_start = curpart->chunk_table_offset;
+    offset_start += sizeof (uint64_t) * (uint64_t) curpart->chunk_count;
+
+    curpart = ctxt->parts[partnum];
+    while (curpart != part)
+    {
+        ++partnum;
+        curpart = ctxt->parts[partnum];
+    }
+
+    max_offset = (uint64_t) -1;
+    if (ctxt->file_size > 0) max_offset = (uint64_t) ctxt->file_size;
+
+    // for multi-part, need to start at the first part and extract everything, then
+    // work our way back up to this one, then grab the end of the previous part
+    if (partnum > 0)
+    {
+        curpart = ctxt->parts[partnum - 1];
+        rv      = extract_chunk_table (ctxt, curpart, &curctable, &chunk_start);
+        if (rv != EXR_ERR_SUCCESS) return rv;
+
+        chunk_start = curctable[0];
+        maxidx      = 0;
+        for (int ci = 1; ci < curpart->chunk_count; ++ci)
+        {
+            if (curctable[ci] > chunk_start)
+            {
+                maxidx      = ci;
+                chunk_start = curctable[ci];
+            }
+        }
+
+        rv = extract_chunk_size (
+            ctxt, curpart, partnum - 1, chunk_start, &offset_start);
+        if (rv != EXR_ERR_SUCCESS) return rv;
+    }
+
+    for (int ci = 0; ci < part->chunk_count; ++ci)
+    {
+        if (chunktable[ci] >= offset_start && chunktable[ci] < max_offset)
+        {
+            offset_start = chunktable[ci];
+        }
+        chunk_start = offset_start;
+        computed_ci = ci;
+        if (part->lineorder == EXR_LINEORDER_DECREASING_Y)
+            computed_ci = part->chunk_count - (ci + 1);
+        found_ci = computed_ci;
+        rv       = read_and_validate_chunk_leader (
+            ctxt, part, partnum, chunk_start, &found_ci, &offset_start);
+        if (rv != EXR_ERR_SUCCESS) return rv;
+
+        // scanlines can be more strict about the ordering
+        if (part->storage_mode == EXR_STORAGE_SCANLINE ||
+            part->storage_mode == EXR_STORAGE_DEEP_SCANLINE)
+        {
+            if (computed_ci != found_ci) return EXR_ERR_BAD_CHUNK_LEADER;
+        }
+
+        chunktable[found_ci] = chunk_start;
+    }
+
+    return rv;
+}
+
 static exr_result_t
 extract_chunk_table (
     const struct _internal_exr_context* ctxt,
@@ -66,7 +529,8 @@ extract_chunk_table (
     {
         int64_t   nread = 0;
         uintptr_t eptr = 0, nptr = 0;
-
+        int       complete = 1;
+        uint64_t  maxoff   = ((uint64_t) -1);
         exr_result_t rv;
 
         if (part->chunk_count <= 0)
@@ -94,9 +558,43 @@ extract_chunk_table (
             ctxt->free_fn (ctable);
             return rv;
         }
-        priv_to_native64 (ctable, part->chunk_count);
 
-        //EXR_GETFILE(f)->report_error( ctxt, EXR_ERR_UNKNOWN, "TODO: implement reconstructLineOffsets and similar" );
+        if (!ctxt->disable_chunk_reconstruct)
+        {
+            // could convert table all at once, but need to check if the
+            // file is incomplete (i.e. crashed during write and didn't
+            // get a complete chunk table), so just do them one at a time
+            if (ctxt->file_size > 0) maxoff = (uint64_t) ctxt->file_size;
+            for (size_t ci = 0; ci < part->chunk_count; ++ci)
+            {
+                uint64_t cchunk = one_to_native64 (ctable[ci]);
+                if (cchunk < chunkoff || cchunk >= maxoff) complete = 0;
+                ctable[ci] = cchunk;
+            }
+
+            if (!complete)
+            {
+                // The c++ side would basically fail as soon as it
+                // failed, but would otherwise swallow all errors, and
+                // then just let the reads fail later. We will do
+                // something similar, except when in strict mode, we
+                // will fail with a corrupt chunk immediately.
+                rv = reconstruct_chunk_table (ctxt, part, ctable);
+                if (rv != EXR_ERR_SUCCESS && ctxt->strict_header)
+                {
+                    ctxt->free_fn (ctable);
+                    return ctxt->report_error (
+                        ctxt,
+                        EXR_ERR_BAD_CHUNK_LEADER,
+                        "Incomplete / corrupt chunk table, unable to reconstruct");
+                }
+            }
+        }
+        else
+        {
+            priv_to_native64 (ctable, part->chunk_count);
+        }
+
         nptr = (uintptr_t) ctable;
         // see if we win or not
         if (!atomic_compare_exchange_strong (
@@ -288,6 +786,8 @@ exr_read_scanline_chunk_info (
             dataoff);
     }
 
+    /* TODO: Look at collapsing this into extract_chunk_leader, only
+     * issue is more concrete error messages */
     /* multi part files have the part for validation */
     rdcnt = (pctxt->is_multipart) ? 2 : 1;
     /* deep has 64-bit data, so be variable about what we read */
@@ -439,152 +939,12 @@ exr_read_scanline_chunk_info (
                 fsize);
         }
     }
-    return EXR_ERR_SUCCESS;
-}
 
-/**************************************/
-
-static exr_result_t
-compute_tile_chunk_off (
-    const struct _internal_exr_context* ctxt,
-    const struct _internal_exr_part*    part,
-    int                                 tilex,
-    int                                 tiley,
-    int                                 levelx,
-    int                                 levely,
-    int32_t*                            chunkoffout)
-{
-    int                        numx, numy;
-    int64_t                    chunkoff = 0;
-    const exr_attr_tiledesc_t* tiledesc = part->tiles->tiledesc;
-
-    switch (EXR_GET_TILE_LEVEL_MODE ((*tiledesc)))
-    {
-        case EXR_TILE_ONE_LEVEL:
-        case EXR_TILE_MIPMAP_LEVELS:
-            if (levelx != levely)
-            {
-                return ctxt->print_error (
-                    ctxt,
-                    EXR_ERR_INVALID_ARGUMENT,
-                    "Request for tile (%d, %d) level (%d, %d), but single level and mipmap tiles must have same level x and y",
-                    tilex,
-                    tiley,
-                    levelx,
-                    levely);
-            }
-            if (levelx >= part->num_tile_levels_x)
-            {
-                return ctxt->print_error (
-                    ctxt,
-                    EXR_ERR_INVALID_ARGUMENT,
-                    "Request for tile (%d, %d) level %d, but level past available levels (%d)",
-                    tilex,
-                    tiley,
-                    levelx,
-                    part->num_tile_levels_x);
-            }
-
-            numx = part->tile_level_tile_count_x[levelx];
-            numy = part->tile_level_tile_count_y[levelx];
-
-            if (tilex >= numx || tiley >= numy)
-            {
-                return ctxt->print_error (
-                    ctxt,
-                    EXR_ERR_INVALID_ARGUMENT,
-                    "Request for tile (%d, %d) level %d, but level only has %d x %d tiles",
-                    tilex,
-                    tiley,
-                    levelx,
-                    numx,
-                    numy);
-            }
-
-            for (int l = 0; l < levelx; ++l)
-                chunkoff +=
-                    ((int64_t) part->tile_level_tile_count_x[l] *
-                     (int64_t) part->tile_level_tile_count_y[l]);
-            chunkoff += tiley * numx + tilex;
-            break;
-
-        case EXR_TILE_RIPMAP_LEVELS:
-            if (levelx >= part->num_tile_levels_x)
-            {
-                return ctxt->print_error (
-                    ctxt,
-                    EXR_ERR_INVALID_ARGUMENT,
-                    "Request for tile (%d, %d) level %d, %d, but x level past available levels (%d)",
-                    tilex,
-                    tiley,
-                    levelx,
-                    levely,
-                    part->num_tile_levels_x);
-            }
-            if (levely >= part->num_tile_levels_y)
-            {
-                return ctxt->print_error (
-                    ctxt,
-                    EXR_ERR_INVALID_ARGUMENT,
-                    "Request for tile (%d, %d) level %d, %d, but y level past available levels (%d)",
-                    tilex,
-                    tiley,
-                    levelx,
-                    levely,
-                    part->num_tile_levels_y);
-            }
-
-            numx = part->tile_level_tile_count_x[levelx];
-            numy = part->tile_level_tile_count_y[levely];
-
-            if (tilex >= numx || tiley >= numy)
-            {
-                return ctxt->print_error (
-                    ctxt,
-                    EXR_ERR_INVALID_ARGUMENT,
-                    "Request for tile (%d, %d) at rip level %d, %d level only has %d x %d tiles",
-                    tilex,
-                    tiley,
-                    levelx,
-                    levely,
-                    numx,
-                    numy);
-            }
-
-            for (int ly = 0; ly < levely; ++ly)
-            {
-                for (int lx = 0; lx < levelx; ++lx)
-                {
-                    chunkoff +=
-                        ((int64_t) part->tile_level_tile_count_x[lx] *
-                         (int64_t) part->tile_level_tile_count_y[ly]);
-                }
-            }
-            for (int lx = 0; lx < levelx; ++lx)
-            {
-                chunkoff +=
-                    ((int64_t) part->tile_level_tile_count_x[lx] *
-                     (int64_t) numy);
-            }
-            chunkoff += tiley * numx + tilex;
-            break;
-        case EXR_TILE_LAST_TYPE:
-        default:
-            return ctxt->print_error (
-                ctxt, EXR_ERR_UNKNOWN, "Invalid tile description");
-    }
-
-    if (chunkoff >= part->chunk_count)
-    {
-        return ctxt->print_error (
-            ctxt,
-            EXR_ERR_UNKNOWN,
-            "Invalid tile chunk offset %" PRId64 " (%d avail)",
-            chunkoff,
-            part->chunk_count);
-    }
-
-    *chunkoffout = (int32_t) chunkoff;
+    if (cinfo->packed_size == 0 && cinfo->unpacked_size > 0)
+        return pctxt->report_error (
+            pctxt,
+            EXR_ERR_INVALID_ARGUMENT,
+            "Invalid packed size of 0");
     return EXR_ERR_SUCCESS;
 }
 
@@ -615,21 +975,16 @@ exr_read_tile_chunk_info (
 
     if (!cinfo) return pctxt->standard_error (pctxt, EXR_ERR_INVALID_ARGUMENT);
 
-    if (tilex < 0 || tiley < 0 || levelx < 0 || levely < 0)
-        return pctxt->standard_error (pctxt, EXR_ERR_INVALID_ARGUMENT);
     if (part->storage_mode == EXR_STORAGE_SCANLINE ||
         part->storage_mode == EXR_STORAGE_DEEP_SCANLINE)
     {
         return pctxt->standard_error (pctxt, EXR_ERR_TILE_SCAN_MIXEDAPI);
     }
 
-    if (!part->tiles || part->num_tile_levels_x <= 0 ||
-        part->num_tile_levels_y <= 0 || !part->tile_level_tile_count_x ||
-        !part->tile_level_tile_count_y)
-    {
-        return pctxt->print_error (
-            pctxt, EXR_ERR_MISSING_REQ_ATTR, "Tile data missing or corrupt");
-    }
+    cidx = 0;
+    rv   = validate_and_compute_tile_chunk_off (
+        pctxt, part, tilex, tiley, levelx, levely, &cidx);
+    if (rv != EXR_ERR_SUCCESS) return rv;
 
     tiledesc = part->tiles->tiledesc;
 
@@ -650,11 +1005,6 @@ exr_read_tile_chunk_info (
         tend -= dend;
         if (tend < tileh) tileh = tileh - ((int) tend);
     }
-
-    cidx = 0;
-    rv   = compute_tile_chunk_off (
-        pctxt, part, tilex, tiley, levelx, levely, &cidx);
-    if (rv != EXR_ERR_SUCCESS) return rv;
 
     cinfo->idx         = cidx;
     cinfo->type        = (uint8_t) part->storage_mode;
@@ -686,6 +1036,8 @@ exr_read_tile_chunk_info (
     rv = extract_chunk_table (pctxt, part, &ctable, &chunkmin);
     if (rv != EXR_ERR_SUCCESS) return rv;
 
+    /* TODO: Look at collapsing this into extract_chunk_leader, only
+     * issue is more concrete error messages */
     if (part->storage_mode == EXR_STORAGE_DEEP_TILED)
     {
         if (pctxt->is_multipart)
@@ -942,6 +1294,13 @@ exr_read_tile_chunk_info (
         cinfo->sample_count_data_offset = 0;
         cinfo->sample_count_table_size  = 0;
     }
+
+    if (cinfo->packed_size == 0 && cinfo->unpacked_size > 0)
+        return pctxt->report_error (
+            pctxt,
+            EXR_ERR_INVALID_ARGUMENT,
+            "Invalid packed size of 0");
+
     return EXR_ERR_SUCCESS;
 }
 
@@ -1410,22 +1769,11 @@ exr_write_tile_chunk_info (
         return EXR_UNLOCK_AND_RETURN_PCTXT (
             pctxt->standard_error (pctxt, EXR_ERR_INVALID_ARGUMENT));
 
-    if (tilex < 0 || tiley < 0 || levelx < 0 || levely < 0)
-        return EXR_UNLOCK_AND_RETURN_PCTXT (
-            pctxt->standard_error (pctxt, EXR_ERR_INVALID_ARGUMENT));
     if (part->storage_mode == EXR_STORAGE_SCANLINE ||
         part->storage_mode == EXR_STORAGE_DEEP_SCANLINE)
     {
         return EXR_UNLOCK_AND_RETURN_PCTXT (
             pctxt->standard_error (pctxt, EXR_ERR_TILE_SCAN_MIXEDAPI));
-    }
-
-    if (!part->tiles || part->num_tile_levels_x <= 0 ||
-        part->num_tile_levels_y <= 0 || !part->tile_level_tile_count_x ||
-        !part->tile_level_tile_count_y)
-    {
-        return EXR_UNLOCK_WRITE_AND_RETURN_PCTXT (pctxt->report_error (
-            pctxt, EXR_ERR_MISSING_REQ_ATTR, "Tile data missing or corrupt"));
     }
 
     if (pctxt->mode != EXR_CONTEXT_WRITING_DATA)
@@ -1436,6 +1784,11 @@ exr_write_tile_chunk_info (
         return EXR_UNLOCK_AND_RETURN_PCTXT (
             pctxt->standard_error (pctxt, EXR_ERR_NOT_OPEN_WRITE));
     }
+
+    cidx = 0;
+    rv   = validate_and_compute_tile_chunk_off (
+        pctxt, part, tilex, tiley, levelx, levely, &cidx);
+    if (rv != EXR_ERR_SUCCESS) return EXR_UNLOCK_AND_RETURN_PCTXT (rv);
 
     tiledesc = part->tiles->tiledesc;
     tilew    = part->tile_level_tile_size_x[levelx];
@@ -1460,11 +1813,6 @@ exr_write_tile_chunk_info (
                      (int64_t) (part->data_window.min.y) + 1;
         tileh = (int) (sz - ((int64_t) (tiley) * (int64_t) (tileh)));
     }
-
-    cidx = 0;
-    rv   = compute_tile_chunk_off (
-        pctxt, part, tilex, tiley, levelx, levely, &cidx);
-    if (rv != EXR_ERR_SUCCESS) return EXR_UNLOCK_AND_RETURN_PCTXT (rv);
 
     *cinfo             = nil;
     cinfo->idx         = cidx;
@@ -1625,18 +1973,8 @@ write_tile_chunk (
             (uint64_t) sample_data_size,
             sample_data);
 
-    if (!part->tiles || part->num_tile_levels_x <= 0 ||
-        part->num_tile_levels_y <= 0 || !part->tile_level_tile_count_x ||
-        !part->tile_level_tile_count_y)
-    {
-        return pctxt->print_error (
-            pctxt,
-            EXR_ERR_MISSING_REQ_ATTR,
-            "Attempting to write tiled part, but tile data missing or corrupt");
-    }
-
     cidx = -1;
-    rv   = compute_tile_chunk_off (
+    rv   = validate_and_compute_tile_chunk_off (
         pctxt, part, tilex, tiley, levelx, levely, &cidx);
     if (rv != EXR_ERR_SUCCESS) return rv;
 
@@ -1829,7 +2167,7 @@ internal_validate_next_chunk (
     if (part->storage_mode == EXR_STORAGE_TILED ||
         part->storage_mode == EXR_STORAGE_DEEP_TILED)
     {
-        rv = compute_tile_chunk_off (
+        rv = validate_and_compute_tile_chunk_off (
             pctxt,
             part,
             encode->chunk.start_x,

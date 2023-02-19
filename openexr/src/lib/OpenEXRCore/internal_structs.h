@@ -35,9 +35,14 @@
 #    include <atomic>
 using atomic_uintptr_t = std::atomic_uintptr_t;
 #else
-#    if defined __has_include
-#        if __has_include(<stdatomic.h>) && !defined(_MSC_VER)
-#            define EXR_HAS_STD_ATOMICS 1
+/* msvc, from version 19.31, evaluate __has_include(<stdatomic.h>) to true but
+ * doesn't actually support it yet. Ignoring msvc for now, once we know minimal
+ * version supporting it, we can compare against _MSC_VER. */
+#    if !defined(_MSC_VER)
+#        if defined __has_include
+#            if __has_include(<stdatomic.h>)
+#                define EXR_HAS_STD_ATOMICS 1
+#            endif
 #        endif
 #    endif
 
@@ -133,7 +138,8 @@ struct _internal_exr_context
     uint8_t has_nonimage_data;
     uint8_t is_multipart;
 
-    uint8_t pad[2];
+    uint8_t strict_header;
+    uint8_t silent_header;
 
     exr_attr_string_t filename;
     exr_attr_string_t tmp_filename;
@@ -206,6 +212,7 @@ struct _internal_exr_context
     pthread_mutex_t mutex;
 #    endif
 #endif
+    uint8_t disable_chunk_reconstruct;
 };
 
 #define EXR_CTXT(c) ((struct _internal_exr_context*) (c))
@@ -339,6 +346,8 @@ exr_result_t internal_exr_add_part (
 void internal_exr_revert_add_part (
     struct _internal_exr_context*, struct _internal_exr_part**, int* new_index);
 
+exr_result_t internal_exr_context_restore_handlers (
+    struct _internal_exr_context* ctxt, exr_result_t rv);
 exr_result_t internal_exr_alloc_context (
     struct _internal_exr_context**   out,
     const exr_context_initializer_t* initializers,

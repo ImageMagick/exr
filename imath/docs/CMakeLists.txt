@@ -22,11 +22,10 @@ file(MAKE_DIRECTORY ${DOXYGEN_OUTPUT_DIR})
 
 add_custom_command(OUTPUT ${DOXYGEN_INDEX_FILE}
                    COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYFILE_OUT}
+                   COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/fixmanpages.sh ${DOXYGEN_OUTPUT_DIR}
                    MAIN_DEPENDENCY ${DOXYFILE_OUT} ${DOXYFILE_IN}
                    COMMENT "Running doxygen"
                    VERBATIM)
-
-add_custom_target(Doxygen ALL DEPENDS ${DOXYGEN_INDEX_FILE})
 
 add_custom_command(OUTPUT ${SPHINX_INDEX_FILE}
                    COMMAND 
@@ -39,9 +38,11 @@ add_custom_command(OUTPUT ${SPHINX_INDEX_FILE}
                    MAIN_DEPENDENCY conf.py
                    COMMENT "Generating documentation with Sphinx")
 
-add_custom_target(Sphinx ALL DEPENDS ${SPHINX_INDEX_FILE})
+add_custom_target(docs ALL DEPENDS ${SPHINX_INDEX_FILE} ${DOXYGEN_INDEX_FILE})
 
 # Add an install target to install the docs
-include(GNUInstallDirs)
-install(DIRECTORY ${SPHINX_BUILD}
-DESTINATION ${CMAKE_INSTALL_DOCDIR})
+if(INSTALL_DOCS)
+    include(GNUInstallDirs)
+    install(DIRECTORY ${SPHINX_BUILD}
+    DESTINATION ${CMAKE_INSTALL_DOCDIR})
+endif()

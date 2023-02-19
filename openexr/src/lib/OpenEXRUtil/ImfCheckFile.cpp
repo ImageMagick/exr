@@ -7,7 +7,8 @@
 #include "ImfRgbaFile.h"
 #include "ImfArray.h"
 #include "ImfChannelList.h"
-#include "ImfFrameBuffer.h"
+#include "ImfCompositeDeepScanLine.h"
+#include "ImfCompressor.h"
 #include "ImfDeepFrameBuffer.h"
 #include "ImfPartType.h"
 #include "ImfInputFile.h"
@@ -440,16 +441,23 @@ bool readDeepScanLine(T& in,bool reduceMemory, bool reduceTime)
 
             //
             // count how many samples are required to store this scanline
+            // in reduceMemory mode, pixels with large sample counts are not read,
+            // but the library needs to allocate memory for them internally
+            // - bufferSize is how much memory this function will allocate
+            // - fileBufferSize tracks how much decompressed data the library will require
             //
             size_t bufferSize = 0;
-            for (int j = 0; j < w ; j++)
+            size_t fileBufferSize = 0;
+            for (int j = 0; j < w; j++)
             {
                 for (int k = 0; k < channelCount; k++)
                 {
+                    fileBufferSize += localSampleCount[j];
                     //
                     // don't read samples which require a lot of memory in reduceMemory mode
                     //
-                    if (!reduceMemory || localSampleCount[j]*bytesPerSample <= gMaxBytesPerDeepPixel )
+                    if (!reduceMemory || localSampleCount[j] * bytesPerSample <=
+                                             gMaxBytesPerDeepPixel)
                     {
                         bufferSize += localSampleCount[j];
                     }
@@ -563,9 +571,9 @@ readDeepTile(T& in,bool reduceMemory , bool reduceTime)
         frameBuffer.insertSampleCountSlice (Slice (UINT,
                                                    reinterpret_cast<char*>(&localSampleCount[0][0]),
                                                    sizeof (unsigned int) * 1,
-                                                   sizeof (unsigned int) * width,
+                                                   sizeof (unsigned int) * tileWidth,
+                                                   1, 1, // x/ysampling
                                                    0.0, // fill
-                                                   1 , 1, // x/ysampling
                                                    true,  // relative x
                                                    true  // relative y
                                                   )
@@ -582,10 +590,10 @@ readDeepTile(T& in,bool reduceMemory , bool reduceTime)
                                  DeepSlice (FLOAT,
                                             reinterpret_cast<char*>(&data[channel][0][0]),
                                             pointerSize * 1,
-                                            pointerSize * width,
+                                            pointerSize * tileWidth,
                                             sampleSize,
+                                            1, 1,
                                             0.0,
-                                            1 , 1,
                                             true,
                                             true
                                            ) );
@@ -601,107 +609,113 @@ readDeepTile(T& in,bool reduceMemory , bool reduceTime)
          vector<float> pixelBuffer;
 
 
-         for (int ly = 0; ly < numYLevels; ly++)
-         {
-             for (int lx = 0; lx < numXLevels; lx++)
-             {
 
 
-                //
-                // read all tiles from all levels.
-                //
-                for (int ylevel = 0; ylevel < numYLevels; ++ylevel )
+
+        //
+        // read all tiles from all levels.
+        //
+        for (int ylevel = 0; ylevel < numYLevels; ++ylevel )
+        {
+            for (int xlevel = 0; xlevel < numXLevels; ++xlevel )
+            {
+                for(int y  = 0 ; y < in.numYTiles(ylevel) ; ++y )
                 {
-                    for (int xlevel = 0; xlevel < numXLevels; ++xlevel )
+                    for(int x = 0 ; x < in.numXTiles(xlevel) ; ++x )
                     {
-                        for(int y  = 0 ; y < in.numYTiles(ylevel) ; ++y )
+                        if(tileIndex % step == 0)
                         {
-                            for(int x = 0 ; x < in.numXTiles(xlevel) ; ++x )
+                            try
                             {
-                                if(tileIndex % step == 0)
+
+                                in.readPixelSampleCounts( x , y , x , y, xlevel, ylevel);
+
+
+                                size_t bufferSize = 0;
+                                size_t fileBufferSize = 0;
+
+                                for (int ty = 0 ; ty < tileHeight ; ++ty )
                                 {
-                                    try
+                                    for (int tx = 0 ; tx < tileWidth ; ++tx )
                                     {
+                                        fileBufferSize += channelCount *
+                                                localSampleCount[ty][tx];
 
-                                        in.readPixelSampleCounts( x , y , x , y, lx, ly);
-
-
-                                        size_t bufferSize = 0;
-
-                                        for (int ty = 0 ; ty < tileHeight ; ++ty )
+                                        if (!reduceMemory ||
+                                            localSampleCount[ty][tx] *
+                                                    bytesPerSample <
+                                                gMaxBytesPerDeepScanline)
                                         {
-                                            for (int tx = 0 ; tx < tileWidth ; ++tx )
-                                            {
-                                                if (!reduceMemory || localSampleCount[ty][tx]*bytesPerSample < gMaxBytesPerDeepScanline )
-                                                {
-                                                    bufferSize += channelCount * localSampleCount[ty][tx];
-                                                }
-                                            }
+                                            bufferSize += channelCount * localSampleCount[ty][tx];
                                         }
-
-                                        // limit total samples allocated for this tile
-                                        if (!reduceMemory || bufferSize*bytesPerSample < gMaxBytesPerDeepPixel )
-                                        {
-
-                                            pixelBuffer.resize( bufferSize );
-                                            size_t bufferIndex = 0;
-
-                                            for (int ty = 0 ; ty < tileHeight ; ++ty )
-                                            {
-                                                for (int tx = 0 ; tx < tileWidth ; ++tx )
-                                                {
-                                                    if (!reduceMemory || localSampleCount[ty][tx]*bytesPerSample <  gMaxBytesPerDeepPixel )
-                                                    {
-                                                        for (int k = 0 ; k < channelCount ; ++k )
-                                                        {
-                                                           data[k][ty][tx] = &pixelBuffer[bufferIndex];
-                                                           bufferIndex += localSampleCount[ty][tx];
-                                                        }
-                                                    }
-                                                    else
-                                                    {
-                                                        for (int k = 0 ; k < channelCount ; ++k )
-                                                        {
-                                                            data[k][ty][tx] = nullptr;
-                                                        }
-                                                    }
-                                                }
-                                            }
-
-
-                                            in.readTile ( x, y, xlevel , ylevel);
-                                        }
-                                    }
-
-                                    catch(...)
-                                    {
-                                        //
-                                        // for one level and mipmapped images,
-                                        // xlevel must match ylevel,
-                                        // otherwise an exception is thrown
-                                        // ignore that exception
-                                        //
-                                        if (isRipMap || xlevel==ylevel)
-                                        {
-                                            threw = true;
-                                            //
-                                            // in reduceTime mode, fail immediately - the file is corrupt
-                                            //
-                                            if (reduceTime)
-                                            {
-                                                return threw;
-                                            }
-                                        }
-
                                     }
                                 }
-                                tileIndex++;
+
+                                // skip reading if no data to read, or limiting memory and tile is too large
+                                if (bufferSize > 0 &&
+                                    (!reduceMemory ||
+                                     (fileBufferSize + bufferSize) * bytesPerSample <
+                                         gMaxBytesPerDeepPixel))
+                                {
+
+                                    pixelBuffer.resize( bufferSize );
+                                    size_t bufferIndex = 0;
+
+                                    for (int ty = 0 ; ty < tileHeight ; ++ty )
+                                    {
+                                        for (int tx = 0 ; tx < tileWidth ; ++tx )
+                                        {
+                                            if (!reduceMemory || localSampleCount[ty][tx]*bytesPerSample <  gMaxBytesPerDeepPixel )
+                                            {
+                                                for (int k = 0 ; k < channelCount ; ++k )
+                                                {
+                                                    data[k][ty][tx] = &pixelBuffer[bufferIndex];
+                                                    bufferIndex += localSampleCount[ty][tx];
+                                                }
+                                            }
+                                            else
+                                            {
+                                                for (int k = 0 ; k < channelCount ; ++k )
+                                                {
+                                                    data[k][ty][tx] = nullptr;
+                                                }
+                                            }
+                                        }
+                                    }
+
+
+                                    in.readTile ( x, y, xlevel , ylevel);
+                                }
+                            }
+
+                            catch(...)
+                            {
+                                //
+                                // for one level and mipmapped images,
+                                // xlevel must match ylevel,
+                                // otherwise an exception is thrown
+                                // ignore that exception
+                                //
+                                if (isRipMap || xlevel==ylevel)
+                                {
+                                    threw = true;
+                                    //
+                                    // in reduceTime mode, fail immediately - the file is corrupt
+                                    //
+                                    if (reduceTime)
+                                    {
+                                        return threw;
+                                    }
+                                }
+
                             }
                         }
+                        tileIndex++;
                     }
                 }
-             }
-         }
+            }
+        }
+
     }catch(...)
     {
         threw = true;
@@ -1255,7 +1269,7 @@ bool readCoreScanlinePart(exr_context_t f, int part, bool reduceMemory, bool red
     }
 
     exr_decoding_destroy (f, &decoder);
-    
+
     return (rv != EXR_ERR_SUCCESS);
 }
 
@@ -1337,7 +1351,7 @@ bool readCoreTiledPart(exr_context_t f, int part, bool reduceMemory, bool reduce
                         }
                         continue;
                     }
-                    
+
                     if (decoder.channels == NULL)
                     {
                         rv = exr_decoding_initialize (f, part, &cinfo, &decoder);
@@ -1434,7 +1448,7 @@ bool checkCoreFile(exr_context_t f, bool reduceMemory, bool reduceTime)
         rv = exr_get_storage (f, p, &store);
         if (rv != EXR_ERR_SUCCESS)
             return true;
-    
+
         // TODO: Need to fill this in
         if (store == EXR_STORAGE_DEEP_SCANLINE || store == EXR_STORAGE_DEEP_TILED)
             continue;
@@ -1517,7 +1531,7 @@ memstream_read (
     {
         memdata *md = static_cast<memdata *>( userdata );
         uint64_t left = sz;
-        if ((offset + sz) > md->bytes)
+        if (offset > md->bytes ||  sz > md->bytes || offset+sz > md->bytes)
             left = (offset < md->bytes) ? md->bytes - offset : 0;
         if ( left > 0 )
             memcpy( buffer, md->data + offset, left );
@@ -1573,10 +1587,22 @@ bool
 checkOpenEXRFile (const char* fileName, bool reduceMemory, bool reduceTime, bool enableCoreCheck)
 {
     bool threw = false;
-    if ( enableCoreCheck )
+
+    uint64_t oldMaxSampleCount = CompositeDeepScanLine::getMaximumSampleCount();
+
+    if( reduceMemory || reduceTime)
+    {
+        CompositeDeepScanLine::setMaximumSampleCount(1<<20);
+    }
+
+    if (enableCoreCheck)
+    {
         threw = runCoreChecks (fileName, reduceMemory, reduceTime);
-    if (!threw)
-        threw = runChecks (fileName, reduceMemory, reduceTime);
+    }
+    if (!threw) threw = runChecks (fileName, reduceMemory, reduceTime);
+
+    CompositeDeepScanLine::setMaximumSampleCount(oldMaxSampleCount);
+
     return threw;
 }
 
@@ -1585,13 +1611,23 @@ bool
 checkOpenEXRFile (const char* data, size_t numBytes, bool reduceMemory, bool reduceTime, bool enableCoreCheck)
 {
     bool threw = false;
-    if ( enableCoreCheck )
+    uint64_t oldMaxSampleCount = CompositeDeepScanLine::getMaximumSampleCount();
+
+    if( reduceMemory || reduceTime)
+    {
+        CompositeDeepScanLine::setMaximumSampleCount(1<<20);
+    }
+
+    if (enableCoreCheck)
         threw = runCoreChecks (data, numBytes, reduceMemory, reduceTime);
     if (!threw)
     {
         PtrIStream stream (data,numBytes);
         threw = runChecks (stream, reduceMemory, reduceTime);
     }
+
+    CompositeDeepScanLine::setMaximumSampleCount(oldMaxSampleCount);
+
     return threw;
 }
 

@@ -3,18 +3,19 @@
 // Copyright Contributors to the OpenEXR Project.
 //
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 #    define _CRT_RAND_S
 #endif
 
 #include <ImathConfig.h>
+#include <ImathRandom.h>
 #include <half.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
 #include <string.h>
-#ifdef _MSC_VER
+#ifdef _WIN32
 #    include <windows.h>
 #else
 #    include <time.h>
@@ -267,7 +268,7 @@ static inline half exptable_half_constructor(float f)
 int64_t
 get_ticks (void)
 {
-#ifdef _MSC_VER
+#ifdef _WIN32
     static uint64_t scale = 0;
     if (scale == 0)
     {
@@ -372,26 +373,17 @@ main (int argc, char* argv[])
 
         if (halfs && floats)
         {
-            srand (numentries);
+            Rand48 r(numentries);
             for (int i = 0; i < numentries; ++i)
             {
-                halfs[i]  = (uint16_t) (rand());
+                halfs[i]  = (uint16_t) r.nexti();
                 floats[i] = imath_half_to_float (halfs[i]);
             }
             perf_test_half_to_float (floats, halfs, numentries);
 
             // test float -> half with real-world values
-#ifdef _MSC_VER
-            unsigned int rv;
             for (int i = 0; i < numentries; ++i)
-            {
-                rand_s( &rv );
-                floats[i] = 65504.0 * (((double) rand() / (double) UINT_MAX) * 2.0 - 1.0);
-            }
-#else
-            for (int i = 0; i < numentries; ++i)
-                floats[i] = 65504.0 * (drand48() * 2.0 - 1.0);
-#endif
+                floats[i] = float(r.nextf(-65504, 65504));
             perf_test_float_to_half (halfs, floats, numentries);
         }
 

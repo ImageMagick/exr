@@ -1,14 +1,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright Contributors to the OpenEXR Project.
 
-# We require this to get object library link library support and
-# combined python 2 + 3 support
-cmake_minimum_required(VERSION 3.12)
-
-if(POLICY CMP0074)
-  cmake_policy(SET CMP0074 NEW)
-endif()
-
 #######################################
 #######################################
 # This declares all the configuration variables visible
@@ -19,9 +11,6 @@ endif()
 #######################################
 #######################################
 include(config/PyImathSetup.cmake)
-
-# we have a strong dependence on Imath being an exact match
-find_package(Imath ${CMAKE_PROJECT_VERSION} REQUIRED CONFIG)
 
 # we are building a python extension, so of course we depend on
 # python as well. Except we don't know which version...
