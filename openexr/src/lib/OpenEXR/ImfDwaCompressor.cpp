@@ -18,11 +18,11 @@
 // into the start of the data block, making a self-contained file. 
 // If initializeDefaultChannelRules() doesn't quite suite your naming
 // conventions, you can adjust the rules without breaking decoder
-// compatability.
+// compatibility.
 //
 // If we're going to lossy compress R, G, or B channels, it's easier
 // to toss bits in a more perceptual uniform space. One could argue
-// at length as to what constitutes perceptually uniform, expecially 
+// at length as to what constitutes perceptually uniform, especially
 // when storing either scene/input/focal plane referred and output referred
 // data. 
 //
@@ -55,10 +55,10 @@
 //
 // For each DCT component, we want to find a quantized value that 
 // is within +- the per-component error. Pick the quantized value
-// that has the fewest bits set in its' binary representation. 
-// Brute-forcing the search would make for extremly inefficient 
-// compression. Fortunatly, we can precompute a table to assist 
-// with this search. 
+// that has the fewest bits set in its' binary representation.
+// Brute-forcing the search would make for extremely inefficient
+// compression. Fortunately, we can precompute a table to assist
+// with this search.
 //
 // For each 16-bit float value, there are at most 15 other values with
 // fewer bits set. We can precompute these values in a compact form, since
@@ -120,8 +120,13 @@
 #include "ImathBox.h"
 #include "ImathVec.h"
 #include "half.h"
-#include "halfLimits.h"
 
+#include <algorithm>
+#include <array>
+#include <cassert>
+#include <cctype>
+#include <limits>
+#include <string>
 #include <vector>
 #include <string>
 #include <cctype>
@@ -150,7 +155,7 @@ OPENEXR_IMF_INTERNAL_NAMESPACE_SOURCE_ENTER
 namespace {
 
     //
-    // Function pointer to dispatch to an approprate 
+    // Function pointer to dispatch to an appropriate
     // convertFloatToHalf64_* impl, based on runtime cpu checking.
     // Should be initialized in DwaCompressor::initializeFuncs()
     //
@@ -1191,7 +1196,7 @@ DwaCompressor::LossyDctDecoderBase::unRleAc
     // high byte is 0xff, then insert the number of 0's
     // as indicated by the low byte.
     //
-    // Otherwise, just copy the number verbaitm.
+    // Otherwise, just copy the number verbatim.
     //
 
     int lastNonZero          = 0;
@@ -1687,8 +1692,8 @@ DwaCompressor::LossyDctEncoderBase::quantize (half src, float errorTolerance)
 // Try to do a simple RLE scheme to reduce run's of 0's. This
 // differs from the jpeg EOB case, since EOB just indicates that
 // the rest of the block is zero. In our case, we have lots of
-// NaN symbols, which shouldn't be allowed to occur in DCT 
-// coefficents - so we'll use them for encoding runs.
+// NaN symbols, which shouldn't be allowed to occur in DCT
+// coefficients - so we'll use them for encoding runs.
 //
 // If the high byte is 0xff, then we have a run of 0's, of length
 // given by the low byte. For example, 0xff03 would be a run
@@ -1936,7 +1941,7 @@ DwaCompressor::compress
 
     //
     // We might not be dealing with any color data, in which
-    // case the AC buffer size will be 0, and deferencing
+    // case the AC buffer size will be 0, and dereferencing
     // a vector will not be a good thing to do.
     //
 
@@ -2105,7 +2110,7 @@ DwaCompressor::compress
 
             //
             // For RLE, bash the bytes up so that the first bytes of each
-            // pixel are contingous, as are the second bytes, and so on.
+            // pixel are contiguous, as are the second bytes, and so on.
             //
 
             for (unsigned int y = 0; y < rowPtrs[chan].size(); ++y)
@@ -2166,14 +2171,15 @@ DwaCompressor::compress
 
     if (*unknownUncompressedSize > 0)
     {
-        uLongf inSize  = (uLongf)(*unknownUncompressedSize);
-        uLongf outSize = compressBound (inSize);
+        uLong inSize  = static_cast<uLong> (*unknownUncompressedSize);
+        uLong outSize = compressBound (inSize);
 
-        if (Z_OK != ::compress2 ((Bytef *)outDataPtr,
-                                 &outSize,
-                                 (const Bytef *)_planarUncBuffer[UNKNOWN],
-                                 inSize,
-                                 9))
+        if (Z_OK != ::compress2 (
+                reinterpret_cast<Bytef*> (outDataPtr),
+                &outSize,
+                reinterpret_cast<const Bytef*> (_planarUncBuffer[UNKNOWN]),
+                inSize,
+                9))
         {
             throw IEX_NAMESPACE::BaseExc ("Data compression (zlib) failed.");
         }
@@ -2205,16 +2211,16 @@ DwaCompressor::compress
           case DEFLATE:
 
             {
-                uLongf destLen = compressBound (
-                    (*totalAcUncompressedCount) * sizeof (unsigned short));
+                uLong sourceLen = static_cast<uLong> (*totalAcUncompressedCount * sizeof (unsigned short));
+                uLong destLen = compressBound (sourceLen);
 
-                if (Z_OK != ::compress2
-                                ((Bytef *)outDataPtr,
-                                 &destLen,
-                                 (Bytef *)_packedAcBuffer, 
-                                 (uLong)(*totalAcUncompressedCount
-                                                * sizeof (unsigned short)),
-                                 9))
+                if (Z_OK !=
+                    ::compress2 (
+                        reinterpret_cast<Bytef*> (outDataPtr),
+                        &destLen,
+                        reinterpret_cast<Bytef*> (_packedAcBuffer),
+                        sourceLen,
+                        9))
                 {
                     throw IEX_NAMESPACE::InputExc ("Data compression (zlib) failed.");
                 }
@@ -2258,14 +2264,15 @@ DwaCompressor::compress
              _planarUncBuffer[RLE],
              (signed char *)_rleBuffer);
 
-        uLongf dstLen = compressBound ((uLongf)*rleUncompressedSize);
+        uLong srcLen = static_cast<uLong> (*rleUncompressedSize);
+        uLong dstLen = compressBound (srcLen);
 
-        if (Z_OK != ::compress2
-                        ((Bytef *)outDataPtr, 
-                         &dstLen, 
-                         (Bytef *)_rleBuffer, 
-                         (uLong)(*rleUncompressedSize),
-                         9))
+        if (Z_OK != ::compress2 (
+                reinterpret_cast<Bytef*> (outDataPtr),
+                &dstLen,
+                reinterpret_cast<const Bytef*> (_rleBuffer),
+                srcLen,
+                9))
         {
             throw IEX_NAMESPACE::BaseExc ("Error compressing RLE'd data.");
         }
@@ -2346,10 +2353,12 @@ DwaCompressor::uncompress
     // Flip the counters from XDR to NATIVE
     //
 
+    std::array<uint64_t, NUM_SIZES_SINGLE> counterBuf;
+    memcpy (counterBuf.data (), inPtr, counterBuf.size() * sizeof (uint64_t));
     for (int i = 0; i < NUM_SIZES_SINGLE; ++i)
     {
-        uint64_t   *dst =  (((uint64_t *)inPtr) + i);
-        const char *src = (char *)(((uint64_t *)inPtr) + i);
+        uint64_t*   dst = counterBuf.data() + i;
+        const char* src = (char*) (counterBuf.data() + i);
 
         Xdr::read<CharPtrIO> (src, *dst);
     }
@@ -2358,7 +2367,7 @@ DwaCompressor::uncompress
     // Unwind all the counter info
     //
 
-    const uint64_t *inPtr64 = (const uint64_t*) inPtr;
+    const uint64_t* inPtr64 = counterBuf.data();
 
     uint64_t version                  = *(inPtr64 + VERSION);
     uint64_t unknownUncompressedSize  = *(inPtr64 + UNKNOWN_UNCOMPRESSED_SIZE);
@@ -2508,13 +2517,14 @@ DwaCompressor::uncompress
                                 "(corrupt header).");
         }
 
-        uLongf outSize = (uLongf)unknownUncompressedSize;
+        uLong inSize = static_cast<uLong> (unknownCompressedSize);
+        uLong outSize = static_cast<uLong> (unknownUncompressedSize);
 
-        if (Z_OK != ::uncompress
-                        ((Bytef *)_planarUncBuffer[UNKNOWN],
-                         &outSize,
-                         (Bytef *)compressedUnknownBuf,
-                         (uLong)unknownCompressedSize))
+        if (Z_OK != ::uncompress (
+                reinterpret_cast<Bytef*> (_planarUncBuffer[UNKNOWN]),
+                &outSize,
+                reinterpret_cast<const Bytef*> (compressedUnknownBuf),
+                inSize))
         {
             throw IEX_NAMESPACE::BaseExc("Error uncompressing UNKNOWN data.");
         }
@@ -2548,16 +2558,15 @@ DwaCompressor::uncompress
 
             break;
 
-          case DEFLATE:
-            {
-                uLongf destLen =
-                    (int)(totalAcUncompressedCount) * sizeof (unsigned short);
+        case DEFLATE: {
+            uLong destLen = static_cast<uLong> (totalAcUncompressedCount * sizeof (unsigned short));
+            uLong sourceLen = static_cast<uLong> (acCompressedSize);
 
-                if (Z_OK != ::uncompress
-                                ((Bytef *)_packedAcBuffer,
-                                 &destLen,
-                                 (Bytef *)compressedAcBuf,
-                                 (uLong)acCompressedSize))
+            if (Z_OK != ::uncompress (
+                    reinterpret_cast<Bytef*> (_packedAcBuffer),
+                    &destLen,
+                    reinterpret_cast<const Bytef*> (compressedAcBuf),
+                    sourceLen))
                 {
                     throw IEX_NAMESPACE::InputExc ("Data decompression (zlib) failed.");
                 }
@@ -2619,13 +2628,14 @@ DwaCompressor::uncompress
                                 "(corrupt header).");
         }
  
-        uLongf dstLen = (uLongf)rleUncompressedSize;
+        uLong dstLen = static_cast<uLong> (rleUncompressedSize);
+        uLong srcLen = static_cast<uLong> (rleCompressedSize);
 
-        if (Z_OK != ::uncompress
-                        ((Bytef *)_rleBuffer,
-                         &dstLen,
-                         (Bytef *)compressedRleBuf,
-                         (uLong)rleCompressedSize))
+        if (Z_OK != ::uncompress (
+                reinterpret_cast<Bytef*> (_rleBuffer),
+                &dstLen,
+                reinterpret_cast<const Bytef*> (compressedRleBuf),
+                srcLen))
         {
             throw IEX_NAMESPACE::BaseExc("Error uncompressing RLE data.");
         }
@@ -2878,6 +2888,13 @@ DwaCompressor::initializeFuncs()
         fromHalfZigZag       = fromHalfZigZag_f16c;
     } 
 
+#ifdef IMF_HAVE_NEON
+    {
+        convertFloatToHalf64 = convertFloatToHalf64_neon;
+        fromHalfZigZag       = fromHalfZigZag_neon;
+    }
+#endif
+
     //
     // Setup inverse DCT implementations
     //
@@ -2960,11 +2977,11 @@ DwaCompressor::initializeBuffers (size_t &outBufferSize)
             // or for zlib compression (for DEFLATE)
             //
 
-            maxOutBufferSize += std::max(
-                            2lu * maxLossyDctAcSize + 65536lu,
-                            static_cast<uint64_t>(compressBound (maxLossyDctAcSize)) );
-            numLossyDctChans++;
-            break;
+              maxOutBufferSize += std::max (
+                  2lu * maxLossyDctAcSize + 65536lu,
+                  static_cast<uint64_t> (compressBound (static_cast<uLong> (maxLossyDctAcSize))));
+              numLossyDctChans++;
+              break;
 
           case RLE:
             {
@@ -2999,17 +3016,18 @@ DwaCompressor::initializeBuffers (size_t &outBufferSize)
     // which could take slightly more space
     //
 
-    maxOutBufferSize += static_cast<uint64_t>(compressBound (rleBufferSize));
-    
+    maxOutBufferSize += static_cast<uint64_t> (compressBound (static_cast<uLong> (rleBufferSize)));
+
     //
     // And the same goes for the UNKNOWN data
     //
 
-    maxOutBufferSize += static_cast<uint64_t>(compressBound (unknownBufferSize));
+    maxOutBufferSize +=
+        static_cast<uint64_t> (compressBound (static_cast<uLong> (unknownBufferSize)));
 
     //
-    // Allocate a zip/deflate compressor big enought to hold the DC data
-    // and include it's compressed results in the size requirements
+    // Allocate a zip/deflate compressor big enough to hold the DC data
+    // and include its compressed results in the size requirements
     // for our output buffer
     //
 
@@ -3125,8 +3143,8 @@ DwaCompressor::initializeBuffers (size_t &outBufferSize)
 
     if (planarUncBufferSize[UNKNOWN] > 0)
     {
-        planarUncBufferSize[UNKNOWN] =
-                static_cast<uint64_t>( compressBound (planarUncBufferSize[UNKNOWN]) );
+        planarUncBufferSize[UNKNOWN] = static_cast<uint64_t> (
+            compressBound (static_cast<uLong> (planarUncBufferSize[UNKNOWN])));
     }
 
     for (int i = 0; i < NUM_COMPRESSOR_SCHEMES; ++i)
@@ -3255,8 +3273,8 @@ DwaCompressor::relevantChannelRules (std::vector<Classifier> &rules) const
 //
 // Take our initial list of channels, and cache the contents.
 //
-// Determine approprate compression schemes for each channel,
-// and figure out which sets should potentially be CSC'ed 
+// Determine appropriate compression schemes for each channel,
+// and figure out which sets should potentially be CSC'ed
 // prior to lossy compression.
 //
 

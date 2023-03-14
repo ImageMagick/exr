@@ -24,6 +24,11 @@
 #    define IMF_HAVE_SSE4_1 1
 #    include <smmintrin.h>
 #endif
+#if defined(__ARM_NEON)
+#    define IMF_HAVE_NEON 1
+#    include <arm_neon.h>
+#endif
+
 
 /**************************************/
 
@@ -73,6 +78,54 @@ reconstruct (uint8_t* buf, uint64_t outSize)
         prev      = d;
     }
 }
+#elif defined(IMF_HAVE_NEON)
+static void
+reconstruct (uint8_t* buf, uint64_t outSize)
+{
+    static const uint64_t bytesPerChunk = sizeof (uint8x16_t);
+    const uint64_t        vOutSize      = outSize / bytesPerChunk;
+    const uint8x16_t      c             = vdupq_n_u8 (-128);
+    const uint8x16_t      shuffleMask   = vdupq_n_u8 (15);
+    const uint8x16_t      zero          = vdupq_n_u8 (0);
+    uint8_t *             vBuf;
+    uint8x16_t            vPrev;
+    uint8_t               prev;
+
+    /*
+     * The first element doesn't have its high bit flipped during compression,
+     * so it must not be flipped here.  To make the SIMD loop nice and
+     * uniform, we pre-flip the bit so that the loop will unflip it again.
+     */
+    buf[0] += -128;
+    vBuf  = buf;
+    vPrev = vdupq_n_u8 (0);
+
+    for (uint64_t i = 0; i < vOutSize; ++i)
+    {
+        uint8x16_t d = vaddq_u8 (vld1q_u8 (vBuf), c);
+
+        /* Compute the prefix sum of elements. */
+        d = vaddq_u8 (d, vextq_u8 (zero, d, 16 - 1));
+        d = vaddq_u8 (d, vextq_u8 (zero, d, 16 - 2));
+        d = vaddq_u8 (d, vextq_u8 (zero, d, 16 - 4));
+        d = vaddq_u8 (d, vextq_u8 (zero, d, 16 - 8));
+        d = vaddq_u8 (d, vPrev);
+
+        vst1q_u8 (vBuf, d); vBuf += sizeof (uint8x16_t);
+
+        // Broadcast the high byte in our result to all lanes of the prev
+        // value for the next iteration.
+        vPrev = vqtbl1q_u8 (d, shuffleMask);
+    }
+
+    prev = vgetq_lane_u8 (vPrev, 15);
+    for (uint64_t i = vOutSize * bytesPerChunk; i < outSize; ++i)
+    {
+        uint8_t d = prev + buf[i] - 128;
+        buf[i]    = d;
+        prev      = d;
+    }    
+}
 #else
 static void
 reconstruct (uint8_t* buf, uint64_t sz)
@@ -121,15 +174,39 @@ interleave (uint8_t* out, const uint8_t* source, uint64_t outSize)
         *(sOut++) = (i % 2 == 0) ? *(t1++) : *(t2++);
 }
 
+#elif defined(IMF_HAVE_NEON)
+static void
+interleave (uint8_t* out, const uint8_t* source, uint64_t outSize)
+{
+    static const uint64_t bytesPerChunk = 2 * sizeof (uint8x16_t);
+    const uint64_t        vOutSize      = outSize / bytesPerChunk;
+    const uint8_t*        v1   = source;
+    const uint8_t*        v2   = source + (outSize + 1) / 2;
+
+    for (uint64_t i = 0; i < vOutSize; ++i)
+    {
+        uint8x16_t a  = vld1q_u8 (v1); v1 += sizeof (uint8x16_t);
+        uint8x16_t b  = vld1q_u8 (v2); v2 += sizeof (uint8x16_t);
+        uint8x16_t lo = vzip1q_u8 (a, b);
+        uint8x16_t hi = vzip2q_u8 (a, b);
+
+        vst1q_u8 (out, lo); out += sizeof (uint8x16_t);
+        vst1q_u8 (out, hi); out += sizeof (uint8x16_t);
+    }
+
+    for (uint64_t i = vOutSize * bytesPerChunk; i < outSize; ++i)
+        *(out++) = (i % 2 == 0) ? *(v1++) : *(v2++);
+}
+
 #else
 
 static void
 interleave (uint8_t* out, const uint8_t* source, uint64_t outSize)
 {
-    const char* t1   = source;
-    const char* t2   = source + (outSize + 1) / 2;
-    char*       s    = out;
-    char* const stop = s + outSize;
+    const uint8_t* t1   = source;
+    const uint8_t* t2   = source + (outSize + 1) / 2;
+    uint8_t*       s    = out;
+    uint8_t* const stop = s + outSize;
 
     while (true)
     {
@@ -158,7 +235,7 @@ undo_zip_impl (
     void*       scratch_data,
     uint64_t    scratch_size)
 {
-    uLongf outSize = (uLongf) uncompressed_size;
+    uLong  outSize = (uLong) scratch_size;
     int    rstat;
 
     if (scratch_size < uncompressed_size) return EXR_ERR_INVALID_ARGUMENT;
@@ -200,12 +277,16 @@ internal_exr_undo_zip (
     uint64_t               uncompressed_size)
 {
     exr_result_t rv;
+    uint64_t scratchbufsz = uncompressed_size;
+    if ( comp_buf_size > scratchbufsz )
+        scratchbufsz = comp_buf_size;
+
     rv = internal_decode_alloc_buffer (
         decode,
         EXR_TRANSCODE_BUFFER_SCRATCH1,
         &(decode->scratch_buffer_1),
         &(decode->scratch_alloc_size_1),
-        uncompressed_size);
+        scratchbufsz);
     if (rv != EXR_ERR_SUCCESS) return rv;
     return undo_zip_impl (
         compressed_data,
@@ -226,7 +307,7 @@ apply_zip_impl (exr_encode_pipeline_t* encode)
     const uint8_t* raw  = encode->packed_buffer;
     const uint8_t* stop = raw + encode->packed_bytes;
     int            p, level;
-    uLongf         compbufsz = encode->compressed_alloc_size;
+    uLong          compbufsz = (uLong) encode->compressed_alloc_size;
     exr_result_t   rv        = EXR_ERR_SUCCESS;
 
     rv = exr_get_zip_compression_level (
@@ -257,7 +338,7 @@ apply_zip_impl (exr_encode_pipeline_t* encode)
                     (Bytef*) encode->compressed_buffer,
                     &compbufsz,
                     (const Bytef*) encode->scratch_buffer_1,
-                    encode->packed_bytes,
+                    (uLong) encode->packed_bytes,
                     level))
     {
         return EXR_ERR_CORRUPT_CHUNK;

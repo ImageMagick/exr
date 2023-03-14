@@ -59,7 +59,7 @@ const int gMaxScanlinesToRead = 1<<20;
 
 //
 // compute row stride appropriate to process files quickly
-// only used for the 'Rgba' interfaces, which read potentially non-existant channels
+// only used for the 'Rgba' interfaces, which read potentially non-existent channels
 //
 //
 
@@ -448,7 +448,7 @@ bool readDeepScanLine(T& in,bool reduceMemory, bool reduceTime)
             //
             size_t bufferSize = 0;
             size_t fileBufferSize = 0;
-            for (int j = 0; j < w; j++)
+            for (uint64_t j = 0; j < w; j++)
             {
                 for (int k = 0; k < channelCount; k++)
                 {
@@ -475,7 +475,7 @@ bool readDeepScanLine(T& in,bool reduceMemory, bool reduceTime)
                 pixelBuffer.resize(bufferSize);
 
                 size_t bufferIndex = 0;
-                for (int j = 0; j < w ; j++)
+                for (uint64_t j = 0; j < w; j++)
                 {
                     for (int k = 0; k < channelCount; k++)
                     {
@@ -1185,9 +1185,8 @@ bool readCoreScanlinePart(exr_context_t f, int part, bool reduceMemory, bool red
     uint64_t width  = (uint64_t) ((int64_t)datawin.max.x - (int64_t)datawin.min.x + 1);
     uint64_t height = (uint64_t) ((int64_t)datawin.max.y - (int64_t)datawin.min.y + 1);
 
-    std::vector<uint8_t> imgdata;
-    bool doread = false;
-    exr_chunk_info_t cinfo;
+    std::vector<uint8_t>  imgdata;
+    bool                  doread = false;
     exr_decode_pipeline_t decoder = EXR_DECODE_PIPELINE_INITIALIZER;
 
     int32_t lines_per_chunk;
@@ -1217,9 +1216,9 @@ bool readCoreScanlinePart(exr_context_t f, int part, bool reduceMemory, bool red
             uint64_t bytes = 0;
             for (int c = 0; c < decoder.channel_count; c++)
             {
-                exr_coding_channel_info_t & outc = decoder.channels[c];
-                // fake addr for default rouines
-                outc.decode_to_ptr = (uint8_t*)0x1000;
+                exr_coding_channel_info_t& outc = decoder.channels[c];
+                // fake addr for default routines
+                outc.decode_to_ptr     = (uint8_t*) 0x1000;
                 outc.user_pixel_stride = outc.user_bytes_per_element;
                 outc.user_line_stride = outc.user_pixel_stride * width;
                 bytes += width * (uint64_t)outc.user_bytes_per_element * (uint64_t)lines_per_chunk;

@@ -14,12 +14,12 @@
 
 
 // GCC and Visual Studio SSE2 compiler flags
-#if defined __SSE2__ || (_MSC_VER >= 1300 && (_M_IX86 || _M_X64))
-    #define IMF_HAVE_SSE2 1
+#if defined __SSE2__ || (_MSC_VER && (_M_IX86 || _M_X64))
+#    define IMF_HAVE_SSE2 1
 #endif
 
-#if defined __SSE4_1__
-    #define IMF_HAVE_SSE4_1 1
+#if defined __SSE4_1__ || (_MSC_VER && (_M_IX86 || _M_X64))
+#    define IMF_HAVE_SSE4_1 1
 #endif
 
 // Compiler flags on e2k (MCST Elbrus 2000) architecture
@@ -43,8 +43,11 @@
     #define IMF_HAVE_F16C 1
 #endif
 
-extern "C"
-{
+#if defined(__ARM_NEON)
+#    define IMF_HAVE_NEON
+#endif
+
+extern "C" {
 #ifdef IMF_HAVE_SSE2
     #include <emmintrin.h>
     #include <mmintrin.h>
@@ -53,6 +56,11 @@ extern "C"
 #ifdef IMF_HAVE_SSE4_1
     #include <smmintrin.h>
 #endif
+
+#ifdef IMF_HAVE_NEON
+#    include <arm_neon.h>
+#endif
+
 }
 
 #endif

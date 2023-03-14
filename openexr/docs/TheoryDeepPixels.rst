@@ -1,11 +1,17 @@
+..
+  SPDX-License-Identifier: BSD-3-Clause
+  Copyright Contributors to the OpenEXR Project.
+
 Theory of Deep Samples
 ######################
 
 
-This document derives the techniques for splitting and combining two non-solid samples of
-equal depth and thickness. These should should be used by deep image "flattening" algorithms to compute the combined colour of two samples. The formulas are defined in the document :doc:`InterpretingDeepPixels`. This document derives those formulas, and is for information only.
-
-
+This document derives the techniques for splitting and combining two
+non-solid samples of equal depth and thickness. These should should be
+used by deep image "flattening" algorithms to compute the combined
+colour of two samples. The formulas are defined in the document
+:doc:`InterpretingDeepPixels`. This document derives those formulas,
+and is for information only.
 
 Definitions
 ===========
@@ -92,7 +98,7 @@ Alpha vs Transparency
 OpenEXR images use alpha :math:`\alpha` instead of transparency.
 :math:`T=1-\alpha`: if :math:`\alpha=1` (so :math:`T=0`) then all light
 is absorbed; if :math:`\alpha=0` (so :math:`T=1`), then all light is
-transmitted and the material is transparent. Subsituting :math:`T` into :eq:`absorb` and :eq:`two` combined alpha of two objects is given by the *screen* compositing operation:
+transmitted and the material is transparent. Substituting :math:`T` into :eq:`absorb` and :eq:`two` combined alpha of two objects is given by the *screen* compositing operation:
 
 .. math::
    \alpha_c = 1-(1-\alpha_1)(1-\alpha_2)

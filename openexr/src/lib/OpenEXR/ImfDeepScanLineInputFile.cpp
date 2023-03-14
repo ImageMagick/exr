@@ -1047,11 +1047,11 @@ newLineBufferTask
 
 //
 // when handling files with dataWindows with a large number of pixels,
-// the sampleCount values are not precached and Data::sampleCount is not asigned
-// instead, the sampleCount is read every time readPixels() is called
+// the sampleCount values are not precached and Data::sampleCount is not
+// assigned instead, the sampleCount is read every time readPixels() is called
 // and sample counts are stored in LineBuffer::_tempCountBuffer instead
 // (A square image that is 16k by 16k pixels has gBigFileDataWindowSize pixels,
-//  andthe sampleCount table would take 1GiB of memory to store)
+//  and the sampleCount table would take 1GiB of memory to store)
 //
 const uint64_t gBigFileDataWindowSize = (1<<28);
 
@@ -1128,9 +1128,21 @@ void DeepScanLineInputFile::initialize(const Header& header)
         for (int i = 0; i < _data->maxY - _data->minY + 1; i++)
             _data->gotSampleCount[i] = false;
 
-        _data->maxSampleCountTableSize = min(_data->linesInBuffer, _data->maxY - _data->minY + 1) *
-                                        (_data->maxX - _data->minX + 1) *
-                                        sizeof(unsigned int);
+        int64_t imageHeight = static_cast<int64_t>(_data->maxY) - static_cast<int64_t>(_data->minY) + 1;
+        int64_t imageWidth = static_cast<int64_t>(_data->maxX) - static_cast<int64_t>(_data->minX) +1;
+
+        int64_t tableSize =  min (static_cast<int64_t>(_data->linesInBuffer), imageHeight) * imageWidth
+            * sizeof (unsigned int);
+
+        if (tableSize>std::numeric_limits<int>::max() )
+        {
+            THROW (IEX_NAMESPACE::ArgExc,
+                   "Deep scanline image size "
+                   << imageWidth << " x " <<  imageHeight
+                   << " exceeds maximum size");
+        }
+        _data->maxSampleCountTableSize =tableSize;
+
 
         _data->sampleCountTableBuffer.resizeErase(_data->maxSampleCountTableSize);
 
@@ -1227,8 +1239,8 @@ DeepScanLineInputFile::DeepScanLineInputFile
         throw;
     }
 
-    // 
-    // not multiPart - allocate stream data and intialise as normal
+        //
+        // not multiPart - allocate stream data and initialise as normal
     //
     try
     { 
@@ -1303,7 +1315,7 @@ DeepScanLineInputFile::DeepScanLineInputFile
     }
 
     //
-    // not multiPart - allocate stream data and intialise as normal
+    // not multiPart - allocate stream data and initialise as normal
     //
     try
     {
@@ -1703,7 +1715,7 @@ DeepScanLineInputFile::readPixels (int scanLine1, int scanLine2)
         }
 
         //
-        // Exeption handling:
+        // Exception handling:
         //
         // LineBufferTask::execute() may have encountered exceptions, but
         // those exceptions occurred in another thread, not in the thread

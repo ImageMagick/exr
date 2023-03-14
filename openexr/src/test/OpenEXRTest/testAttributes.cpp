@@ -434,7 +434,7 @@ longNames (const Array2D<float> &pf1,
            int height)
 {
     //
-    // Verify that long attibute or channel names in the header
+    // Verify that long attribute or channel names in the header
     // set the LONG_NAMES_FLAG in the file version number.
     //
 
@@ -567,10 +567,7 @@ static int move_assignment_operator;
 
 struct TestType 
 {
-    TestType() 
-    {
-        default_constructor++;
-    }
+    TestType () : _f(0) { default_constructor++; }
 
     ~TestType() 
     {

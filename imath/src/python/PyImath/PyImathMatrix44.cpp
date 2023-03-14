@@ -8,6 +8,7 @@
 #define BOOST_PYTHON_MAX_ARITY 17
 
 #include <Python.h>
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/python.hpp>
 #include <boost/python/make_constructor.hpp>
 #include <boost/format.hpp>
@@ -1187,7 +1188,7 @@ M44Array_constructor(const FixedArray<T> &a, const FixedArray<T> &b, const Fixed
                      const FixedArray<T> &m, const FixedArray<T> &n, const FixedArray<T> &o, const FixedArray<T> &p)
 {
     MATH_EXC_ON;
-    size_t len = a.len();
+    Py_ssize_t len = a.len();
     if (!( a.len() == len && b.len() == len && c.len() == len && d.len() == len && 
             e.len() == len && f.len() == len && g.len() == len && h.len() == len && 
             i.len() == len && j.len() == len && k.len() == len && l.len() == len && 

@@ -19,7 +19,7 @@ endif()
 # configuration files
 #######################################
 
-project(OpenEXR VERSION 3.1.5 LANGUAGES C CXX)
+project(OpenEXR VERSION 3.1.6 LANGUAGES C CXX)
 
 set(OPENEXR_VERSION_RELEASE_TYPE "" CACHE STRING "Extra version tag string for OpenEXR build, such as -dev, -beta1, etc.")
 
@@ -30,7 +30,7 @@ set(OPENEXR_VERSION_API "${OpenEXR_VERSION_MAJOR}_${OpenEXR_VERSION_MINOR}")
 # See https://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html
 #
 # Library API version (CMake's library VERSION attribute) is of the
-# form CURRENT.REVISION.AGE; the CMake SOVERSION attribute corresonds
+# form CURRENT.REVISION.AGE; the CMake SOVERSION attribute corresponds
 # to just CURRENT. These produce a .so and a symlink symlink, e.g.:
 # libOpenEXR-3_1.so.29 -> libOpenEXR-3_1.so.29.0.0
 #                    ^                       ^ ^ ^
@@ -44,7 +44,7 @@ set(OPENEXR_VERSION_API "${OpenEXR_VERSION_MAJOR}_${OpenEXR_VERSION_MINOR}")
 #   3. API changed:   CURRENT+1.0.0
 #
 set(OPENEXR_LIBTOOL_CURRENT 30)
-set(OPENEXR_LIBTOOL_REVISION 5)
+set(OPENEXR_LIBTOOL_REVISION 6)
 set(OPENEXR_LIBTOOL_AGE 1)
 set(OPENEXR_LIB_VERSION "${OPENEXR_LIBTOOL_CURRENT}.${OPENEXR_LIBTOOL_REVISION}.${OPENEXR_LIBTOOL_AGE}")
 set(OPENEXR_LIB_SOVERSION ${OPENEXR_LIBTOOL_CURRENT})
@@ -71,11 +71,16 @@ message(STATUS "Configure ${OPENEXR_PACKAGE_NAME}, library API version: ${OPENEX
 # Add all source in subdirectories
 #######################################
 
+if(BUILD_TESTING AND NOT OPENEXR_IS_SUBPROJECT)
+  # Enable testing *before* adding any subdirectories that may include tests
+  enable_testing()
+endif()
+
 # Include these two modules without enable/disable options
 add_subdirectory(src/lib)
 add_subdirectory(src/bin)
 
-# Tell CMake where to find the OpenEXRConfig.cmake file. Makes it posible to call 
+# Tell CMake where to find the OpenEXRConfig.cmake file. Makes it possible to call 
 # find_package(OpenEXR) in downstream projects
 set(OpenEXR_DIR "${CMAKE_CURRENT_BINARY_DIR}/cmake" CACHE PATH "" FORCE)
 # Add an empty OpenEXRTargets.cmake file for the config to use. 
@@ -112,7 +117,6 @@ endif()
 include(CTest)
 
 if(BUILD_TESTING AND NOT OPENEXR_IS_SUBPROJECT)
-  enable_testing()
   add_subdirectory(src/test)
 endif()
 
@@ -122,8 +126,8 @@ if(NOT OPENEXR_IS_SUBPROJECT)
   include(cmake/clang-format.cmake)
 endif()
 
-option(DOCS "Set ON to build html documentation")
-if (DOCS AND NOT OPENEXR_IS_SUBPROJECT)
+option(BUILD_DOCS "Set ON to build html documentation")
+if (BUILD_DOCS AND NOT OPENEXR_IS_SUBPROJECT)
   option(INSTALL_DOCS "Set ON to install html documentation" ON)
   add_subdirectory(docs)
 endif()

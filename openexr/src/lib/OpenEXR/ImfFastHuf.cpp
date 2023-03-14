@@ -11,6 +11,40 @@
 #include <math.h>
 #include <vector>
 
+// Static enabling/disabling the fast huffman decode
+
+
+#if defined(__clang__)
+//
+// Enabled for clang on Apple platforms (tested):
+//
+
+#    if defined(__APPLE__)
+#        define OPENEXR_IMF_ENABLE_FAST_HUF_DECODER
+#    endif
+
+#elif defined(__INTEL_COMPILER) || defined(__GNUC__)
+//
+// Enabled for ICC, GCC:
+//       __i386__   -> x86
+//       __x86_64__ -> 64-bit x86
+//       __e2k__    -> e2k (MCST Elbrus 2000)
+
+#    if defined(__i386__) || defined(__x86_64__) || defined(__e2k__)
+#        define OPENEXR_IMF_ENABLE_FAST_HUF_DECODER
+#    endif
+
+#elif defined(_MSC_VER)
+//
+// Enabled for Visual Studio:
+//        _M_IX86 -> x86
+//        _M_X64  -> 64bit x86
+
+#    if defined(_M_IX86) || defined(_M_X64)
+#        define OPENEXR_IMF_ENABLE_FAST_HUF_DECODER
+#    endif
+#endif
+
 OPENEXR_IMF_INTERNAL_NAMESPACE_SOURCE_ENTER
 
 //
@@ -64,7 +98,7 @@ FastHufDecoder::FastHufDecoder
 
     //
     // The 'offset' table is the position (in sorted order) of the first id
-    // of a given code lenght. Array is indexed by code length, like base.  
+    // of a given code length. Array is indexed by code length, like base.
     //
 
     uint64_t offset[MAX_CODE_LEN + 1];   
@@ -267,8 +301,8 @@ FastHufDecoder::~FastHufDecoder()
 // so I'm not entirely sure that we are reading fom the bit stream
 // properly on BE. 
 //
-// If you happen to have more obscure hardware, check that the 
-// byte swapping in refill() is happening sensable, add an endian 
+// If you happen to have more obscure hardware, check that the
+// byte swapping in refill() is happening sensible, add an endian
 // check if needed, and fix the preprocessor magic here.
 //
 
@@ -277,51 +311,32 @@ FastHufDecoder::~FastHufDecoder()
     ((uint64_t)(c)[3] << 32) | ((uint64_t)(c)[4] << 24) | ((uint64_t)(c)[5] << 16) | \
     ((uint64_t)(c)[6] <<  8) | ((uint64_t)(c)[7] ) 
 
-#ifdef __INTEL_COMPILER // ICC built-in swap for LE hosts
-    #if defined (__i386__) || defined(__x86_64__)
-        #undef  READ64
-        #define READ64(c) _bswap64 (*(const uint64_t*)(c))
-    #endif
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#    ifdef __INTEL_COMPILER // ICC built-in swap for LE hosts
+#        if defined(__i386__) || defined(__x86_64__)
+#            undef READ64
+#            define READ64(c) _bswap64 (*(const uint64_t*) (c))
+#        endif
+
+#    else
+#        ifdef __has_builtin
+#            if __has_builtin(__builtin_bswap64)
+#                undef READ64
+#                define READ64(c) __builtin_bswap64 (*(const uint64_t*) (c))
+#            endif
+#        endif
+#    endif
 #endif
 
 
 bool
 FastHufDecoder::enabled()
 {
-    #if defined(__INTEL_COMPILER) || defined(__GNUC__)
-
-        //
-        // Enabled for ICC, GCC:
-        //       __i386__   -> x86
-        //       __x86_64__ -> 64-bit x86
-        //       __e2k__    -> e2k (MCST Elbrus 2000)
-
-        #if defined (__i386__) || defined(__x86_64__) || defined(__e2k__)
-            return true;
-        #else
-            return false;
-        #endif
-
-    #elif defined (_MSC_VER)
-
-        //
-        // Enabled for Visual Studio:
-        //        _M_IX86 -> x86
-        //        _M_X64  -> 64bit x86
-
-        #if defined (_M_IX86) || defined(_M_X64)
-            return true;
-        #else
-            return false;
-        #endif
-
-    #else
-
-        //
-        // Unknown compiler - Be safe and disable.
-        //
-        return false;
-    #endif
+#    ifdef OPENEXR_IMF_ENABLE_FAST_HUF_DECODER
+    return true;
+#    else
+    return false;
+#    endif
 }
 
 //
@@ -444,7 +459,7 @@ FastHufDecoder::buildTables (uint64_t *base, uint64_t *offset)
 // shift in 0's to bufferBack. 
 //
 // The refill act takes numBits from the top of bufferBack and sticks
-// them in the bottom of buffer. If there arn't enough bits in bufferBack,
+// them in the bottom of buffer. If there aren't enough bits in bufferBack,
 // it gets refilled (to 64-bits) from the input bitstream.
 //
 
@@ -515,7 +530,7 @@ FastHufDecoder::refill
     //
     // We can have cases where the previous shift of bufferBack is << 64 -
     // this is an undefined operation but tends to create just zeroes.
-    // so if we won't have any bits left, zero out bufferBack insetad of computing the shift
+    // so if we won't have any bits left, zero out bufferBack instead of computing the shift
     //
 
     if (bufferBackNumBits <= numBits)
@@ -559,7 +574,7 @@ FastHufDecoder::readBits
 // small-ish table to accelerate decoding of short codes.
 //
 // If possible, try looking up codes into the acceleration table.
-// This has a few benifits - there's no search involved; We don't
+// This has a few benefits - there's no search involved; We don't
 // need an additional lookup to map id to symbol; we don't need
 // a full 64-bits (so less refilling). 
 //
@@ -680,7 +695,7 @@ FastHufDecoder::decode
         bufferNumBits -= codeLen;
 
         //
-        // If we recieved a RLE symbol (_rleSymbol), then we need
+        // If we received a RLE symbol (_rleSymbol), then we need
         // to read ahead 8 bits to know how many times to repeat
         // the previous symbol. Need to ensure we at least have
         // 8 bits of data in the buffer

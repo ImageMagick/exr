@@ -186,7 +186,7 @@ bufferedReadPixels (InputFile::Data* ifd, int scanLine1, int scanLine2)
     //
     // bufferedReadPixels reads each row of tiles that intersect the
     // scan-line range (scanLine1 to scanLine2). The previous row of
-    // tiles is cached in order to prevent redundent tile reads when
+    // tiles is cached in order to prevent redundant tile reads when
     // accessing scanlines sequentially.
     //
 
@@ -352,12 +352,10 @@ bufferedReadPixels (InputFile::Data* ifd, int scanLine1, int scanLine2)
 
                     switch ( toSlice.type)
                     {
-                        case UINT:
-                        {
-                            unsigned int fill = toSlice.fillValue;
-                            for (int x = xStart;
-                                x <= levelRange.max.x;
-                                x += toSlice.xSampling)
+                    case UINT: {
+                        unsigned int fill = static_cast<unsigned int>(toSlice.fillValue);
+                        for (int x = xStart; x <= levelRange.max.x;
+                             x += toSlice.xSampling)
                             {
                                 * reinterpret_cast<unsigned int*>(toPtr) = fill;
                                 toPtr += toSlice.xStride;

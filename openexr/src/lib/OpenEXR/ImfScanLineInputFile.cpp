@@ -886,7 +886,7 @@ LineBufferTaskIIF::execute()
             //
             
             // Set the readPtr to read at the start of uncompressedData
-            // but with an offet based on calculated array.
+            // but with an offset based on calculated array.
             // _ifd->offsetInLineBuffer contains offsets based on which
             // line we are currently processing.
             // Stride will be taken into consideration later.
@@ -1102,8 +1102,10 @@ void ScanLineInputFile::initialize(const Header& header)
         _data->linesInBuffer =
             numLinesInBuffer (comp);
 
-        int lineOffsetSize = (dataWindow.max.y - dataWindow.min.y +
-                              _data->linesInBuffer) / _data->linesInBuffer;
+        uint64_t lineOffsetSize =
+            (static_cast<int64_t>(dataWindow.max.y) - static_cast<int64_t>(dataWindow.min.y) + static_cast<int64_t>(_data->linesInBuffer)) /
+            static_cast<int64_t>(_data->linesInBuffer);
+
 
         //
         // avoid allocating excessive memory due to large lineOffsets and bytesPerLine table sizes.
@@ -1309,9 +1311,8 @@ ScanLineInputFile::version () const
 
 namespace
 {
-    
-    
-// returns the optimization state for the given arrangement of frame bufers
+
+// returns the optimization state for the given arrangement of frame buffers
 // this assumes:
 //   both the file and framebuffer are half float data
 //   both the file and framebuffer have xSampling and ySampling=1
@@ -1702,7 +1703,7 @@ ScanLineInputFile::readPixels (int scanLine1, int scanLine2)
         }
         
 	//
-	// Exeption handling:
+	// Exception handling:
 	//
 	// LineBufferTask::execute() may have encountered exceptions, but
 	// those exceptions occurred in another thread, not in the thread

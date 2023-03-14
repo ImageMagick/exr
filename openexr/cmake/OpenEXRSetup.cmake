@@ -72,7 +72,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_DEBUG_POSTFIX "_d" CACHE STRING "Suffix for debug builds")
 
 if(NOT OPENEXR_IS_SUBPROJECT)
-  # Usual cmake option to build shared libraries or not, only overriden if OpenEXR is a top level project,
+  # Usual cmake option to build shared libraries or not, only overridden if OpenEXR is a top level project,
   # in general this setting should be explicitly configured by the end user
   option(BUILD_SHARED_LIBS "Build shared library" ON)
 endif()
@@ -220,11 +220,18 @@ if(OPENEXR_FORCE_INTERNAL_ZLIB OR NOT TARGET ZLIB::ZLIB)
     set(zlibstaticlibname "z")
   endif()
 
+  if(MSVC)
+    set(zlibpostfix "d")
+  endif()
+
   if(NOT (APPLE OR WIN32) AND BUILD_SHARED_LIBS AND NOT OPENEXR_FORCE_INTERNAL_ZLIB)
     add_library(zlib_shared SHARED IMPORTED GLOBAL)
     add_dependencies(zlib_shared zlib_external)
     set_property(TARGET zlib_shared PROPERTY
       IMPORTED_LOCATION "${zlib_INTERNAL_DIR}/lib/${CMAKE_SHARED_LIBRARY_PREFIX}${zliblibname}${CMAKE_SHARED_LIBRARY_SUFFIX}"
+      )
+    set_property(TARGET zlib_static PROPERTY
+      IMPORTED_LOCATION_DEBUG "${zlib_INTERNAL_DIR}/lib/${CMAKE_SHARED_LIBRARY_PREFIX}${zliblibname}${zlibpostfix}${CMAKE_SHARED_LIBRARY_SUFFIX}"
       )
     target_include_directories(zlib_shared INTERFACE "${zlib_INTERNAL_DIR}/include")
   endif()
@@ -233,6 +240,9 @@ if(OPENEXR_FORCE_INTERNAL_ZLIB OR NOT TARGET ZLIB::ZLIB)
   add_dependencies(zlib_static zlib_external)
   set_property(TARGET zlib_static PROPERTY
     IMPORTED_LOCATION "${zlib_INTERNAL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}${zlibstaticlibname}${CMAKE_STATIC_LIBRARY_SUFFIX}"
+    )
+  set_property(TARGET zlib_static PROPERTY
+    IMPORTED_LOCATION_DEBUG "${zlib_INTERNAL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}${zlibstaticlibname}${zlibpostfix}${CMAKE_STATIC_LIBRARY_SUFFIX}"
     )
   target_include_directories(zlib_static INTERFACE "${zlib_INTERNAL_DIR}/include")
 
@@ -251,7 +261,7 @@ option(OPENEXR_FORCE_INTERNAL_IMATH "Force using an internal imath" OFF)
 # Check to see if Imath is installed outside of the current build directory.
 set(IMATH_REPO "https://github.com/AcademySoftwareFoundation/Imath.git" CACHE STRING
     "Repo for auto-build of Imath")
-set(IMATH_TAG "v3.1.5" CACHE STRING
+set(IMATH_TAG "v3.1.7" CACHE STRING
   "Tag for auto-build of Imath (branch, tag, or SHA)")
 if(NOT OPENEXR_FORCE_INTERNAL_IMATH)
   #TODO: ^^ Release should not clone from master, this is a place holder

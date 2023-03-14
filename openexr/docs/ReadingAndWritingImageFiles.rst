@@ -1,5 +1,9 @@
-Reading and Writing OpenEXR Image Files with the OpenEXR Library
-################################################################
+..
+  SPDX-License-Identifier: BSD-3-Clause
+  Copyright Contributors to the OpenEXR Project.
+
+Reading and Writing Image Files with the OpenEXR Library
+########################################################
 
 Document Purpose and Audience
 =============================
@@ -37,7 +41,8 @@ the following eight C++ classes:
 
 .. list-table::
    :header-rows: 1
-      
+   :align: left
+   
    * -
      - tiles
      - scan lines
@@ -544,7 +549,7 @@ other three arguments define the memory address of pixel ``(x,y)`` as
 **Note:** ``base`` is of type ``char*``, and that offsets from
 ``base`` are not implicitly multiplied by the size of an individual
 pixel, as in the RGBA-only interface. ``xStride`` and ``yStride`` must
-explictly take the size of the pixels into account.
+explicitly take the size of the pixels into account.
 
 With the values specified in our example, the OpenEXR library computes
 the address of the G channel of pixel ``(x,y)`` like this:
@@ -797,6 +802,7 @@ each with a different resolution. Each version is called a
 stored in the file.  There are three different level modes:
 
 .. list-table::
+   :align: left
 
    * - ``ONE_LEVEL``
      - The file contains only a single, full-resolution level.  A ONE_LEVEL
@@ -1462,7 +1468,7 @@ exception. If ``read(c,n)`` hits the end of the file after reading
                 throw Iex::InputExc ("Unexpected end of file.");
         }
         
-        return feof (_file);
+        return !feof (_file);
     }
 
 ``tellg()`` returns the current reading position, in bytes, from the
@@ -1897,7 +1903,7 @@ of a three-dimensional scene as seen from a particular 3D location.
 Every pixel in the image corresponds to a 3D direction, and the data
 stored in the pixel represent the amount of light arriving from this
 direction. In 3D rendering applications, environment maps are often
-used for image-based lighting techniques that appoximate how objects
+used for image-based lighting techniques that approximate how objects
 are illuminated by their surroundings. Environment maps with enough
 dynamic range to represent even the brightest light sources in the
 environment are sometimes called "light probe images."
@@ -1910,6 +1916,7 @@ pixel locations and 3D directions. ``Envmap`` is an enumeration
 type. Two values are possible:
 
 .. list-table::
+   :align: left
 
    * - ``ENVMAP_LATLONG``
      - **Latitude-Longitude Map** The environment is projected onto
@@ -1985,7 +1992,7 @@ To specify the compression algorithm, set the ``compression()`` value
 on the ``Header`` object:
 
 .. code-block::
-   :linenos
+   :linenos:
 
     Header header (width, height);
     header.channels().insert ("G", Channel (HALF));
@@ -2038,7 +2045,7 @@ previous versions. The default DWA compression level is 45.0f.
 Alternatively, set the compression level on the ``Header`` object:
 
 .. code-block::
-   :linenos
+   :linenos:
 
     Header header (width, height);
     header.channels().insert ("G", Channel (HALF));

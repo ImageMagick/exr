@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: BSD-3-Clause -->
+<!-- Copyright (c) Contributors to the OpenEXR Project -->
+
 This is a list of contributors to the OpenEXR project, sorted
 alphabetically by first name.
 
@@ -51,6 +54,7 @@ If you know of missing, please email: info@openexr.com.
 * Paul Schneider
 * Peter Hillman
 * Peter Steneteg
+* Phil Barrett
 * Piotr Stanczyk
 * Ralph Potter
 * Reto Kromer
