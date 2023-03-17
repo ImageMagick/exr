@@ -43,8 +43,12 @@
     #define IMF_HAVE_F16C 1
 #endif
 
-#if defined(__ARM_NEON)
-#    define IMF_HAVE_NEON
+#if defined(unix) || defined(__unix__) || defined(__unix)
+# define IMF_PLATFORM_UNIX
+#endif
+
+#if !defined(IMF_PLATFORM_UNIX) && defined(__ARM_NEON)
+# define IMF_HAVE_NEON
 #endif
 
 extern "C" {
