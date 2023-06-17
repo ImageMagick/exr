@@ -16,6 +16,7 @@
 #include <assert.h>
 #include <iostream>
 #include "testMatrix.h"
+#include <sstream>
 
 // Include ImathForward *after* other headers to validate forward declarations
 #include <ImathForward.h>
@@ -34,7 +35,29 @@ using IMATH_INTERNAL_NAMESPACE::Int64;
 //
 
 void
-testMatrix()
+testMatrix22ArrayConstructor(const float a[2][2])
+{
+    IMATH_INTERNAL_NAMESPACE::M22f m(a);
+    assert(m == IMATH_INTERNAL_NAMESPACE::M22f());
+}
+
+void
+testMatrix33ArrayConstructor(const float a[3][3])
+{
+    IMATH_INTERNAL_NAMESPACE::M33f m(a);
+    assert(m == IMATH_INTERNAL_NAMESPACE::M33f());
+}
+
+void
+testMatrix44ArrayConstructor(const float a[4][4])
+{
+    IMATH_INTERNAL_NAMESPACE::M44f m(a);
+    assert(m == IMATH_INTERNAL_NAMESPACE::M44f());
+}
+
+
+void
+testMatrix ()
 {
     cout << "Testing functions in ImathMatrix.h" << endl;
 
@@ -59,7 +82,7 @@ testMatrix()
         m1[0][0] = 99.0f;
         m1[1][1] = 101.0f;
 
-        IMATH_INTERNAL_NAMESPACE::M22f test (m1);
+        const IMATH_INTERNAL_NAMESPACE::M22f test (m1);
         assert (test == m1);
 
         IMATH_INTERNAL_NAMESPACE::M22f test2;
@@ -68,6 +91,32 @@ testMatrix()
         IMATH_INTERNAL_NAMESPACE::M22f test3;
         test3.makeIdentity();
         assert (test2 == test3);
+
+        const float a[2][2] = {
+            { 1.0f, 0.0f },
+            { 0.0f, 1.0f }
+        };
+        testMatrix22ArrayConstructor(a);
+        
+        m1 = 42;
+        assert (m1[0][0] == 42 && m1[0][1] == 42 && m1[1][0] == 42 && m1[1][1] == 42);
+
+        const float* i1 = test.getValue();
+        assert(i1[0] == 99.0f);
+        assert(i1[3] == 101.0f);
+        
+        float* i2 = m1.getValue();
+        assert(i2[0] == 42.0f);
+        assert(i2[1] == 42.0f);
+        assert(i2[2] == 42.0f);
+        assert(i2[3] == 42.0f);
+
+        IMATH_INTERNAL_NAMESPACE::M22f test4;
+        test.getValue(test4);
+        assert (test == test4);
+
+        test4.setTheMatrix(test3);
+        assert(test4 == test3);
     }
 
     {
@@ -96,6 +145,13 @@ testMatrix()
 
         assert (test5[1][0] == 3.0);
         assert (test5[1][1] == 4.0);
+
+        const float a[3][3] = {
+            { 1.0f, 0.0f, 0.0f },
+            { 0.0f, 1.0f, 0.0f },
+            { 0.0f, 0.0f, 1.0f }
+        };
+        testMatrix33ArrayConstructor(a);
     }
 
     {
@@ -142,7 +198,7 @@ testMatrix()
 
         cout << "M33f constructors and equality operators" << endl;
 
-        IMATH_INTERNAL_NAMESPACE::M33f test (m2);
+        const IMATH_INTERNAL_NAMESPACE::M33f test (m2);
         assert (test == m2);
 
         IMATH_INTERNAL_NAMESPACE::M33f test2;
@@ -151,6 +207,36 @@ testMatrix()
         IMATH_INTERNAL_NAMESPACE::M33f test3;
         test3.makeIdentity();
         assert (test2 == test3);
+
+        m1 = 42;
+        assert (m1[0][0] == 42 && m1[0][1] == 42 && m1[0][2] == 42 &&
+                m1[1][0] == 42 && m1[1][1] == 42 && m1[1][2] == 42 &&
+                m1[2][0] == 42 && m1[2][1] == 42 && m1[2][2] == 42);
+
+        const float* i1 = test.getValue();
+        assert (i1[0] == 1.0f  && i1[1] == 4.0f  && i1[2] == 0.0f &&
+                i1[3] == 10.0f && i1[4] == 29.0f && i1[5] == 0.0f &&
+                i1[6] == 0.0f  && i1[7] == 0.0f  && i1[8] == 1.0f);
+        
+        float* i2 = m1.getValue();
+        assert(i2[0] == 42.0f);
+        assert(i2[1] == 42.0f);
+        assert(i2[2] == 42.0f);
+        assert(i2[3] == 42.0f);
+
+        IMATH_INTERNAL_NAMESPACE::M33f test4;
+        test.getValue(test4);
+        assert (test == test4);
+
+        test4.setTheMatrix(test3);
+        assert(test4 == test3);
+
+        IMATH_INTERNAL_NAMESPACE::V3f v(2.0f);
+        IMATH_INTERNAL_NAMESPACE::M33f m(2.0f);
+        v *= m;
+        assert (IMATH_INTERNAL_NAMESPACE::equal(v[0], 12.0f, 0.0001f));
+        assert (IMATH_INTERNAL_NAMESPACE::equal(v[1], 12.0f, 0.0001f));
+        assert (IMATH_INTERNAL_NAMESPACE::equal(v[2], 12.0f, 0.0001f));
     }
 
     {
@@ -263,6 +349,14 @@ testMatrix()
         test3.makeIdentity();
         assert (test2 == test3);
 
+        const float a[4][4] = {
+            { 1.0f, 0.0f, 0.0f, 0.0f },
+            { 0.0f, 1.0f, 0.0f, 0.0f },
+            { 0.0f, 0.0f, 1.0f, 0.0f },
+            { 0.0f, 0.0f, 0.0f, 1.0f }
+        };
+        testMatrix44ArrayConstructor(a);
+
         //
         // Test non-equality when a NAN is in the same
         // place in two identical matrices
@@ -313,7 +407,63 @@ testMatrix()
     }
 
     {
-      cout << "M44f inversion operators" << endl;
+        cout << "M44f *= operators" << endl;
+
+        IMATH_INTERNAL_NAMESPACE::V3f v(2.0f);
+        IMATH_INTERNAL_NAMESPACE::M44f m(2.0f);
+        m.setScale(2.0f);
+        v *= m;
+        assert (IMATH_INTERNAL_NAMESPACE::equal(v[0], 4.0f, 0.0001f));
+        assert (IMATH_INTERNAL_NAMESPACE::equal(v[1], 4.0f, 0.0001f));
+        assert (IMATH_INTERNAL_NAMESPACE::equal(v[2], 4.0f, 0.0001f));
+
+        IMATH_INTERNAL_NAMESPACE::V4f v4f(2.0f);
+        IMATH_INTERNAL_NAMESPACE::V4f v4f2 = v4f * m;
+        
+        assert (IMATH_INTERNAL_NAMESPACE::equal(v4f2[0], 4.0f, 0.0001f));
+        assert (IMATH_INTERNAL_NAMESPACE::equal(v4f2[1], 4.0f, 0.0001f));
+        assert (IMATH_INTERNAL_NAMESPACE::equal(v4f2[2], 4.0f, 0.0001f));
+        assert (IMATH_INTERNAL_NAMESPACE::equal(v4f2[3], 2.0f, 0.0001f));
+
+        v4f *= m;
+        assert (v4f == v4f2);
+        
+        IMATH_INTERNAL_NAMESPACE::M44f a(2.0f);
+        IMATH_INTERNAL_NAMESPACE::M44f b(3.0f);
+        IMATH_INTERNAL_NAMESPACE::M44f c;
+
+        IMATH_INTERNAL_NAMESPACE::M44f::multiply(a, b, c);
+        assert (IMATH_INTERNAL_NAMESPACE::equal(c[0][0], 24.0f, 0.0001f));
+        assert (IMATH_INTERNAL_NAMESPACE::equal(c[1][1], 24.0f, 0.0001f));
+        assert (IMATH_INTERNAL_NAMESPACE::equal(c[2][2], 24.0f, 0.0001f));
+        assert (IMATH_INTERNAL_NAMESPACE::equal(c[3][3], 24.0f, 0.0001f));
+    }
+    
+    cout << "Matrix << operators" << endl;
+    
+    {
+        std::stringstream s;
+        s << IMATH_INTERNAL_NAMESPACE::identity22f;
+        const char v[] = "(  1.000000e+00   0.000000e+00\n   0.000000e+00   1.000000e+00)\n";
+        assert (s.str() == v);
+    }
+        
+    {
+        std::stringstream s;
+        s << IMATH_INTERNAL_NAMESPACE::identity33f;
+        const char v[] = "(  1.000000e+00   0.000000e+00   0.000000e+00\n   0.000000e+00   1.000000e+00   0.000000e+00\n   0.000000e+00   0.000000e+00   1.000000e+00)\n";
+        assert (s.str() == v);
+    }
+
+    {
+        std::stringstream s;
+        s << IMATH_INTERNAL_NAMESPACE::identity44f;
+        const char v[] = "(  1.000000e+00   0.000000e+00   0.000000e+00   0.000000e+00\n   0.000000e+00   1.000000e+00   0.000000e+00   0.000000e+00\n   0.000000e+00   0.000000e+00   1.000000e+00   0.000000e+00\n   0.000000e+00   0.000000e+00   0.000000e+00   1.000000e+00)\n";
+        assert (s.str() == v);
+    }
+
+    {
+        cout << "M44f inversion operators" << endl;
 
       IMATH_INTERNAL_NAMESPACE::M44f m1 (1.0f,
                                          0.0f,
@@ -634,7 +784,7 @@ testMatrix()
             }
         }
 
-        assert (fabsf (u.trace () - trace) <= u.baseTypeEpsilon ());
+        assert (fabs (u.trace () - trace) <= u.baseTypeEpsilon ());
     }
     {
         cout << "3x3 trace" << endl;
@@ -670,7 +820,7 @@ testMatrix()
             }
         }
 
-        assert (fabsf (u.trace () - trace) <= u.baseTypeEpsilon ());
+        assert (fabs (u.trace () - trace) <= u.baseTypeEpsilon ());
     }
     {
         cout << "4x4 trace" << endl;
@@ -706,7 +856,7 @@ testMatrix()
             }
         }
 
-        assert (fabsf (u.trace () - trace) <= u.baseTypeEpsilon ());
+        assert (fabs (u.trace () - trace) <= u.baseTypeEpsilon ());
     }
 
     // Matrix minors

@@ -523,8 +523,7 @@ static const Matrix44<T> &
 setScaleSc44(Matrix44<T> &mat, const T &s)
 {
     MATH_EXC_ON;
-    Vec3<T> sVec(s, s, s);
-    return mat.setScale(sVec);
+    return mat.setScale(s);
 }
 
 template <class T>
@@ -559,8 +558,7 @@ static const Matrix44<T> &
 setShearV44(Matrix44<T> &mat, const Vec3<T> &sVec)
 {
     MATH_EXC_ON;
-    IMATH_NAMESPACE::Shear6<T> shear(sVec[0], sVec[1], sVec[2], T (0), T (0), T (0));
-    return mat.setShear(shear);
+    return mat.setShear(sVec);
 }
 
 template <class T>
@@ -582,9 +580,8 @@ setShear44Tuple(Matrix44<T> &mat, const tuple &t)
         s.x = extract<T>(t[0]);
         s.y = extract<T>(t[1]);
         s.z = extract<T>(t[2]);
-        Shear6<T> shear(s);
         
-        return mat.setShear(shear);
+        return mat.setShear(s);
     }
     else if(t.attr("__len__")() == 6)
     {
