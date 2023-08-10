@@ -3,6 +3,7 @@
 
 # OpenEXR Release Notes
 
+* [Version 3.1.10](#version-3110-august-2-2023) August 2, 2023
 * [Version 3.1.9](#version-319-june-25-2023) June 25, 2023
 * [Version 3.1.8](#version-318-june-2-2023) June 2, 2023
 * [Version 3.1.7](#version-317-march-28-2023) March 28, 2023
@@ -63,12 +64,36 @@
 * [Version 1.0.1](#version-101)
 * [Version 1.0](#version-10)
 
+## Version 3.1.10 (August 2, 2023)
+
+Patch release that addresses miscellaneous build issues, test
+failures, and performance regressions, as well as:
+
+* OSS-fuzz [59457](https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=59457)
+ Heap-buffer-overflow in `LossyDctDecoder_execute`
+
+### Merged Pull Requests
+
+* [1490](https://github.com/AcademySoftwareFoundation/openexr/pull/1490) Readdress #1456: disallow NaNs in `testOptimizedInterleavePatterns`
+* [1488](https://github.com/AcademySoftwareFoundation/openexr/pull/1488) Revert pre-computed values
+* [1484](https://github.com/AcademySoftwareFoundation/openexr/pull/1484) Fix handling for corrupt number of DC components
+* [1482](https://github.com/AcademySoftwareFoundation/openexr/pull/1482) Add `OPENEXR_MISSING_ARM_VLD1` workaround to `internal_dwa_simd.h`
+* [1480](https://github.com/AcademySoftwareFoundation/openexr/pull/1480) Fix Huffman performance regression on Linux/clang
+* [1472](https://github.com/AcademySoftwareFoundation/openexr/pull/1472) Fix range check in dwa compressor
+* [1470](https://github.com/AcademySoftwareFoundation/openexr/pull/1470) Fix build with i386 and musl libc
+* [1469](https://github.com/AcademySoftwareFoundation/openexr/pull/1469) Fix the code contains unhandled character
+* [1467](https://github.com/AcademySoftwareFoundation/openexr/pull/1467) Fix cpu detection of sse2 on non-64 x86
+* [1466](https://github.com/AcademySoftwareFoundation/openexr/pull/1466) Fix the code contains unhandled character
+* [1463](https://github.com/AcademySoftwareFoundation/openexr/pull/1463) Fix gcc-11 warnings: signed/unsigned integer comparison, unused variables
+* [1462](https://github.com/AcademySoftwareFoundation/openexr/pull/1462) Fix macOS and Windows build failures when threading is disabled
+* [1447](https://github.com/AcademySoftwareFoundation/openexr/pull/1447) Fix build error on win_arm64
+
 ## Version 3.1.9 (June 25, 2023)
 
 Patch release that addresses miscelleneous build and doc issues, as well as:
 
 * OSS-fuzz [59382](https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=59382)
-  Heap-buffer-overflow in internal_huf_decompress
+  Heap-buffer-overflow in `internal_huf_decompress`
 
 ### Merged Pull Requests
 
@@ -230,8 +255,8 @@ Check for null pointer passed to ``memcpy``
 * [1295](https://github.com/AcademySoftwareFoundation/openexr/pull/1295)
 Remove TSC meeting notes from repo
 * [1294](https://github.com/AcademySoftwareFoundation/openexr/pull/1294)
-Change reference to ``IlmBase`` to ``Imath`` in ``README.md
-*`` [1293](https://github.com/AcademySoftwareFoundation/openexr/pull/1293)
+Change reference to ``IlmBase`` to ``Imath`` in ``README.md``
+* [1293](https://github.com/AcademySoftwareFoundation/openexr/pull/1293)
 Update Christina's affiliation
 * [1292](https://github.com/AcademySoftwareFoundation/openexr/pull/1292)
 Fix typo in the documentation's example reading class
