@@ -39,22 +39,23 @@ static inline void check_for_x86_simd (int *f16c, int *avx, int *sse2)
     *f16c = 0;
 #    endif
 
-#elif OPENEXR_ENABLE_X86_SIMD_CHECK
-
+#elif defined(__AVX__) && defined(__F16C__)
     // shortcut if everything is turned on / compiled in
-#    if defined(__AVX__) && defined(__F16C__)
     *f16c = 1;
     *avx = 1;
     *sse2 = 1;
-#    elif defined(_MSC_VER) && defined(_WIN32)
-    int regs[4], osxsave;
+
+#elif OPENEXR_ENABLE_X86_SIMD_CHECK
+
+#   if defined(_MSC_VER) && defined(_WIN32)
+    int regs[4]={0}, osxsave;
 
     __cpuid (regs, 0);
     if (regs[0] >= 1) { __cpuidex (regs, 1, 0); }
     else
         regs[2] = 0;
 #   else
-    unsigned int regs[4], osxsave;
+    unsigned int regs[4]={0}, osxsave;
     __get_cpuid (0, &regs[0], &regs[1], &regs[2], &regs[3]);
     if (regs[0] >= 1)
     {
