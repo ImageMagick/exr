@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright Contributors to the OpenEXR Project.
 ---
 Language:        Cpp
 # BasedOnStyle:  LLVM
@@ -17,6 +19,7 @@ AllowShortFunctionsOnASingleLine: InlineOnly
 AllowShortIfStatementsOnASingleLine: true
 AllowShortLoopsOnASingleLine: false
 # AllowShortLambdasOnASingleLine: true
+# ArrayInitializerAlignmentStyle: Left
 AlwaysBreakAfterDefinitionReturnType: TopLevel
 AlwaysBreakAfterReturnType: None
 AlwaysBreakBeforeMultilineStrings: false
@@ -54,7 +57,7 @@ CompactNamespaces: false
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
 ConstructorInitializerIndentWidth: 4
 ContinuationIndentWidth: 4
-Cpp11BracedListStyle: false
+Cpp11BracedListStyle: true
 DerivePointerAlignment: false
 DisableFormat:   false
 FixNamespaceComments: true
@@ -86,7 +89,7 @@ ObjCBinPackProtocolList: Auto
 ObjCBlockIndentWidth: 4
 ObjCSpaceAfterProperty: true
 ObjCSpaceBeforeProtocolList: true
-PenaltyBreakAssignment: 8
+PenaltyBreakAssignment: 4
 PenaltyBreakBeforeFirstCallParameter: 8
 PenaltyBreakComment: 1000
 PenaltyBreakFirstLessLess: 120
@@ -96,7 +99,7 @@ PenaltyExcessCharacter: 1000000
 PenaltyReturnTypeOnItsOwnLine: 20
 PointerAlignment: Left
 ReflowComments:  false
-SortIncludes:    true
+SortIncludes:    false
 SortUsingDeclarations: true
 SpaceAfterCStyleCast: true
 SpaceAfterTemplateKeyword: true

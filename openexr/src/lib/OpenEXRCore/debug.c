@@ -17,6 +17,8 @@
 static void
 print_attr (const exr_attribute_t* a, int verbose)
 {
+    if (!a) return;
+
     printf ("%s: ", a->name);
     if (verbose) printf ("%s ", a->type_name);
     switch (a->type)
@@ -72,9 +74,17 @@ print_attr (const exr_attribute_t* a, int verbose)
                 (double) a->chromaticities->white_y);
             break;
         case EXR_ATTR_COMPRESSION: {
-            static char* compressionnames[] = { "none", "rle",   "zips", "zip",
-                                                "piz",  "pxr24", "b44",  "b44a",
-                                                "dwaa", "dwab" };
+            static char* compressionnames[] = {
+                "none",
+                "rle",
+                "zips",
+                "zip",
+                "piz",
+                "pxr24",
+                "b44",
+                "b44a",
+                "dwaa",
+                "dwab"};
             printf (
                 "'%s'", (a->uc < 10 ? compressionnames[a->uc] : "<UNKNOWN>"));
             if (verbose) printf (" (0x%02X)", a->uc);
@@ -202,10 +212,9 @@ print_attr (const exr_attribute_t* a, int verbose)
             }
             break;
         case EXR_ATTR_TILEDESC: {
-            static const char* lvlModes[] = { "single image",
-                                              "mipmap",
-                                              "ripmap" };
-            uint8_t            lvlMode =
+            static const char* lvlModes[] = {
+                "single image", "mipmap", "ripmap"};
+            uint8_t lvlMode =
                 (uint8_t) EXR_GET_TILE_LEVEL_MODE (*(a->tiledesc));
             uint8_t rndMode =
                 (uint8_t) EXR_GET_TILE_ROUND_MODE (*(a->tiledesc));
@@ -243,11 +252,11 @@ print_attr (const exr_attribute_t* a, int verbose)
         case EXR_ATTR_V3D:
             printf ("[ %g, %g, %g ]", a->v3d->x, a->v3d->y, a->v3d->z);
             break;
-        case EXR_ATTR_OPAQUE:
-        {
-            uintptr_t faddr_unpack = (uintptr_t)a->opaque->unpack_func_ptr;
-            uintptr_t faddr_pack = (uintptr_t)a->opaque->pack_func_ptr;
-            uintptr_t faddr_destroy = (uintptr_t)a->opaque->destroy_unpacked_func_ptr;
+        case EXR_ATTR_OPAQUE: {
+            uintptr_t faddr_unpack = (uintptr_t) a->opaque->unpack_func_ptr;
+            uintptr_t faddr_pack   = (uintptr_t) a->opaque->pack_func_ptr;
+            uintptr_t faddr_destroy =
+                (uintptr_t) a->opaque->destroy_unpacked_func_ptr;
             printf (
                 "(size %d unp size %d hdlrs %p %p %p)",
                 a->opaque->size,
@@ -282,10 +291,7 @@ exr_print_context_info (exr_const_context_t ctxt, int verbose)
             pctxt->is_multipart ? " multipart" : "");
         printf (" parts: %d\n", pctxt->num_parts);
     }
-    else
-    {
-        printf ("File '%s':\n", pctxt->filename.str);
-    }
+    else { printf ("File '%s':\n", pctxt->filename.str); }
 
     for (int partidx = 0; partidx < pctxt->num_parts; ++partidx)
     {

@@ -61,7 +61,10 @@ print_error_helper (
 
     if (error_cb)
         error_cb (
-            (exr_const_context_t) pf, errcode, "%s", (const char*) lpDisplayBuf);
+            (exr_const_context_t) pf,
+            errcode,
+            "%s",
+            (const char*) lpDisplayBuf);
     else
         pf->print_error (pf, errcode, "%s", (const char*) lpDisplayBuf);
 
@@ -180,7 +183,7 @@ default_read_func (
     struct _internal_exr_filehandle* fh    = userdata;
     HANDLE                           fd;
     LARGE_INTEGER                    lint;
-    OVERLAPPED                       overlap = { 0 };
+    OVERLAPPED                       overlap = {0};
 
     if (!fh)
     {
@@ -225,10 +228,7 @@ default_read_func (
                 error_cb,
                 "Unable to read requested data");
         }
-        else
-        {
-            retsz = nread;
-        }
+        else { retsz = nread; }
     }
 
     return retsz;
@@ -250,7 +250,7 @@ default_write_func (
     HANDLE                           fd;
     DWORD                            nwrote = 0;
     LARGE_INTEGER                    lint;
-    OVERLAPPED                       overlap = { 0 };
+    OVERLAPPED                       overlap = {0};
 
     if (!fh)
     {
@@ -404,7 +404,7 @@ default_query_size_func (exr_const_context_t ctxt, void* userdata)
 
     if (fh->fd != INVALID_HANDLE_VALUE)
     {
-        LARGE_INTEGER lint = { 0 };
+        LARGE_INTEGER lint = {0};
         if (GetFileSizeEx (fh->fd, &lint)) { sz = lint.QuadPart; }
     }
 

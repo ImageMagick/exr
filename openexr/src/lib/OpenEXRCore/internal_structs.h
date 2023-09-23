@@ -6,9 +6,8 @@
 #ifndef OPENEXR_PRIVATE_STRUCTS_H
 #define OPENEXR_PRIVATE_STRUCTS_H
 
+#include "openexr_config.h"
 #include "internal_attr.h"
-
-#include <IlmThreadConfig.h>
 
 #ifdef ILMTHREAD_THREADING_ENABLED
 #    ifdef _WIN32
@@ -20,7 +19,7 @@
 #endif
 
 #ifndef __STDC_FORMAT_MACROS
-#define __STDC_FORMAT_MACROS
+#    define __STDC_FORMAT_MACROS
 #endif
 
 #include <inttypes.h>
@@ -98,8 +97,8 @@ struct _internal_exr_part
     exr_compression_t comp_type;
     exr_lineorder_t   lineorder;
 
-    int32_t  zip_compression_level;
-    float    dwa_compression_level;
+    int32_t zip_compression_level;
+    float   dwa_compression_level;
 
     int32_t  num_tile_levels_x;
     int32_t  num_tile_levels_y;
@@ -180,7 +179,7 @@ struct _internal_exr_context
     int max_tile_w;
     int max_tile_h;
 
-    int default_zip_level;
+    int   default_zip_level;
     float default_dwa_quality;
 
     void*                         real_user_data;
@@ -335,13 +334,13 @@ internal_exr_unlock (const struct _internal_exr_context* c)
     const struct _internal_exr_context* pctxt = EXR_CCTXT (c);                 \
     if (!pctxt) return EXR_ERR_MISSING_CONTEXT_ARG;                            \
     if (pi < 0 || pi >= pctxt->num_parts)                                      \
-        return (                                                               \
-            (void) (EXR_RETURN_WRITE (pctxt)),                                 \
-            pctxt->print_error (                                               \
-                pctxt,                                                         \
-                EXR_ERR_ARGUMENT_OUT_OF_RANGE,                                 \
-                "Part index (%d) out of range",                                \
-                pi))
+    return (                                                                   \
+        (void) (EXR_RETURN_WRITE (pctxt)),                                     \
+        pctxt->print_error (                                                   \
+            pctxt,                                                             \
+            EXR_ERR_ARGUMENT_OUT_OF_RANGE,                                     \
+            "Part index (%d) out of range",                                    \
+            pi))
 
 #define EXR_PROMOTE_READ_CONST_CONTEXT_AND_PART_OR_ERROR(c, pi)                \
     const struct _internal_exr_context* pctxt = EXR_CCTXT (c);                 \
@@ -357,19 +356,17 @@ internal_exr_unlock (const struct _internal_exr_context* c)
             pi);                                                               \
     part = pctxt->parts[pi]
 
-
 #define EXR_PROMOTE_READ_CONST_CONTEXT_OR_ERROR_NO_PART(c, pi)                 \
     const struct _internal_exr_context* pctxt = EXR_CCTXT (c);                 \
     if (!pctxt) return EXR_ERR_MISSING_CONTEXT_ARG;                            \
     if (pctxt->mode != EXR_CONTEXT_READ)                                       \
         return pctxt->standard_error (pctxt, EXR_ERR_NOT_OPEN_READ);           \
     if (pi < 0 || pi >= pctxt->num_parts)                                      \
-        return pctxt->print_error (                                            \
-            pctxt,                                                             \
-            EXR_ERR_ARGUMENT_OUT_OF_RANGE,                                     \
-            "Part index (%d) out of range",                                    \
-            pi)
-
+    return pctxt->print_error (                                                \
+        pctxt,                                                                 \
+        EXR_ERR_ARGUMENT_OUT_OF_RANGE,                                         \
+        "Part index (%d) out of range",                                        \
+        pi)
 
 void internal_exr_update_default_handlers (exr_context_initializer_t* inits);
 

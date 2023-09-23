@@ -20,33 +20,27 @@
 
 ILMTHREAD_INTERNAL_NAMESPACE_SOURCE_ENTER
 
-
 Semaphore::Semaphore (unsigned int value)
 {
     if (::sem_init (&_semaphore, 0, value))
-	IEX_NAMESPACE::throwErrnoExc ("Cannot initialize semaphore (%T).");
+        IEX_NAMESPACE::throwErrnoExc ("Cannot initialize semaphore (%T).");
 }
-
 
 Semaphore::~Semaphore ()
 {
-#ifdef NDEBUG
+#    ifdef NDEBUG
     ::sem_destroy (&_semaphore);
-#else
+#    else
     int error = ::sem_destroy (&_semaphore);
     assert (error == 0);
-#endif
+#    endif
 }
-
 
 void
 Semaphore::wait ()
 {
-    while( ::sem_wait( &_semaphore ) == -1 && errno == EINTR )
-    {
-    }
+    while (::sem_wait (&_semaphore) == -1 && errno == EINTR) {}
 }
-
 
 bool
 Semaphore::tryWait ()
@@ -54,14 +48,13 @@ Semaphore::tryWait ()
     return sem_trywait (&_semaphore) == 0;
 }
 
-
 void
 Semaphore::post ()
 {
     if (::sem_post (&_semaphore))
-        IEX_NAMESPACE::throwErrnoExc ("Post operation on semaphore failed (%T).");
+        IEX_NAMESPACE::throwErrnoExc (
+            "Post operation on semaphore failed (%T).");
 }
-
 
 int
 Semaphore::value () const
@@ -73,7 +66,6 @@ Semaphore::value () const
 
     return value;
 }
-
 
 ILMTHREAD_INTERNAL_NAMESPACE_SOURCE_EXIT
 

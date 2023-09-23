@@ -114,10 +114,7 @@ read_uncompressed_direct (exr_decode_pipeline_t* decode)
                     ((uint64_t) (y / decc->y_samples) *
                      (uint64_t) decc->user_line_stride);
             }
-            else
-            {
-                cdata += (uint64_t) y * (uint64_t) decc->user_line_stride;
-            }
+            else { cdata += (uint64_t) y * (uint64_t) decc->user_line_stride; }
 
             /* actual read into the output pointer */
             rv = pctxt->do_read (
@@ -289,7 +286,8 @@ default_decompress_chunk (exr_decode_pipeline_t* decode)
         part->storage_mode == EXR_STORAGE_DEEP_TILED)
     {
         uint64_t sampsize =
-            (((uint64_t) decode->chunk.width) * ((uint64_t) decode->chunk.height));
+            (((uint64_t) decode->chunk.width) *
+             ((uint64_t) decode->chunk.height));
         sampsize *= sizeof (int32_t);
 
         rv = decompress_data (
@@ -308,7 +306,7 @@ default_decompress_chunk (exr_decode_pipeline_t* decode)
                 rv,
                 "Unable to decompress sample table %" PRIu64 " -> %" PRIu64,
                 decode->chunk.sample_count_table_size,
-                (uint64_t)sampsize);
+                (uint64_t) sampsize);
         }
         if ((decode->decode_flags & EXR_DECODE_SAMPLE_DATA_ONLY)) return rv;
     }
@@ -402,7 +400,7 @@ exr_decoding_initialize (
     exr_decode_pipeline_t*  decode)
 {
     exr_result_t          rv;
-    exr_decode_pipeline_t nil = { 0 };
+    exr_decode_pipeline_t nil = {0};
 
     EXR_PROMOTE_READ_CONST_CONTEXT_AND_PART_OR_ERROR (ctxt, part_index);
     if (!cinfo || !decode)
@@ -640,9 +638,7 @@ exr_decoding_run (
     rv = decode->read_fn (decode);
     if (rv != EXR_ERR_SUCCESS)
         return pctxt->report_error (
-            pctxt,
-            rv,
-            "Unable to read pixel data block from context");
+            pctxt, rv, "Unable to read pixel data block from context");
 
     if (rv == EXR_ERR_SUCCESS) rv = update_pack_unpack_ptrs (decode);
     if (rv != EXR_ERR_SUCCESS)
@@ -695,7 +691,7 @@ exr_decoding_destroy (exr_const_context_t ctxt, exr_decode_pipeline_t* decode)
     INTERN_EXR_PROMOTE_CONST_CONTEXT_OR_ERROR (ctxt);
     if (decode)
     {
-        exr_decode_pipeline_t nil = { 0 };
+        exr_decode_pipeline_t nil = {0};
         if (decode->channels != decode->_quick_chan_store)
             pctxt->free_fn (decode->channels);
 

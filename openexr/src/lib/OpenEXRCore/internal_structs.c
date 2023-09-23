@@ -3,12 +3,11 @@
 ** Copyright Contributors to the OpenEXR Project.
 */
 
+#include "openexr_config.h"
 #include "internal_structs.h"
 #include "internal_attr.h"
 #include "internal_constants.h"
 #include "internal_memory.h"
-
-#include <IlmThreadConfig.h>
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -173,7 +172,7 @@ internal_exr_destroy_part (
     cur->chunk_table = 0;
 #else
     ctable = (uint64_t*) atomic_load (&(cur->chunk_table));
-    atomic_store (&(cur->chunk_table), (uintptr_t)(0));
+    atomic_store (&(cur->chunk_table), (uintptr_t) (0));
 #endif
     if (ctable) dofree (ctable);
 }
@@ -192,10 +191,7 @@ internal_exr_destroy_parts (struct _internal_exr_context* ctxt)
 
         /* the first one is always the one that is part of the file */
         if (cur != &(ctxt->first_part)) { dofree (cur); }
-        else
-        {
-            memset (cur, 0, sizeof (struct _internal_exr_part));
-        }
+        else { memset (cur, 0, sizeof (struct _internal_exr_part)); }
     }
 
     if (ctxt->num_parts > 1) dofree (ctxt->parts);
@@ -226,7 +222,7 @@ internal_exr_add_part (
     }
     else
     {
-        struct _internal_exr_part nil = { 0 };
+        struct _internal_exr_part nil = {0};
 
         part = f->alloc_fn (sizeof (struct _internal_exr_part));
         if (!part) return f->standard_error (f, EXR_ERR_OUT_OF_MEMORY);
@@ -293,8 +289,7 @@ internal_exr_revert_add_part (
     }
     else if (ncount == 1)
     {
-        if (part == &(ctxt->first_part))
-            ctxt->first_part = *(ctxt->parts[1]);
+        if (part == &(ctxt->first_part)) ctxt->first_part = *(ctxt->parts[1]);
         ctxt->init_part = &(ctxt->first_part);
         ctxt->free_fn (ctxt->parts);
         ctxt->parts = &(ctxt->init_part);
@@ -336,8 +331,8 @@ internal_exr_alloc_context (
     void*                         memptr;
     exr_result_t                  rv;
     struct _internal_exr_context* ret;
-    int    gmaxw, gmaxh;
-    size_t extra_data;
+    int                           gmaxw, gmaxh;
+    size_t                        extra_data;
 
     *out = NULL;
     if (initializers->read_fn || initializers->write_fn)
@@ -417,7 +412,8 @@ internal_exr_alloc_context (
         ret->disable_chunk_reconstruct =
             (initializers->flags &
              EXR_CONTEXT_FLAG_DISABLE_CHUNK_RECONSTRUCTION);
-        ret->legacy_header = (initializers->flags & EXR_CONTEXT_FLAG_WRITE_LEGACY_HEADER);
+        ret->legacy_header =
+            (initializers->flags & EXR_CONTEXT_FLAG_WRITE_LEGACY_HEADER);
 
         ret->file_size       = -1;
         ret->max_name_length = EXR_SHORTNAME_MAXLEN;

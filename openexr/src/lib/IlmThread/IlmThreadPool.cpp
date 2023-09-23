@@ -9,17 +9,17 @@
 //
 //-----------------------------------------------------------------------------
 
-#include "IlmThread.h"
-#include "IlmThreadSemaphore.h"
 #include "IlmThreadPool.h"
 #include "Iex.h"
+#include "IlmThread.h"
+#include "IlmThreadSemaphore.h"
 
 #include <atomic>
 #include <limits>
 #include <memory>
 #include <mutex>
-#include <vector>
 #include <thread>
+#include <vector>
 
 #if (defined(_WIN32) || defined(_WIN64))
 #    include <windows.h>
@@ -30,7 +30,7 @@
 ILMTHREAD_INTERNAL_NAMESPACE_SOURCE_ENTER
 
 #if ILMTHREAD_THREADING_ENABLED
-# define ENABLE_THREADING
+#    define ENABLE_THREADING
 #endif
 
 namespace
@@ -56,7 +56,6 @@ handleProcessTask (Task* task)
     }
 }
 
-#ifdef ENABLE_THREADING
 struct DefaultThreadPoolData
 {
     Semaphore          _taskSemaphore; // threads wait on this for ready tasks
@@ -82,7 +81,6 @@ struct DefaultThreadPoolData
         _stopping    = false;
     }
 };
-#endif
 
 } // namespace
 
@@ -107,7 +105,6 @@ struct TaskGroup::Data
     Semaphore        isEmpty; // used to signal that the taskgroup is empty
 };
 
-
 struct ThreadPool::Data
 {
     using ProviderPtr = std::shared_ptr<ThreadPoolProvider>;
@@ -130,9 +127,8 @@ struct ThreadPool::Data
     std::shared_ptr<ThreadPoolProvider> _provider;
 };
 
-
-
-namespace {
+namespace
+{
 
 //
 // class DefaultThreadPoolProvider
@@ -207,7 +203,7 @@ DefaultThreadPoolProvider::setNumThreads (int count)
 }
 
 void
-DefaultThreadPoolProvider::addTask (Task *task)
+DefaultThreadPoolProvider::addTask (Task* task)
 {
     // the thread pool will kill us and switch to a null provider
     // if the thread count is set to 0, so we can always
@@ -338,7 +334,6 @@ DefaultThreadPoolProvider::threadLoop (
 TaskGroup::Data::Data () : numPending (0), inFlight (0), isEmpty (1)
 {}
 
-
 TaskGroup::Data::~Data ()
 {}
 
@@ -367,9 +362,8 @@ TaskGroup::Data::waitForEmpty ()
     }
 }
 
-
 void
-TaskGroup::Data::addTask () 
+TaskGroup::Data::addTask ()
 {
     inFlight.fetch_add (1);
 
@@ -378,7 +372,6 @@ TaskGroup::Data::addTask ()
     // until the task finishes
     if (numPending.fetch_add (1) == 0) { isEmpty.wait (); }
 }
-
 
 void
 TaskGroup::Data::removeTask ()
@@ -399,7 +392,6 @@ TaskGroup::Data::removeTask ()
     // separate counter that is modified pre / post semaphore
     inFlight.fetch_sub (1);
 }
-    
 
 //
 // struct ThreadPool::Data
@@ -410,8 +402,7 @@ ThreadPool::Data::Data ()
     // empty
 }
 
-
-ThreadPool::Data::~Data()
+ThreadPool::Data::~Data ()
 {
     setProvider (nullptr);
 }
@@ -422,20 +413,17 @@ ThreadPool::Data::~Data()
 // class Task
 //
 
-Task::Task (TaskGroup* g): _group(g)
+Task::Task (TaskGroup* g) : _group (g)
 {
 #ifdef ENABLE_THREADING
-    if ( g )
-        g->_data->addTask ();
+    if (g) g->_data->addTask ();
 #endif
 }
 
-
-Task::~Task()
+Task::~Task ()
 {
     // empty
 }
-
 
 TaskGroup*
 Task::group ()
@@ -443,8 +431,8 @@ Task::group ()
     return _group;
 }
 
-
-TaskGroup::TaskGroup ():
+TaskGroup::TaskGroup ()
+    :
 #ifdef ENABLE_THREADING
     _data (new Data)
 #else
@@ -454,7 +442,6 @@ TaskGroup::TaskGroup ():
     // empty
 }
 
-
 TaskGroup::~TaskGroup ()
 {
 #ifdef ENABLE_THREADING
@@ -462,7 +449,6 @@ TaskGroup::~TaskGroup ()
     delete _data;
 #endif
 }
-
 
 void
 TaskGroup::finishOneTask ()
@@ -476,22 +462,18 @@ TaskGroup::finishOneTask ()
 // class ThreadPoolProvider
 //
 
+ThreadPoolProvider::ThreadPoolProvider ()
+{}
 
-ThreadPoolProvider::ThreadPoolProvider()
-{
-}
-
-
-ThreadPoolProvider::~ThreadPoolProvider()
-{
-}
-
+ThreadPoolProvider::~ThreadPoolProvider ()
+{}
 
 //
 // class ThreadPool
 //
 
-ThreadPool::ThreadPool (unsigned nthreads):
+ThreadPool::ThreadPool (unsigned nthreads)
+    :
 #ifdef ENABLE_THREADING
     _data (new Data)
 #else
@@ -503,7 +485,6 @@ ThreadPool::ThreadPool (unsigned nthreads):
 #endif
 }
 
-
 ThreadPool::~ThreadPool ()
 {
 #ifdef ENABLE_THREADING
@@ -512,7 +493,6 @@ ThreadPool::~ThreadPool ()
     delete _data;
 #endif
 }
-
 
 int
 ThreadPool::numThreads () const
@@ -525,14 +505,14 @@ ThreadPool::numThreads () const
 #endif
 }
 
-
 void
 ThreadPool::setNumThreads (int count)
 {
 #ifdef ENABLE_THREADING
     if (count < 0)
-        throw IEX_INTERNAL_NAMESPACE::ArgExc ("Attempt to set the number of threads "
-               "in a thread pool to a negative value.");
+        throw IEX_INTERNAL_NAMESPACE::ArgExc (
+            "Attempt to set the number of threads "
+            "in a thread pool to a negative value.");
 
     {
         Data::ProviderPtr sp = _data->getProvider ();
@@ -559,13 +539,12 @@ ThreadPool::setNumThreads (int count)
 
 #else
     // just blindly ignore
-    (void)count;
+    (void) count;
 #endif
 }
 
-
 void
-ThreadPool::setThreadProvider (ThreadPoolProvider *provider)
+ThreadPool::setThreadProvider (ThreadPoolProvider* provider)
 {
 #ifdef ENABLE_THREADING
     // contract is we take ownership and will free the provider
@@ -577,9 +556,8 @@ ThreadPool::setThreadProvider (ThreadPoolProvider *provider)
 #endif
 }
 
-
 void
-ThreadPool::addTask (Task* task) 
+ThreadPool::addTask (Task* task)
 {
     if (task)
     {
@@ -596,24 +574,22 @@ ThreadPool::addTask (Task* task)
     }
 }
 
-
 ThreadPool&
 ThreadPool::globalThreadPool ()
 {
     //
     // The global thread pool
     //
-    
+
     static ThreadPool gThreadPool (0);
 
     return gThreadPool;
 }
 
-
 void
 ThreadPool::addGlobalTask (Task* task)
 {
-    globalThreadPool().addTask (task);
+    globalThreadPool ().addTask (task);
 }
 
 unsigned

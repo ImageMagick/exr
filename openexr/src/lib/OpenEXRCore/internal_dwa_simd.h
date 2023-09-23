@@ -380,14 +380,13 @@ convertFloatToHalf64_f16c (uint16_t* dst, float* src)
     //
     // Now, it's quite likely that we'll find ourselves in situations
     // where we want to build *without* VEX, in order to maintain
-    // maximum compatability. But to get there with intrinsics,
+    // maximum compatibility. But to get there with intrinsics,
     // we'd need to break out code into a separate file. Bleh.
     // I'll take the asm.
     //
 
 #ifdef IMF_HAVE_GCC_INLINEASM_X86_64
-    __asm__ (
-             "vmovaps       (%0),     %%ymm0         \n"
+    __asm__ ("vmovaps       (%0),     %%ymm0         \n"
              "vmovaps   0x20(%0),     %%ymm1         \n"
              "vmovaps   0x40(%0),     %%ymm2         \n"
              "vmovaps   0x60(%0),     %%ymm3         \n"
@@ -561,7 +560,7 @@ fromHalfZigZag_scalar (uint16_t* src, float* dst)
 // the even rows are in descending order.
 //
 // If we 'fold' the bottom half up into the top, we can preserve ordered
-// runs accross rows, and still keep all the correct values in columns.
+// runs across rows, and still keep all the correct values in columns.
 // After transposing, we'll need to rotate things back into place.
 // This gives us:
 //
@@ -647,7 +646,7 @@ fromHalfZigZag_f16c (uint16_t* src, float* dst)
 
          /* Reverse the even rows. We're not using PSHUFB as
             * that requires loading an extra constant all the time,
-            * and we're alreadly pretty memory bound.
+            * and we're already pretty memory bound.
             */
 
          "vpshuflw $0x1b, %%xmm0, %%xmm0          \n"
@@ -1656,24 +1655,24 @@ dctInverse8x8_sse2_7 (float* data)
  *          [ a -c  a -f ]          [ g -e  d -b ]
  */
 static const float sAvxCoef[32] __attribute__ ((aligned (_SSE_ALIGNMENT))) = {
-        3.535536e-01f,  3.535536e-01f,
-        3.535536e-01f,  3.535536e-01f, /* a  a  a  a */
-        4.619398e-01f,  1.913422e-01f,
-        -1.913422e-01f, -4.619398e-01f, /* c  f -f -c */
-        3.535536e-01f,  -3.535536e-01f,
-        -3.535536e-01f, 3.535536e-01f, /* a -a -a  a */
-        1.913422e-01f,  -4.619398e-01f,
-        4.619398e-01f,  -1.913422e-01f, /* f -c  c -f */
+    3.535536e-01f,  3.535536e-01f,
+    3.535536e-01f,  3.535536e-01f, /* a  a  a  a */
+    4.619398e-01f,  1.913422e-01f,
+    -1.913422e-01f, -4.619398e-01f, /* c  f -f -c */
+    3.535536e-01f,  -3.535536e-01f,
+    -3.535536e-01f, 3.535536e-01f, /* a -a -a  a */
+    1.913422e-01f,  -4.619398e-01f,
+    4.619398e-01f,  -1.913422e-01f, /* f -c  c -f */
 
-        4.903927e-01f,  4.157349e-01f,
-        2.777855e-01f,  9.754573e-02f, /* b  d  e  g */
-        4.157349e-01f,  -9.754573e-02f,
-        -4.903927e-01f, -2.777855e-01f, /* d -g -b -e */
-        2.777855e-01f,  -4.903927e-01f,
-        9.754573e-02f,  4.157349e-01f, /* e -b  g  d */
-        9.754573e-02f,  -2.777855e-01f,
-        4.157349e-01f,  -4.903927e-01f /* g -e  d -b */
-    };
+    4.903927e-01f,  4.157349e-01f,
+    2.777855e-01f,  9.754573e-02f, /* b  d  e  g */
+    4.157349e-01f,  -9.754573e-02f,
+    -4.903927e-01f, -2.777855e-01f, /* d -g -b -e */
+    2.777855e-01f,  -4.903927e-01f,
+    9.754573e-02f,  4.157349e-01f, /* e -b  g  d */
+    9.754573e-02f,  -2.777855e-01f,
+    4.157349e-01f,  -4.903927e-01f /* g -e  d -b */
+};
 #endif
 
 #define ROW0(_X) _X
@@ -2275,7 +2274,8 @@ dctForward8x8 (float* data)
 // Should be initialized in initializeFuncs()
 //
 
-static void (*convertFloatToHalf64) (uint16_t*, float*) = convertFloatToHalf64_scalar;
+static void (*convertFloatToHalf64) (uint16_t*, float*) =
+    convertFloatToHalf64_scalar;
 
 //
 // Function pointer for dispatching a fromHalfZigZag_ impl
@@ -2300,7 +2300,7 @@ static void
 initializeFuncs (void)
 {
     static int done = 0;
-    int f16c = 0, avx = 0, sse2 = 0;
+    int        f16c = 0, avx = 0, sse2 = 0;
     if (done) return;
     done = 1;
 

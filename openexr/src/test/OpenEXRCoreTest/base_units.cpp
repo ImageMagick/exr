@@ -3,6 +3,13 @@
 ** Copyright Contributors to the OpenEXR Project.
 */
 
+#if (defined(_WIN32) || defined(_WIN64))
+#    ifdef NOMINMAX
+#        undef NOMINMAX
+#    endif
+#    define NOMINMAX
+#endif
+
 #include <openexr.h>
 
 #include "base_units.h"
@@ -14,36 +21,37 @@
 
 #include <ImfSystemSpecific.h>
 #include "../../lib/OpenEXRCore/internal_cpuid.h"
+#include "../../lib/OpenEXRCore/internal_coding.h"
 
 void
 testBase (const std::string& tempdir)
 {
-    int         maj, min, patch;
+    int         major, minor, patch;
     const char* extra;
     const char* compextra = COMP_EXTRA;
 
-    exr_get_library_version (&maj, &min, &patch, &extra);
-    if (maj != COMP_MAJ || min != COMP_MIN || patch != COMP_PATCH ||
-        !strcmp (extra, compextra))
+    exr_get_library_version (&major, &minor, &patch, &extra);
+    if (major != COMP_MAJ || minor != COMP_MIN || patch != COMP_PATCH ||
+        strcmp (extra, compextra))
     {
-        std::cerr << "ERROR testing library, wrong library version: " << maj
-                  << "." << min << "." << patch;
-        if (extra[0] != '\0') std::cerr << "-" << extra;
-        std::cerr << " vs compiled in " << COMP_MAJ << "." << COMP_MIN << "."
+        std::cerr << "ERROR testing library, wrong library version: '" << major
+                  << "." << minor << "." << patch;
+        if (extra[0] != '\0') std::cerr << extra;
+        std::cerr << "' vs compiled in '" << COMP_MAJ << "." << COMP_MIN << "."
                   << COMP_PATCH;
-        if (compextra[0] != '\0') std::cerr << "-" << compextra;
-        std::cerr << std::endl;
+        if (compextra[0] != '\0') std::cerr << compextra;
+        std::cerr << "'" << std::endl;
         EXRCORE_TEST (false);
     }
-    std::cout << "Testing OpenEXR library version: " << maj << "." << min << "."
+    std::cout << "Testing OpenEXR library version: '" << major << "." << minor << "."
               << patch;
-    if (extra[0] != '\0') std::cout << "-" << extra;
-    std::cout << std::endl;
+    if (extra[0] != '\0') std::cout << extra;
+    std::cout << "'" << std::endl;
 
-    exr_get_library_version (NULL, &min, &patch, &extra);
-    exr_get_library_version (&maj, NULL, &patch, &extra);
-    exr_get_library_version (&maj, &min, NULL, &extra);
-    exr_get_library_version (&maj, &min, &patch, NULL);
+    exr_get_library_version (NULL, &minor, &patch, &extra);
+    exr_get_library_version (&major, NULL, &patch, &extra);
+    exr_get_library_version (&major, &minor, NULL, &extra);
+    exr_get_library_version (&major, &minor, &patch, NULL);
 }
 
 void
@@ -73,44 +81,150 @@ testBaseErrors (const std::string& tempdir)
         EXRCORE_TEST (false);
     }
 
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_SUCCESS), "EXR_ERR_SUCCESS" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_UNKNOWN), "EXR_ERR_UNKNOWN" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string((int)EXR_ERR_UNKNOWN + 1), "EXR_ERR_UNKNOWN" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(-1), "EXR_ERR_UNKNOWN" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(-2), "EXR_ERR_UNKNOWN" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(INT32_MIN), "EXR_ERR_UNKNOWN" ) );
+    EXRCORE_TEST (
+        0 ==
+        strcmp (
+            exr_get_error_code_as_string (EXR_ERR_SUCCESS), "EXR_ERR_SUCCESS"));
+    EXRCORE_TEST (
+        0 ==
+        strcmp (
+            exr_get_error_code_as_string (EXR_ERR_UNKNOWN), "EXR_ERR_UNKNOWN"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string ((int) EXR_ERR_UNKNOWN + 1),
+                 "EXR_ERR_UNKNOWN"));
+    EXRCORE_TEST (
+        0 == strcmp (exr_get_error_code_as_string (-1), "EXR_ERR_UNKNOWN"));
+    EXRCORE_TEST (
+        0 == strcmp (exr_get_error_code_as_string (-2), "EXR_ERR_UNKNOWN"));
+    EXRCORE_TEST (
+        0 ==
+        strcmp (exr_get_error_code_as_string (INT32_MIN), "EXR_ERR_UNKNOWN"));
 
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_MISSING_REQ_ATTR), "EXR_ERR_MISSING_REQ_ATTR" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_OUT_OF_MEMORY), "EXR_ERR_OUT_OF_MEMORY" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_MISSING_CONTEXT_ARG), "EXR_ERR_MISSING_CONTEXT_ARG" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_INVALID_ARGUMENT), "EXR_ERR_INVALID_ARGUMENT" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_ARGUMENT_OUT_OF_RANGE), "EXR_ERR_ARGUMENT_OUT_OF_RANGE" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_FILE_ACCESS), "EXR_ERR_FILE_ACCESS" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_FILE_BAD_HEADER), "EXR_ERR_FILE_BAD_HEADER" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_NOT_OPEN_READ), "EXR_ERR_NOT_OPEN_READ" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_NOT_OPEN_WRITE), "EXR_ERR_NOT_OPEN_WRITE" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_HEADER_NOT_WRITTEN), "EXR_ERR_HEADER_NOT_WRITTEN" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_READ_IO), "EXR_ERR_READ_IO" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_WRITE_IO), "EXR_ERR_WRITE_IO" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_NAME_TOO_LONG), "EXR_ERR_NAME_TOO_LONG" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_MISSING_REQ_ATTR), "EXR_ERR_MISSING_REQ_ATTR" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_INVALID_ATTR), "EXR_ERR_INVALID_ATTR" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_NO_ATTR_BY_NAME), "EXR_ERR_NO_ATTR_BY_NAME" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_BAD_CHUNK_LEADER), "EXR_ERR_BAD_CHUNK_LEADER" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_CORRUPT_CHUNK), "EXR_ERR_CORRUPT_CHUNK" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_INVALID_SAMPLE_DATA), "EXR_ERR_INVALID_SAMPLE_DATA" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_ATTR_TYPE_MISMATCH), "EXR_ERR_ATTR_TYPE_MISMATCH" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_ATTR_SIZE_MISMATCH), "EXR_ERR_ATTR_SIZE_MISMATCH" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_SCAN_TILE_MIXEDAPI), "EXR_ERR_SCAN_TILE_MIXEDAPI" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_TILE_SCAN_MIXEDAPI), "EXR_ERR_TILE_SCAN_MIXEDAPI" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_MODIFY_SIZE_CHANGE), "EXR_ERR_MODIFY_SIZE_CHANGE" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_ALREADY_WROTE_ATTRS), "EXR_ERR_ALREADY_WROTE_ATTRS" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_INCORRECT_PART), "EXR_ERR_INCORRECT_PART" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_INCORRECT_CHUNK), "EXR_ERR_INCORRECT_CHUNK" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_USE_SCAN_DEEP_WRITE), "EXR_ERR_USE_SCAN_DEEP_WRITE" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_USE_TILE_DEEP_WRITE), "EXR_ERR_USE_TILE_DEEP_WRITE" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_USE_SCAN_NONDEEP_WRITE), "EXR_ERR_USE_SCAN_NONDEEP_WRITE" ) );
-    EXRCORE_TEST( 0 == strcmp( exr_get_error_code_as_string(EXR_ERR_USE_TILE_NONDEEP_WRITE), "EXR_ERR_USE_TILE_NONDEEP_WRITE" ) );
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_MISSING_REQ_ATTR),
+                 "EXR_ERR_MISSING_REQ_ATTR"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_OUT_OF_MEMORY),
+                 "EXR_ERR_OUT_OF_MEMORY"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_MISSING_CONTEXT_ARG),
+                 "EXR_ERR_MISSING_CONTEXT_ARG"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_INVALID_ARGUMENT),
+                 "EXR_ERR_INVALID_ARGUMENT"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_ARGUMENT_OUT_OF_RANGE),
+                 "EXR_ERR_ARGUMENT_OUT_OF_RANGE"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_FILE_ACCESS),
+                 "EXR_ERR_FILE_ACCESS"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_FILE_BAD_HEADER),
+                 "EXR_ERR_FILE_BAD_HEADER"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_NOT_OPEN_READ),
+                 "EXR_ERR_NOT_OPEN_READ"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_NOT_OPEN_WRITE),
+                 "EXR_ERR_NOT_OPEN_WRITE"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_HEADER_NOT_WRITTEN),
+                 "EXR_ERR_HEADER_NOT_WRITTEN"));
+    EXRCORE_TEST (
+        0 ==
+        strcmp (
+            exr_get_error_code_as_string (EXR_ERR_READ_IO), "EXR_ERR_READ_IO"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_WRITE_IO),
+                 "EXR_ERR_WRITE_IO"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_NAME_TOO_LONG),
+                 "EXR_ERR_NAME_TOO_LONG"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_MISSING_REQ_ATTR),
+                 "EXR_ERR_MISSING_REQ_ATTR"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_INVALID_ATTR),
+                 "EXR_ERR_INVALID_ATTR"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_NO_ATTR_BY_NAME),
+                 "EXR_ERR_NO_ATTR_BY_NAME"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_BAD_CHUNK_LEADER),
+                 "EXR_ERR_BAD_CHUNK_LEADER"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_CORRUPT_CHUNK),
+                 "EXR_ERR_CORRUPT_CHUNK"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_INVALID_SAMPLE_DATA),
+                 "EXR_ERR_INVALID_SAMPLE_DATA"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_ATTR_TYPE_MISMATCH),
+                 "EXR_ERR_ATTR_TYPE_MISMATCH"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_ATTR_SIZE_MISMATCH),
+                 "EXR_ERR_ATTR_SIZE_MISMATCH"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_SCAN_TILE_MIXEDAPI),
+                 "EXR_ERR_SCAN_TILE_MIXEDAPI"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_TILE_SCAN_MIXEDAPI),
+                 "EXR_ERR_TILE_SCAN_MIXEDAPI"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_MODIFY_SIZE_CHANGE),
+                 "EXR_ERR_MODIFY_SIZE_CHANGE"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_ALREADY_WROTE_ATTRS),
+                 "EXR_ERR_ALREADY_WROTE_ATTRS"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_INCORRECT_PART),
+                 "EXR_ERR_INCORRECT_PART"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_INCORRECT_CHUNK),
+                 "EXR_ERR_INCORRECT_CHUNK"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_USE_SCAN_DEEP_WRITE),
+                 "EXR_ERR_USE_SCAN_DEEP_WRITE"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_USE_TILE_DEEP_WRITE),
+                 "EXR_ERR_USE_TILE_DEEP_WRITE"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_USE_SCAN_NONDEEP_WRITE),
+                 "EXR_ERR_USE_SCAN_NONDEEP_WRITE"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_USE_TILE_NONDEEP_WRITE),
+                 "EXR_ERR_USE_TILE_NONDEEP_WRITE"));
 }
 
 void
@@ -192,6 +306,36 @@ testBaseLimits (const std::string& tempdir)
     }
     exr_set_default_maximum_image_size (0, 0);
     exr_set_default_maximum_tile_size (0, 0);
+
+    exr_set_default_zip_compression_level (4);
+    exr_get_default_zip_compression_level (&mxw);
+    EXRCORE_TEST (mxw == 4);
+
+    exr_set_default_zip_compression_level (-1);
+    exr_get_default_zip_compression_level (&mxw);
+    EXRCORE_TEST (mxw == -1);
+    exr_set_default_zip_compression_level (-2);
+    exr_get_default_zip_compression_level (&mxw);
+    EXRCORE_TEST (mxw == -1);
+
+    exr_set_default_zip_compression_level (15);
+    exr_get_default_zip_compression_level (&mxw);
+    EXRCORE_TEST (mxw == 9);
+    exr_set_default_zip_compression_level (-1);
+
+    float dcq;
+    exr_set_default_dwa_compression_quality (23.f);
+    exr_get_default_dwa_compression_quality (&dcq);
+    EXRCORE_TEST (dcq == 23.f);
+
+    exr_set_default_dwa_compression_quality (-1.f);
+    exr_get_default_dwa_compression_quality (&dcq);
+    EXRCORE_TEST (dcq == 0.f);
+
+    exr_set_default_dwa_compression_quality (200.f);
+    exr_get_default_dwa_compression_quality (&dcq);
+    EXRCORE_TEST (dcq == 100.f);
+    exr_set_default_dwa_compression_quality (45.f);
 }
 
 void
@@ -231,4 +375,34 @@ void testCPUIdent (const std::string& tempdir)
             << "CPU Id test sse2 mismatch: " << hsse2 << " vs " << (int)id.sse2 << std::endl;
         EXRCORE_TEST (false);
     }
+
+#if defined(__x86_64__) || defined(_M_X64)
+    if (has_native_half () != (hf16c && havx))
+    {
+        std::cerr << "CPU Id test has native half mismatch" << std::endl;
+        EXRCORE_TEST (false);
+    }
+#else
+    has_native_half ();
+#endif
 }
+
+void testHalf (const std::string& tempdir)
+{
+    EXRCORE_TEST (half_to_float (0) == 0.f);
+    EXRCORE_TEST (float_to_half (0.f) == 0);
+    EXRCORE_TEST (float_to_half_int (0.f) == 0);
+    EXRCORE_TEST (half_to_float_int (0) == 0);
+    EXRCORE_TEST (half_to_uint (0) == 0);
+    EXRCORE_TEST (half_to_uint (0x8000) == 0);
+    EXRCORE_TEST (float_to_uint (0) == 0);
+    EXRCORE_TEST (float_to_uint (-1.f) == 0);
+    EXRCORE_TEST (float_to_uint_int (0) == 0);
+
+    EXRCORE_TEST (uint_to_half (0) == 0);
+    EXRCORE_TEST (uint_to_half (128344) == 0x7c00);
+
+    EXRCORE_TEST (uint_to_float (0) == 0.f);
+    EXRCORE_TEST (uint_to_float_int (0) == 0);
+}
+

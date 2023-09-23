@@ -292,7 +292,7 @@ extract_chunk_leader (
     rv = ctxt->do_read (
         ctxt,
         data,
-        (size_t)ntoread * sizeof (int32_t),
+        (size_t) ntoread * sizeof (int32_t),
         &nextoffset,
         NULL,
         EXR_MUST_READ_ALL);
@@ -349,7 +349,7 @@ extract_chunk_leader (
             return ctxt->print_error (
                 ctxt,
                 EXR_ERR_BAD_CHUNK_LEADER,
-                "Invalid chunk size reconstructing chunk table: found out of range %"PRId64,
+                "Invalid chunk size reconstructing chunk table: found out of range %" PRId64,
                 leaderdata->deep_data[1]);
         }
         leaderdata->packed_size = leaderdata->deep_packed_size;
@@ -457,7 +457,7 @@ reconstruct_chunk_table (
     uint64_t                         offset_start, chunk_start, max_offset;
     uint64_t*                        curctable;
     const struct _internal_exr_part* curpart = NULL;
-    int                              maxidx, found_ci, computed_ci, partnum = 0;
+    int                              found_ci, computed_ci, partnum = 0;
 
     curpart      = ctxt->parts[ctxt->num_parts - 1];
     offset_start = curpart->chunk_table_offset;
@@ -482,14 +482,9 @@ reconstruct_chunk_table (
         if (rv != EXR_ERR_SUCCESS) return rv;
 
         chunk_start = curctable[0];
-        maxidx      = 0;
         for (int ci = 1; ci < curpart->chunk_count; ++ci)
         {
-            if (curctable[ci] > chunk_start)
-            {
-                maxidx      = ci;
-                chunk_start = curctable[ci];
-            }
+            if (curctable[ci] > chunk_start) { chunk_start = curctable[ci]; }
         }
 
         rv = extract_chunk_size (
@@ -942,9 +937,7 @@ exr_read_scanline_chunk_info (
 
     if (cinfo->packed_size == 0 && cinfo->unpacked_size > 0)
         return pctxt->report_error (
-            pctxt,
-            EXR_ERR_INVALID_ARGUMENT,
-            "Invalid packed size of 0");
+            pctxt, EXR_ERR_INVALID_ARGUMENT, "Invalid packed size of 0");
     return EXR_ERR_SUCCESS;
 }
 
@@ -1270,7 +1263,7 @@ exr_read_tile_chunk_info (
         else if (fsize > 0)
         {
             uint64_t finpos = dataoff + (uint64_t) tdata[4];
-            if (finpos > (uint64_t)fsize)
+            if (finpos > (uint64_t) fsize)
             {
                 return pctxt->print_error (
                     pctxt,
@@ -1297,9 +1290,7 @@ exr_read_tile_chunk_info (
 
     if (cinfo->packed_size == 0 && cinfo->unpacked_size > 0)
         return pctxt->report_error (
-            pctxt,
-            EXR_ERR_INVALID_ARGUMENT,
-            "Invalid packed size of 0");
+            pctxt, EXR_ERR_INVALID_ARGUMENT, "Invalid packed size of 0");
 
     return EXR_ERR_SUCCESS;
 }
@@ -1655,7 +1646,7 @@ exr_write_scanline_chunk_info (
 {
     exr_attr_box2i_t dw;
     int              lpc, miny, cidx;
-    exr_chunk_info_t nil = { 0 };
+    exr_chunk_info_t nil = {0};
 
     EXR_PROMOTE_LOCKED_CONTEXT_AND_PART_OR_ERROR (ctxt, part_index);
 
@@ -1755,7 +1746,7 @@ exr_write_tile_chunk_info (
     const exr_attr_tiledesc_t* tiledesc;
     int                        tilew, tileh;
     uint64_t                   unpacksize = 0;
-    exr_chunk_info_t           nil        = { 0 };
+    exr_chunk_info_t           nil        = {0};
 
     EXR_PROMOTE_LOCKED_CONTEXT_AND_PART_OR_ERROR (ctxt, part_index);
 

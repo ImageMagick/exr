@@ -105,16 +105,16 @@
 #include "internal_memory.h"
 #include "internal_coding.h"
 
+#include "openexr_compression.h"
+
 #include "internal_cpuid.h"
 #include "internal_huf.h"
 #include "internal_structs.h"
 #include "internal_xdr.h"
-#include "internal_structs.h"
 
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
-#include <zlib.h>
 
 #include "OpenEXRConfigInternal.h"
 

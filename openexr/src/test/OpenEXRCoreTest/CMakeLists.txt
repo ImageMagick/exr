@@ -4,6 +4,8 @@
 add_executable(OpenEXRCoreTest
   base_units.cpp
   base_units.h
+  buffer.cpp
+  buffer.h
   compression.cpp
   compression.h
   deep.cpp
@@ -25,7 +27,7 @@ target_compile_definitions(OpenEXRCoreTest PRIVATE
   COMP_MAJ=${OpenEXR_VERSION_MAJOR}
   COMP_MIN=${OpenEXR_VERSION_MINOR}
   COMP_PATCH=${OpenEXR_VERSION_PATCH}
-  COMP_EXTRA="\\"${OPENEXR_VERSION_RELEASE_TYPE}\\""
+  COMP_EXTRA="${OPENEXR_VERSION_RELEASE_TYPE}"
   )
 set_target_properties(OpenEXRCoreTest PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
@@ -60,7 +62,9 @@ define_openexrcore_tests(
  testBaseLimits
  testBaseDebug
  testCPUIdent
+ testHalf
  testXDR
+ testBufferCompression
 
  testAttrSizes
  testAttrStrings

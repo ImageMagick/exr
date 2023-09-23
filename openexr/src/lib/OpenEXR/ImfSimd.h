@@ -12,7 +12,6 @@
 //    IMF_HAVE_SSE4_1 - Defined if it's safe to compile SSE4.1 optimizations
 //
 
-
 // GCC and Visual Studio SSE2 compiler flags
 #if defined __SSE2__ || (_MSC_VER && (_M_IX86 || _M_X64))
 #    define IMF_HAVE_SSE2 1
@@ -24,23 +23,23 @@
 
 // Compiler flags on e2k (MCST Elbrus 2000) architecture
 #if defined(__SSE3__) && defined(__e2k__)
-    #define IMF_HAVE_SSE3 1
+#    define IMF_HAVE_SSE3 1
 #endif
 
 #if defined(__SSSE3__) && defined(__e2k__)
-    #define IMF_HAVE_SSSE3 1
+#    define IMF_HAVE_SSSE3 1
 #endif
 
 #if defined(__SSE4_2__) && defined(__e2k__)
-    #define IMF_HAVE_SSE4_2 1
+#    define IMF_HAVE_SSE4_2 1
 #endif
 
 #if defined(__AVX__) && defined(__e2k__)
-    #define IMF_HAVE_AVX 1
+#    define IMF_HAVE_AVX 1
 #endif
 
 #if defined(__F16C__) && defined(__e2k__)
-    #define IMF_HAVE_F16C 1
+#    define IMF_HAVE_F16C 1
 #endif
 
 #if defined(__ARM_NEON)
@@ -53,12 +52,12 @@
 
 extern "C" {
 #ifdef IMF_HAVE_SSE2
-    #include <emmintrin.h>
-    #include <mmintrin.h>
+#    include <emmintrin.h>
+#    include <mmintrin.h>
 #endif
 
 #ifdef IMF_HAVE_SSE4_1
-    #include <smmintrin.h>
+#    include <smmintrin.h>
 #endif
 
 #ifdef IMF_HAVE_NEON

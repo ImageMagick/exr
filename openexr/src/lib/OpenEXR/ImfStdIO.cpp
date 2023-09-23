@@ -13,19 +13,18 @@
 #include "Iex.h"
 #include <ImfMisc.h>
 #include <ImfStdIO.h>
-#include "Iex.h"
 #include <errno.h>
 #ifdef _WIN32
-# define VC_EXTRALEAN
-# include <windows.h>
-# include <string.h>
-# include <io.h>
-# include <fcntl.h>
-# include <sys/types.h>
-# include <sys/stat.h>
-# include <share.h>
-# include <string>
-# include <iostream>
+#    define VC_EXTRALEAN
+#    include <fcntl.h>
+#    include <io.h>
+#    include <iostream>
+#    include <share.h>
+#    include <string.h>
+#    include <string>
+#    include <sys/stat.h>
+#    include <sys/types.h>
+#    include <windows.h>
 #endif
 
 using namespace std;
@@ -33,15 +32,16 @@ using namespace std;
 
 OPENEXR_IMF_INTERNAL_NAMESPACE_SOURCE_ENTER
 
-namespace {
+namespace
+{
 
 #ifdef _WIN32
-#    if defined(__GLIBCXX__) &&                                         \
-    !(defined(_GLIBCXX_HAVE_WFOPEN) && defined(_GLIBCXX_USE_WCHAR_T))
+#    if defined(__GLIBCXX__) &&                                                \
+        !(defined(_GLIBCXX_HAVE_WFOPEN) && defined(_GLIBCXX_USE_WCHAR_T))
 #        define USE_CUSTOM_WIDE_OPEN 1
 #    endif
 
-# ifdef USE_CUSTOM_WIDE_OPEN
+#    ifdef USE_CUSTOM_WIDE_OPEN
 template <typename CharT, typename TraitsT>
 class InjectFilebuf : public basic_filebuf<CharT, TraitsT>
 {
@@ -68,16 +68,20 @@ public:
         return nullptr;
     }
 };
-# endif // USE_CUSTOM_WIDE_OPEN
+#    endif // USE_CUSTOM_WIDE_OPEN
 
 ifstream*
-make_ifstream (const char *filename)
+make_ifstream (const char* filename)
 {
     wstring wfn = WidenFilename (filename);
-# ifdef USE_CUSTOM_WIDE_OPEN
+#    ifdef USE_CUSTOM_WIDE_OPEN
     int     fd;
     errno_t e = _wsopen_s (
-        &fd, wfn.c_str (), _O_RDONLY|_O_BINARY, _SH_DENYNO, _S_IREAD | _S_IWRITE);
+        &fd,
+        wfn.c_str (),
+        _O_RDONLY | _O_BINARY,
+        _SH_DENYNO,
+        _S_IREAD | _S_IWRITE);
     if (e != 0)
     {
         char errbuf[4096];
@@ -90,13 +94,14 @@ make_ifstream (const char *filename)
     using CharT   = ifstream::char_type;
     using TraitsT = ifstream::traits_type;
     if (static_cast<InjectFilebuf<CharT, TraitsT>*> (ret->rdbuf ())
-        ->wide_open (fd, ios_base::in | ios_base::binary))
+            ->wide_open (fd, ios_base::in | ios_base::binary))
     {
-        ret->clear();
-        ret->setstate(ios_base::goodbit);
+        ret->clear ();
+        ret->setstate (ios_base::goodbit);
     }
 #    else
-    ifstream* ret = new ifstream(wfn.c_str (), ios_base::in | ios_base::binary);
+    ifstream* ret =
+        new ifstream (wfn.c_str (), ios_base::in | ios_base::binary);
 #    endif
     return ret;
 }
@@ -104,8 +109,8 @@ make_ifstream (const char *filename)
 ofstream*
 make_ofstream (const char* filename)
 {
-    wstring   wfn = WidenFilename (filename);
-# ifdef USE_CUSTOM_WIDE_OPEN
+    wstring wfn = WidenFilename (filename);
+#    ifdef USE_CUSTOM_WIDE_OPEN
     int     fd;
     errno_t e = _wsopen_s (
         &fd,
@@ -119,7 +124,7 @@ make_ofstream (const char* filename)
         strerror_s (errbuf, 4096, e);
         errno = e;
         throw IEX_NAMESPACE::ErrnoExc (
-            "Unable to open output filestream: " + std::string(errbuf));
+            "Unable to open output filestream: " + std::string (errbuf));
     }
     ofstream* ret = new ofstream;
     using CharT   = ifstream::char_type;
@@ -131,7 +136,7 @@ make_ofstream (const char* filename)
         ret->setstate (ios_base::goodbit);
     }
 #    else
-    ofstream *ret = new ofstream (wfn.c_str (), ios_base::binary);
+    ofstream* ret = new ofstream (wfn.c_str (), ios_base::binary);
 #    endif
     return ret;
 }
@@ -155,89 +160,79 @@ clearError ()
     errno = 0;
 }
 
-
 bool
-checkError (istream &is, streamsize expected = 0)
+checkError (istream& is, streamsize expected = 0)
 {
     if (!is)
     {
-	if (errno)
-	    IEX_NAMESPACE::throwErrnoExc();
+        if (errno) IEX_NAMESPACE::throwErrnoExc ();
 
-	if (is.gcount() < expected) 
-	{
-		THROW (IEX_NAMESPACE::InputExc, "Early end of file: read " << is.gcount() 
-			<< " out of " << expected << " requested bytes.");
-	}
-	return false;
+        if (is.gcount () < expected)
+        {
+            THROW (
+                IEX_NAMESPACE::InputExc,
+                "Early end of file: read " << is.gcount () << " out of "
+                                           << expected << " requested bytes.");
+        }
+        return false;
     }
 
     return true;
 }
 
-
 void
-checkError (ostream &os)
+checkError (ostream& os)
 {
     if (!os)
     {
-	if (errno)
-	    IEX_NAMESPACE::throwErrnoExc();
+        if (errno) IEX_NAMESPACE::throwErrnoExc ();
 
-	throw IEX_NAMESPACE::ErrnoExc ("File output failed.");
+        throw IEX_NAMESPACE::ErrnoExc ("File output failed.");
     }
 }
 
 } // namespace
 
-
-StdIFStream::StdIFStream (const char fileName[]):
-    OPENEXR_IMF_INTERNAL_NAMESPACE::IStream (fileName),
-    _is (make_ifstream (fileName)),
-    _deleteStream (true)
+StdIFStream::StdIFStream (const char fileName[])
+    : OPENEXR_IMF_INTERNAL_NAMESPACE::IStream (fileName)
+    , _is (make_ifstream (fileName))
+    , _deleteStream (true)
 {
     if (!*_is)
     {
-	delete _is;
-	IEX_NAMESPACE::throwErrnoExc();
+        delete _is;
+        IEX_NAMESPACE::throwErrnoExc ();
     }
 }
 
-    
-StdIFStream::StdIFStream (ifstream &is, const char fileName[]):
-    OPENEXR_IMF_INTERNAL_NAMESPACE::IStream (fileName),
-    _is (&is),
-    _deleteStream (false)
+StdIFStream::StdIFStream (ifstream& is, const char fileName[])
+    : OPENEXR_IMF_INTERNAL_NAMESPACE::IStream (fileName)
+    , _is (&is)
+    , _deleteStream (false)
 {
     // empty
 }
 
-
 StdIFStream::~StdIFStream ()
 {
-    if (_deleteStream)
-	delete _is;
+    if (_deleteStream) delete _is;
 }
-
 
 bool
 StdIFStream::read (char c[/*n*/], int n)
 {
-    if (!*_is)
-        throw IEX_NAMESPACE::InputExc ("Unexpected end of file.");
+    if (!*_is) throw IEX_NAMESPACE::InputExc ("Unexpected end of file.");
 
-    clearError();
+    clearError ();
     _is->read (c, n);
     return checkError (*_is, n);
 }
 
-
 uint64_t
 StdIFStream::tellg ()
 {
-    return std::streamoff (_is->tellg());
+    return std::streamoff (_is->tellg ());
 }
-
 
 void
 StdIFStream::seekg (uint64_t pos)
@@ -246,41 +241,36 @@ StdIFStream::seekg (uint64_t pos)
     checkError (*_is);
 }
 
-
 void
 StdIFStream::clear ()
 {
-    _is->clear();
+    _is->clear ();
 }
 
-
-StdISStream::StdISStream (): OPENEXR_IMF_INTERNAL_NAMESPACE::IStream ("(string)")
+StdISStream::StdISStream ()
+    : OPENEXR_IMF_INTERNAL_NAMESPACE::IStream ("(string)")
 {
     // empty
 }
 
 StdISStream::~StdISStream ()
-{
-}
+{}
 
 bool
 StdISStream::read (char c[/*n*/], int n)
 {
-    if (!_is)
-        throw IEX_NAMESPACE::InputExc ("Unexpected end of file.");
+    if (!_is) throw IEX_NAMESPACE::InputExc ("Unexpected end of file.");
 
-    clearError();
+    clearError ();
     _is.read (c, n);
     return checkError (_is, n);
 }
 
-
 uint64_t
 StdISStream::tellg ()
 {
-    return std::streamoff (_is.tellg());
+    return std::streamoff (_is.tellg ());
 }
-
 
 void
 StdISStream::seekg (uint64_t pos)
@@ -289,13 +279,11 @@ StdISStream::seekg (uint64_t pos)
     checkError (_is);
 }
 
-
 void
 StdISStream::clear ()
 {
-    _is.clear();
+    _is.clear ();
 }
-
 
 std::string
 StdISStream::str () const
@@ -303,14 +291,11 @@ StdISStream::str () const
     return _is.str ();
 }
 
-
 void
-StdISStream::str (const std::string &s)
+StdISStream::str (const std::string& s)
 {
-    _is.str(s);
+    _is.str (s);
 }
-
-
 
 StdOFStream::StdOFStream (const char fileName[])
     : OPENEXR_IMF_INTERNAL_NAMESPACE::OStream (fileName)
@@ -319,43 +304,37 @@ StdOFStream::StdOFStream (const char fileName[])
 {
     if (!*_os)
     {
-	delete _os;
-	IEX_NAMESPACE::throwErrnoExc();
+        delete _os;
+        IEX_NAMESPACE::throwErrnoExc ();
     }
 }
 
-
-StdOFStream::StdOFStream (ofstream &os, const char fileName[]):
-    OPENEXR_IMF_INTERNAL_NAMESPACE::OStream (fileName),
-    _os (&os),
-    _deleteStream (false)
+StdOFStream::StdOFStream (ofstream& os, const char fileName[])
+    : OPENEXR_IMF_INTERNAL_NAMESPACE::OStream (fileName)
+    , _os (&os)
+    , _deleteStream (false)
 {
     // empty
 }
 
-
 StdOFStream::~StdOFStream ()
 {
-    if (_deleteStream)
-	delete _os;
+    if (_deleteStream) delete _os;
 }
-
 
 void
 StdOFStream::write (const char c[/*n*/], int n)
 {
-    clearError();
+    clearError ();
     _os->write (c, n);
     checkError (*_os);
 }
 
-
 uint64_t
 StdOFStream::tellp ()
 {
-    return std::streamoff (_os->tellp());
+    return std::streamoff (_os->tellp ());
 }
-
 
 void
 StdOFStream::seekp (uint64_t pos)
@@ -364,31 +343,28 @@ StdOFStream::seekp (uint64_t pos)
     checkError (*_os);
 }
 
-
-StdOSStream::StdOSStream (): OPENEXR_IMF_INTERNAL_NAMESPACE::OStream ("(string)")
+StdOSStream::StdOSStream ()
+    : OPENEXR_IMF_INTERNAL_NAMESPACE::OStream ("(string)")
 {
     // empty
 }
 
 StdOSStream::~StdOSStream ()
-{
-}
+{}
 
 void
 StdOSStream::write (const char c[/*n*/], int n)
 {
-    clearError();
+    clearError ();
     _os.write (c, n);
     checkError (_os);
 }
 
-
 uint64_t
 StdOSStream::tellp ()
 {
-    return std::streamoff (_os.tellp());
+    return std::streamoff (_os.tellp ());
 }
-
 
 void
 StdOSStream::seekp (uint64_t pos)

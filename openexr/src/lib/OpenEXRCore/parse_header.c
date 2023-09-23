@@ -25,8 +25,8 @@ silent_error (
     exr_result_t                        code,
     const char*                         msg)
 {
-    (void)pctxt;
-    (void)msg;
+    (void) pctxt;
+    (void) msg;
     return code;
 }
 
@@ -34,7 +34,7 @@ static exr_result_t
 silent_standard_error (
     const struct _internal_exr_context* pctxt, exr_result_t code)
 {
-    (void)pctxt;
+    (void) pctxt;
     return code;
 }
 
@@ -45,8 +45,8 @@ silent_print_error (
     const char*                         msg,
     ...)
 {
-    (void)pctxt;
-    (void)msg;
+    (void) pctxt;
+    (void) msg;
     return code;
 }
 
@@ -123,10 +123,7 @@ scratch_seq_read (struct _internal_exr_seq_scratch* scr, void* buf, uint64_t sz)
                 outbuf += nread;
                 nCopied += (uint64_t) nread;
             }
-            else
-            {
-                break;
-            }
+            else { break; }
         }
         else
         {
@@ -168,7 +165,7 @@ static exr_result_t
 scratch_seq_skip (struct _internal_exr_seq_scratch* scr, int32_t sz)
 {
     uint64_t     nCopied = 0;
-    uint64_t     notdone = (uint64_t)sz;
+    uint64_t     notdone = (uint64_t) sz;
     exr_result_t rv      = -1;
 
     while (notdone > 0)
@@ -211,7 +208,7 @@ scratch_seq_skip (struct _internal_exr_seq_scratch* scr, int32_t sz)
     }
     if (rv == -1)
     {
-        if (nCopied == (uint64_t)sz)
+        if (nCopied == (uint64_t) sz)
             rv = EXR_ERR_SUCCESS;
         else
             rv = EXR_ERR_READ_IO;
@@ -587,7 +584,7 @@ extract_attr_string_vector (
 {
     exr_result_t       rv;
     int32_t            n, nstr, nalloced, nlen, pulled = 0;
-    exr_attr_string_t *nlist, *clist, nil = { 0 };
+    exr_attr_string_t *nlist, *clist, nil = {0};
 
     rv = check_bad_attrsz (ctxt, scratch, attrsz, 1, aname, tname, &n);
     if (rv != EXR_ERR_SUCCESS) return rv;
@@ -862,7 +859,7 @@ check_populate_channels (
     const char*                       tname,
     int32_t                           attrsz)
 {
-    exr_attr_chlist_t tmpchans = { 0 };
+    exr_attr_chlist_t tmpchans = {0};
     exr_result_t      rv;
 
     if (curpart->channels)
@@ -990,7 +987,7 @@ check_populate_dataWindow (
     const char*                       tname,
     int32_t                           attrsz)
 {
-    exr_attr_box2i_t tmpdata = { 0 };
+    exr_attr_box2i_t tmpdata = {0};
     exr_result_t     rv;
 
     if (curpart->dataWindow)
@@ -1048,7 +1045,7 @@ check_populate_displayWindow (
     const char*                       tname,
     int32_t                           attrsz)
 {
-    exr_attr_box2i_t tmpdata = { 0 };
+    exr_attr_box2i_t tmpdata = {0};
     exr_result_t     rv;
 
     if (curpart->displayWindow)
@@ -1405,7 +1402,7 @@ check_populate_tiles (
     int32_t                           attrsz)
 {
     exr_result_t        rv;
-    exr_attr_tiledesc_t tmpdata = { 0 };
+    exr_attr_tiledesc_t tmpdata = {0};
 
     if (curpart->tiles)
     {
@@ -2223,9 +2220,7 @@ internal_exr_compute_tile_information (
                 }
                 break;
             case EXR_TILE_LAST_TYPE:
-            default:
-                return ctxt->standard_error (
-                    ctxt, EXR_ERR_INVALID_ATTR);
+            default: return ctxt->standard_error (ctxt, EXR_ERR_INVALID_ATTR);
         }
 
         curpart->num_tile_levels_x = numX;
@@ -2595,10 +2590,7 @@ internal_exr_parse_header (struct _internal_exr_context* ctxt)
                                     ? EXR_LONGNAME_MAXLEN
                                     : EXR_SHORTNAME_MAXLEN;
     }
-    else
-    {
-        ctxt->max_name_length = EXR_LONGNAME_MAXLEN;
-    }
+    else { ctxt->max_name_length = EXR_LONGNAME_MAXLEN; }
     ctxt->has_nonimage_data = (flags & EXR_NON_IMAGE_FLAG) ? 1 : 0;
     ctxt->is_multipart      = (flags & EXR_MULTI_PART_FLAG) ? 1 : 0;
     if (ctxt->is_singlepart_tiled)

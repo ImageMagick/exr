@@ -10,7 +10,6 @@
 #include "openexr_attr.h"
 
 #include <string.h>
-#include <stdbool.h>
 
 /**************************************/
 
@@ -32,7 +31,7 @@ half_to_float8 (float* out, const uint16_t* src)
 }
 #endif
 
-#if (defined(__x86_64__) || defined(_M_X64)) && defined(__AVX__) &&                              \
+#if (defined(__x86_64__) || defined(_M_X64)) && defined(__AVX__) &&            \
     (defined(__F16C__) || defined(__GNUC__) || defined(__clang__))
 
 #    if defined(__F16C__)
@@ -267,8 +266,8 @@ unpack_16bit_3chan_interleave_rev (exr_decode_pipeline_t* decode)
         uint16_t* out = (uint16_t*) out0;
 
         in0 = (const uint16_t*) srcbuffer; // B
-        in1 = in0 + w; // G
-        in2 = in1 + w; // R
+        in1 = in0 + w;                     // G
+        in2 = in1 + w;                     // R
 
         srcbuffer += w * 6; // 3 * sizeof(uint16_t), avoid type conversion
         for (int x = 0; x < w; ++x)
@@ -373,14 +372,10 @@ unpack_16bit_3chan_planar (exr_decode_pipeline_t* decode)
     const uint16_t *in0, *in1, *in2;
     uint8_t *       out0, *out1, *out2;
     int             w, h;
-    int             inc0, inc1, inc2;
     int             linc0, linc1, linc2;
 
     w     = decode->channels[0].width;
     h     = decode->chunk.height;
-    inc0  = decode->channels[0].user_pixel_stride;
-    inc1  = decode->channels[1].user_pixel_stride;
-    inc2  = decode->channels[2].user_pixel_stride;
     linc0 = decode->channels[0].user_line_stride;
     linc1 = decode->channels[1].user_line_stride;
     linc2 = decode->channels[2].user_line_stride;
@@ -427,14 +422,10 @@ unpack_half_to_float_3chan_planar (exr_decode_pipeline_t* decode)
     const uint16_t *in0, *in1, *in2;
     uint8_t *       out0, *out1, *out2;
     int             w, h;
-    int             inc0, inc1, inc2;
     int             linc0, linc1, linc2;
 
     w     = decode->channels[0].width;
     h     = decode->chunk.height;
-    inc0  = decode->channels[0].user_pixel_stride;
-    inc1  = decode->channels[1].user_pixel_stride;
-    inc2  = decode->channels[2].user_pixel_stride;
     linc0 = decode->channels[0].user_line_stride;
     linc1 = decode->channels[1].user_line_stride;
     linc2 = decode->channels[2].user_line_stride;
@@ -1133,8 +1124,7 @@ generic_unpack (exr_decode_pipeline_t* decode)
             }
             else if (cdata)
             {
-                cdata +=
-                    ((uint64_t) y) * ((uint64_t) decc->user_line_stride);
+                cdata += ((uint64_t) y) * ((uint64_t) decc->user_line_stride);
             }
             else
             {
@@ -1186,8 +1176,9 @@ generic_unpack_deep_pointers (exr_decode_pipeline_t* decode)
                 continue;
             }
 
-            pdata += ((size_t)y) * (((size_t)decc->user_line_stride) / sizeof (void*));
-            pixstride = ((size_t)decc->user_pixel_stride) / sizeof (void*);
+            pdata += ((size_t) y) *
+                     (((size_t) decc->user_line_stride) / sizeof (void*));
+            pixstride = ((size_t) decc->user_pixel_stride) / sizeof (void*);
 
             for (int x = 0; x < w; ++x)
             {

@@ -12,7 +12,8 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
-#include <zlib.h>
+
+#include "openexr_compression.h"
 
 #if defined __SSE2__ || (_MSC_VER >= 1300 && (_M_IX86 || _M_X64))
 #    define IMF_HAVE_SSE2 1
@@ -27,7 +28,6 @@
 #    define IMF_HAVE_NEON_AARCH64 1
 #    include <arm_neon.h>
 #endif
-
 
 /**************************************/
 
@@ -86,7 +86,7 @@ reconstruct (uint8_t* buf, uint64_t outSize)
     const uint8x16_t      c             = vdupq_n_u8 (-128);
     const uint8x16_t      shuffleMask   = vdupq_n_u8 (15);
     const uint8x16_t      zero          = vdupq_n_u8 (0);
-    uint8_t *             vBuf;
+    uint8_t*              vBuf;
     uint8x16_t            vPrev;
     uint8_t               prev;
 
@@ -110,7 +110,8 @@ reconstruct (uint8_t* buf, uint64_t outSize)
         d = vaddq_u8 (d, vextq_u8 (zero, d, 16 - 8));
         d = vaddq_u8 (d, vPrev);
 
-        vst1q_u8 (vBuf, d); vBuf += sizeof (uint8x16_t);
+        vst1q_u8 (vBuf, d);
+        vBuf += sizeof (uint8x16_t);
 
         // Broadcast the high byte in our result to all lanes of the prev
         // value for the next iteration.
@@ -179,18 +180,22 @@ interleave (uint8_t* out, const uint8_t* source, uint64_t outSize)
 {
     static const uint64_t bytesPerChunk = 2 * sizeof (uint8x16_t);
     const uint64_t        vOutSize      = outSize / bytesPerChunk;
-    const uint8_t*        v1   = source;
-    const uint8_t*        v2   = source + (outSize + 1) / 2;
+    const uint8_t*        v1            = source;
+    const uint8_t*        v2            = source + (outSize + 1) / 2;
 
     for (uint64_t i = 0; i < vOutSize; ++i)
     {
-        uint8x16_t a  = vld1q_u8 (v1); v1 += sizeof (uint8x16_t);
-        uint8x16_t b  = vld1q_u8 (v2); v2 += sizeof (uint8x16_t);
+        uint8x16_t a = vld1q_u8 (v1);
+        v1 += sizeof (uint8x16_t);
+        uint8x16_t b = vld1q_u8 (v2);
+        v2 += sizeof (uint8x16_t);
         uint8x16_t lo = vzip1q_u8 (a, b);
         uint8x16_t hi = vzip2q_u8 (a, b);
 
-        vst1q_u8 (out, lo); out += sizeof (uint8x16_t);
-        vst1q_u8 (out, hi); out += sizeof (uint8x16_t);
+        vst1q_u8 (out, lo);
+        out += sizeof (uint8x16_t);
+        vst1q_u8 (out, hi);
+        out += sizeof (uint8x16_t);
     }
 
     for (uint64_t i = vOutSize * bytesPerChunk; i < outSize; ++i)
@@ -225,10 +230,8 @@ interleave (uint8_t* out, const uint8_t* source, uint64_t outSize)
 
 /**************************************/
 
-void internal_zip_reconstruct_bytes (
-    uint8_t* out,
-    uint8_t* source,
-    uint64_t count)
+void
+internal_zip_reconstruct_bytes (uint8_t* out, uint8_t* source, uint64_t count)
 {
     reconstruct (source, count);
     interleave (out, source, count);
@@ -236,10 +239,9 @@ void internal_zip_reconstruct_bytes (
 
 /**************************************/
 
-void internal_zip_deconstruct_bytes (
-    uint8_t*       scratch,
-    const uint8_t* source,
-    uint64_t       count)
+void
+internal_zip_deconstruct_bytes (
+    uint8_t* scratch, const uint8_t* source, uint64_t count)
 {
     int            p;
     uint8_t*       t1   = scratch;
@@ -272,41 +274,39 @@ void internal_zip_deconstruct_bytes (
 
 static exr_result_t
 undo_zip_impl (
-    const void* compressed_data,
-    uint64_t    comp_buf_size,
-    void*       uncompressed_data,
-    uint64_t    uncompressed_size,
-    void*       scratch_data,
-    uint64_t    scratch_size)
+    exr_decode_pipeline_t* decode,
+    const void*            compressed_data,
+    uint64_t               comp_buf_size,
+    void*                  uncompressed_data,
+    uint64_t               uncompressed_size,
+    void*                  scratch_data,
+    uint64_t               scratch_size)
 {
-    uLong  outSize = (uLong) scratch_size;
-    int    rstat;
+    size_t       actual_out_bytes;
+    exr_result_t res;
 
     if (scratch_size < uncompressed_size) return EXR_ERR_INVALID_ARGUMENT;
 
-    rstat = uncompress (
-        (Bytef*) scratch_data,
-        &outSize,
-        (const Bytef*) compressed_data,
-        (uLong) comp_buf_size);
-    if (rstat == Z_OK)
+    res = exr_uncompress_buffer (
+        decode->context,
+        compressed_data,
+        comp_buf_size,
+        scratch_data,
+        scratch_size,
+        &actual_out_bytes);
+
+    if (res == EXR_ERR_SUCCESS)
     {
-        if (outSize == uncompressed_size)
+        if (actual_out_bytes == uncompressed_size)
         {
-            internal_zip_reconstruct_bytes (uncompressed_data, scratch_data, uncompressed_size);
-            rstat = EXR_ERR_SUCCESS;
+            internal_zip_reconstruct_bytes (
+                uncompressed_data, scratch_data, actual_out_bytes);
         }
         else
-        {
-            rstat = EXR_ERR_CORRUPT_CHUNK;
-        }
-    }
-    else
-    {
-        rstat = EXR_ERR_CORRUPT_CHUNK;
+            res = EXR_ERR_CORRUPT_CHUNK;
     }
 
-    return (exr_result_t) rstat;
+    return res;
 }
 
 /**************************************/
@@ -320,9 +320,8 @@ internal_exr_undo_zip (
     uint64_t               uncompressed_size)
 {
     exr_result_t rv;
-    uint64_t scratchbufsz = uncompressed_size;
-    if ( comp_buf_size > scratchbufsz )
-        scratchbufsz = comp_buf_size;
+    uint64_t     scratchbufsz = uncompressed_size;
+    if (comp_buf_size > scratchbufsz) scratchbufsz = comp_buf_size;
 
     rv = internal_decode_alloc_buffer (
         decode,
@@ -332,6 +331,7 @@ internal_exr_undo_zip (
         scratchbufsz);
     if (rv != EXR_ERR_SUCCESS) return rv;
     return undo_zip_impl (
+        decode,
         compressed_data,
         comp_buf_size,
         uncompressed_data,
@@ -340,53 +340,58 @@ internal_exr_undo_zip (
         decode->scratch_alloc_size_1);
 }
 
-
 /**************************************/
 
 static exr_result_t
 apply_zip_impl (exr_encode_pipeline_t* encode)
 {
-    int            level;
-    size_t         compbufsz;
-    exr_result_t   rv;
+    int          level;
+    size_t       compbufsz;
+    exr_result_t rv;
 
     rv = exr_get_zip_compression_level (
         encode->context, encode->part_index, &level);
     if (rv != EXR_ERR_SUCCESS) return rv;
-    if (level < 0) level = 4; /* EXR_DEFAULT_ZLIB_COMPRESS_LEVEL */
-    internal_zip_deconstruct_bytes (
-        encode->scratch_buffer_1,
-        encode->packed_buffer,
-        encode->packed_bytes);
 
-    compbufsz = encode->compressed_alloc_size;
-    if (Z_OK != compress2 (
-                    (Bytef*) encode->compressed_buffer,
-                    &compbufsz,
-                    (const Bytef*) encode->scratch_buffer_1,
-                    (uLong) encode->packed_bytes,
-                    level))
+    internal_zip_deconstruct_bytes (
+        encode->scratch_buffer_1, encode->packed_buffer, encode->packed_bytes);
+
+    rv = exr_compress_buffer (
+        encode->context,
+        level,
+        encode->scratch_buffer_1,
+        encode->packed_bytes,
+        encode->compressed_buffer,
+        encode->compressed_alloc_size,
+        &compbufsz);
+
+    if (rv == EXR_ERR_SUCCESS)
+    {
+        if (compbufsz > encode->packed_bytes)
+        {
+            memcpy (
+                encode->compressed_buffer,
+                encode->packed_buffer,
+                encode->packed_bytes);
+            compbufsz = encode->packed_bytes;
+        }
+        encode->compressed_bytes = compbufsz;
+    }
+    else
     {
         const struct _internal_exr_context* pctxt = EXR_CCTXT (encode->context);
         if (pctxt)
             pctxt->print_error (
                 pctxt,
-                EXR_ERR_CORRUPT_CHUNK,
-                "Unable to compress buffer %" PRIu64 " -> %" PRIu64 " @ level %d",
-                encode->packed_bytes, (uint64_t)encode->compressed_alloc_size, level);
-        return EXR_ERR_CORRUPT_CHUNK;
+                rv,
+                "Unable to compress buffer %" PRIu64 " -> %" PRIu64
+                " @ level %d",
+                encode->packed_bytes,
+                (uint64_t) encode->compressed_alloc_size,
+                level);
     }
 
-    if (compbufsz > encode->packed_bytes)
-    {
-        memcpy (
-            encode->compressed_buffer,
-            encode->packed_buffer,
-            encode->packed_bytes);
-        compbufsz = encode->packed_bytes;
-    }
-    encode->compressed_bytes = compbufsz;
-    return EXR_ERR_SUCCESS;
+    return rv;
 }
 
 exr_result_t
@@ -400,7 +405,6 @@ internal_exr_apply_zip (exr_encode_pipeline_t* encode)
         &(encode->scratch_buffer_1),
         &(encode->scratch_alloc_size_1),
         encode->packed_bytes);
-
     if (rv != EXR_ERR_SUCCESS)
     {
         const struct _internal_exr_context* pctxt = EXR_CCTXT (encode->context);
@@ -408,7 +412,8 @@ internal_exr_apply_zip (exr_encode_pipeline_t* encode)
             pctxt->print_error (
                 pctxt,
                 rv,
-                "Unable to allocate scratch buffer for deflate of %" PRIu64 " bytes",
+                "Unable to allocate scratch buffer for deflate of %" PRIu64
+                " bytes",
                 encode->packed_bytes);
         return rv;
     }

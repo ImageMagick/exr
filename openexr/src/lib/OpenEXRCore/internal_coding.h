@@ -6,12 +6,12 @@
 #ifndef OPENEXR_CORE_UNPACK_H
 #define OPENEXR_CORE_UNPACK_H
 
+#include "openexr_config.h"
 #include "openexr_decode.h"
 #include "openexr_encode.h"
 
 #include "internal_structs.h"
 
-#include <ImathConfig.h>
 /* only recently has imath supported half in C (C++ only before),
  * allow an older version to still work, and if that is available, we
  * will favor the implementation there as it will be the latest
@@ -25,9 +25,9 @@
 #endif
 
 #ifdef _WIN32
-#        include <intrin.h>
+#    include <intrin.h>
 #elif defined(__x86_64__)
-#        include <x86intrin.h>
+#    include <x86intrin.h>
 #endif
 
 #include <math.h>

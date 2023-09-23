@@ -10,6 +10,8 @@
 #include "internal_structs.h"
 #include "internal_xdr.h"
 
+#include "openexr_compression.h"
+
 /**************************************/
 
 static exr_result_t
@@ -24,9 +26,14 @@ default_compress_chunk (exr_encode_pipeline_t* encode)
         EXR_TRANSCODE_BUFFER_COMPRESSED,
         &(encode->compressed_buffer),
         &(encode->compressed_alloc_size),
-        (((size_t) encode->packed_bytes) * (size_t) 110) / ((size_t) 100) +
-            65536);
-    if (rv != EXR_ERR_SUCCESS) return rv;
+        exr_compress_max_buffer_size (encode->packed_bytes));
+    if (rv != EXR_ERR_SUCCESS)
+        return pctxt->print_error (
+            pctxt,
+            rv,
+            "error allocating buffer %lu",
+            exr_compress_max_buffer_size (encode->packed_bytes));
+    //return rv;
 
     switch (part->comp_type)
     {
@@ -143,13 +150,13 @@ default_write_chunk (exr_encode_pipeline_t* encode)
 
 exr_result_t
 exr_encoding_initialize (
-    exr_const_context_t           ctxt,
-    int                           part_index,
+    exr_const_context_t     ctxt,
+    int                     part_index,
     const exr_chunk_info_t* cinfo,
-    exr_encode_pipeline_t*        encode)
+    exr_encode_pipeline_t*  encode)
 {
     exr_result_t          rv;
-    exr_encode_pipeline_t nil = { 0 };
+    exr_encode_pipeline_t nil = {0};
 
     EXR_PROMOTE_CONST_CONTEXT_AND_PART_OR_ERROR (ctxt, part_index);
     if (!cinfo || !encode)
@@ -177,9 +184,9 @@ exr_encoding_initialize (
 
     if (rv == EXR_ERR_SUCCESS)
     {
-        encode->part_index  = part_index;
-        encode->context     = ctxt;
-        encode->chunk = *cinfo;
+        encode->part_index = part_index;
+        encode->context    = ctxt;
+        encode->chunk      = *cinfo;
     }
     return EXR_UNLOCK_WRITE_AND_RETURN_PCTXT (rv);
 }
@@ -220,10 +227,10 @@ exr_encoding_choose_default_routines (
 
 exr_result_t
 exr_encoding_update (
-    exr_const_context_t           ctxt,
-    int                           part_index,
+    exr_const_context_t     ctxt,
+    int                     part_index,
     const exr_chunk_info_t* cinfo,
-    exr_encode_pipeline_t*        encode)
+    exr_encode_pipeline_t*  encode)
 {
     exr_result_t rv;
 
@@ -427,7 +434,7 @@ exr_encoding_destroy (exr_const_context_t ctxt, exr_encode_pipeline_t* encode)
     INTERN_EXR_PROMOTE_CONST_CONTEXT_OR_ERROR (ctxt);
     if (encode)
     {
-        exr_encode_pipeline_t nil = { 0 };
+        exr_encode_pipeline_t nil = {0};
         if (encode->channels != encode->_quick_chan_store)
             pctxt->free_fn (encode->channels);
 

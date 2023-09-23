@@ -68,6 +68,7 @@ openexr_define_library(OpenEXRCore
 
     chunk.c
     coding.c
+    compression.c
     decoding.c
     encoding.c
     pack.c
@@ -76,6 +77,8 @@ openexr_define_library(OpenEXRCore
 
     debug.c
 
+    ${EXR_DEFLATE_SOURCES}
+
   HEADERS
     openexr.h
 
@@ -83,7 +86,8 @@ openexr_define_library(OpenEXRCore
     openexr_base.h
     openexr_chunkio.h
     openexr_coding.h
-    openexr_conf.h
+    openexr_compression.h
+    openexr_config.h
     openexr_context.h
     openexr_decode.h
     openexr_debug.h
@@ -91,17 +95,19 @@ openexr_define_library(OpenEXRCore
     openexr_errors.h
     openexr_part.h
     openexr_std_attr.h
-  DEPENDENCIES
-    ZLIB::ZLIB
+    openexr_version.h
+
   PRIVATE_DEPS
     ${OPENEXR_EXTRA_MATH_LIB}
+
+  DEPENDENCIES
+    Imath::Imath
   )
 
-# when building with an internal imath, this isn't generated until
-# install time, so need to use private header only include path (we
-# aren't linking to imath or anything c++)
-if (TARGET Imath::ImathConfig)
-  target_link_libraries(OpenEXRCore PRIVATE Imath::ImathConfig)
-else()
-  target_include_directories(OpenEXRCore PRIVATE ${IMATH_HEADER_ONLY_INCLUDE_DIRS})
+if (DEFINED EXR_DEFLATE_LIB)
+  if (BUILD_SHARED_LIBS)
+    target_link_libraries(OpenEXRCore PRIVATE ${EXR_DEFLATE_LIB})
+  else()
+    target_link_libraries(OpenEXRCore PUBLIC ${EXR_DEFLATE_LIB})
+  endif()
 endif()

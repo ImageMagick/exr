@@ -57,20 +57,18 @@
 
 ILMTHREAD_INTERNAL_NAMESPACE_HEADER_ENTER
 
-
 class ILMTHREAD_EXPORT_TYPE Semaphore
 {
-  public:
-
+public:
     ILMTHREAD_EXPORT Semaphore (unsigned int value = 0);
-    ILMTHREAD_EXPORT virtual ~Semaphore();
+    ILMTHREAD_EXPORT virtual ~Semaphore ();
 
-    ILMTHREAD_EXPORT void wait();
-    ILMTHREAD_EXPORT bool tryWait();
-    ILMTHREAD_EXPORT void post();
-    ILMTHREAD_EXPORT int  value() const;
+    ILMTHREAD_EXPORT void wait ();
+    ILMTHREAD_EXPORT bool tryWait ();
+    ILMTHREAD_EXPORT void post ();
+    ILMTHREAD_EXPORT int  value () const;
 
-  private:
+private:
 
 #if ILMTHREAD_SEMAPHORE_POSIX
 
@@ -91,24 +89,23 @@ class ILMTHREAD_EXPORT_TYPE Semaphore
     // then we implement them ourselves using condition variables
     //
 
-	struct sema_t
-	{
-	    unsigned int count;
-	    unsigned long numWaiting;
-        std::mutex mutex;
+    struct sema_t
+    {
+        unsigned int            count;
+        unsigned long           numWaiting;
+        std::mutex              mutex;
         std::condition_variable nonZero;
-	};
+    };
 
-	mutable sema_t _semaphore;
-  
+    mutable sema_t _semaphore;
+
 #endif
 
-    void operator = (const Semaphore& s) = delete;
-    Semaphore (const Semaphore& s) = delete;
-    void operator = (Semaphore&& s) = delete;
-    Semaphore (Semaphore&& s) = delete;
+    void operator= (const Semaphore& s) = delete;
+    Semaphore (const Semaphore& s)      = delete;
+    void operator= (Semaphore&& s) = delete;
+    Semaphore (Semaphore&& s)      = delete;
 };
-
 
 ILMTHREAD_INTERNAL_NAMESPACE_HEADER_EXIT
 

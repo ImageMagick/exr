@@ -20,20 +20,17 @@ ILMTHREAD_INTERNAL_NAMESPACE_SOURCE_ENTER
 
 Semaphore::Semaphore (unsigned int value)
 {
-    _semaphore.count = value;
+    _semaphore.count      = value;
     _semaphore.numWaiting = 0;
 }
 
-
 Semaphore::~Semaphore ()
-{
-}
-
+{}
 
 void
 Semaphore::wait ()
 {
-    std::unique_lock<std::mutex> lk(_semaphore.mutex);
+    std::unique_lock<std::mutex> lk (_semaphore.mutex);
 
     _semaphore.numWaiting++;
 
@@ -44,40 +41,36 @@ Semaphore::wait ()
     _semaphore.count--;
 }
 
-
 bool
 Semaphore::tryWait ()
 {
-    std::lock_guard<std::mutex> lk(_semaphore.mutex);
-    
-    if (_semaphore.count == 0)
-        return false;
+    std::lock_guard<std::mutex> lk (_semaphore.mutex);
+
+    if (_semaphore.count == 0) return false;
 
     _semaphore.count--;
     return true;
 }
 
-
 void
 Semaphore::post ()
 {
-    std::lock_guard<std::mutex> lk(_semaphore.mutex);
+    std::lock_guard<std::mutex> lk (_semaphore.mutex);
 
     _semaphore.count++;
     if (_semaphore.numWaiting > 0)
     {
         if (_semaphore.count > 1)
-            _semaphore.nonZero.notify_all();
+            _semaphore.nonZero.notify_all ();
         else
-            _semaphore.nonZero.notify_one();
+            _semaphore.nonZero.notify_one ();
     }
 }
-
 
 int
 Semaphore::value () const
 {
-    std::lock_guard<std::mutex> lk(_semaphore.mutex);
+    std::lock_guard<std::mutex> lk (_semaphore.mutex);
     return _semaphore.count;
 }
 

@@ -6,8 +6,8 @@
 #ifndef INCLUDED_IMF_ZIP_H
 #define INCLUDED_IMF_ZIP_H
 
-#include "ImfNamespace.h"
 #include "ImfExport.h"
+#include "ImfNamespace.h"
 
 #include <cstddef>
 
@@ -15,31 +15,30 @@ OPENEXR_IMF_INTERNAL_NAMESPACE_HEADER_ENTER
 
 class Zip
 {
-    public:
-        explicit Zip (size_t rawMaxSize, int level);
-        Zip (size_t maxScanlineSize, size_t numScanLines, int level);
-        ~Zip();
+public:
+    explicit Zip (size_t rawMaxSize, int level);
+    Zip (size_t maxScanlineSize, size_t numScanLines, int level);
+    ~Zip ();
 
-        Zip (const Zip& other) = delete;
-        Zip& operator = (const Zip& other) = delete;
-        Zip (Zip&& other) = delete;
-        Zip& operator = (Zip&& other) = delete;
+    Zip (const Zip& other) = delete;
+    Zip& operator= (const Zip& other) = delete;
+    Zip (Zip&& other)                 = delete;
+    Zip& operator= (Zip&& other) = delete;
 
-        size_t maxRawSize();
-        size_t maxCompressedSize();
+    size_t maxRawSize ();
+    size_t maxCompressedSize ();
 
-        //
-        // Compress the raw data into the provided buffer.
-        // Returns the amount of compressed data.
-        //
-        int compress(const char *raw, int rawSize, char *compressed);
+    //
+    // Compress the raw data into the provided buffer.
+    // Returns the amount of compressed data.
+    //
+    int compress (const char* raw, int rawSize, char* compressed);
 
-        // 
-        // Uncompress the compressed data into the provided
-        // buffer. Returns the amount of raw data actually decoded.
-        //
-        int uncompress(const char *compressed, int compressedSize,
-                                                 char *raw);
+    //
+    // Uncompress the compressed data into the provided
+    // buffer. Returns the amount of raw data actually decoded.
+    //
+    int uncompress (const char* compressed, int compressedSize, char* raw);
 
     static void initializeFuncs ();
 

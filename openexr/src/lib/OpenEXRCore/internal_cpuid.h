@@ -3,6 +3,9 @@
 ** Copyright Contributors to the OpenEXR Project.
 */
 
+#ifndef IMF_INTERNAL_CPUID_H_HAS_BEEN_INCLUDED
+#define IMF_INTERNAL_CPUID_H_HAS_BEEN_INCLUDED
+
 #include "OpenEXRConfigInternal.h"
 
 #if defined(i386) || defined(__i386__) || defined(__i386) || defined(_M_X86) || defined(__x86_64__) || defined(_M_X64)
@@ -19,7 +22,8 @@
 #    endif
 #endif
 
-static inline void check_for_x86_simd (int *f16c, int *avx, int *sse2)
+static inline void
+check_for_x86_simd (int* f16c, int* avx, int* sse2)
 {
 // Only use compiler flags on e2k (MCST Elbrus 2000) architecture
 #ifdef __e2k__
@@ -42,7 +46,7 @@ static inline void check_for_x86_simd (int *f16c, int *avx, int *sse2)
 #elif defined(__AVX__) && defined(__F16C__)
     // shortcut if everything is turned on / compiled in
     *f16c = 1;
-    *avx = 1;
+    *avx  = 1;
     *sse2 = 1;
 
 #elif OPENEXR_ENABLE_X86_SIMD_CHECK
@@ -76,7 +80,7 @@ static inline void check_for_x86_simd (int *f16c, int *avx, int *sse2)
     *avx    = (regs[2] & (1 << 28)) ? 1 : 0;
     *f16c   = (regs[2] & (1 << 29)) ? 1 : 0;
     /* sse2 is in EDX bit 26 */
-    *sse2   = (regs[3] & (1 << 26)) ? 1 : 0;
+    *sse2 = (regs[3] & (1 << 26)) ? 1 : 0;
 
     if (!osxsave)
     {
@@ -121,7 +125,8 @@ static inline void check_for_x86_simd (int *f16c, int *avx, int *sse2)
 
 }
 
-static inline int has_native_half (void)
+static inline int
+has_native_half (void)
 {
 #if OPENEXR_ENABLE_X86_SIMD_CHECK
     int sse2, avx, f16c;
@@ -135,3 +140,5 @@ static inline int has_native_half (void)
 }
 
 #undef OPENEXR_ENABLE_X86_SIMD_CHECK
+#endif
+
