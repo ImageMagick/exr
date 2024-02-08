@@ -14,7 +14,7 @@ endif()
 
 # Imath version
 
-project(Imath VERSION 3.1.9 LANGUAGES C CXX)
+project(Imath VERSION 3.1.10 LANGUAGES C CXX)
 
 set(IMATH_VERSION_RELEASE_TYPE "" CACHE STRING "Extra version tag string for Imath build, such as -dev, -beta1, etc.")
 
@@ -39,7 +39,7 @@ set(IMATH_VERSION_API "${Imath_VERSION_MAJOR}_${Imath_VERSION_MINOR}")
 #   3. API changed:   CURRENT+1.0.0
 #
 set(IMATH_LIBTOOL_CURRENT 29)
-set(IMATH_LIBTOOL_REVISION 8)
+set(IMATH_LIBTOOL_REVISION 9)
 set(IMATH_LIBTOOL_AGE 0)
 set(IMATH_LIB_VERSION "${IMATH_LIBTOOL_CURRENT}.${IMATH_LIBTOOL_REVISION}.${IMATH_LIBTOOL_AGE}")
 set(IMATH_LIB_SOVERSION ${IMATH_LIBTOOL_CURRENT})
@@ -73,10 +73,9 @@ if (PYTHON)
   add_subdirectory(src/python)
 endif()
 
-option(BUILD_DOCS "Set ON to build readthedocs documentation")
-if (BUILD_DOCS AND NOT IMATH_IS_SUBPROJECT)
-  option(INSTALL_DOCS "Set ON to install html documentation" ON)
-  add_subdirectory(docs)
+option(BUILD_WEBSITE "Set ON to build the readthedocs website source")
+if (BUILD_WEBSITE AND NOT IMATH_IS_SUBPROJECT)
+  add_subdirectory(website)
 endif()
 
 # If you want to use ctest to configure, build and
