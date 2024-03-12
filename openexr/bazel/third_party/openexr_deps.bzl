@@ -22,17 +22,17 @@ def openexr_deps():
         http_archive,
         name = "Imath",
         build_file = "@com_openexr//:bazel/third_party/Imath.BUILD",
-        strip_prefix = "Imath-3.1.9",
-        sha256 = "f1d8aacd46afed958babfced3190d2d3c8209b66da451f556abd6da94c165cf3",
-        urls = ["https://github.com/AcademySoftwareFoundation/Imath/archive/refs/tags/v3.1.9.tar.gz"],
+        strip_prefix = "Imath-3.1.10",
+        sha256 = "f2943e86bfb694e216c60b9a169e5356f8a90f18fbd34d7b6e3450be14f60b10",
+        urls = ["https://github.com/AcademySoftwareFoundation/Imath/archive/refs/tags/v3.1.10.tar.gz"],
     )
 
     maybe(
         http_archive,
         name = "bazel_skylib",
-        sha256 = "66ffd9315665bfaafc96b52278f57c7e2dd09f5ede279ea6d39b2be471e7e3aa",
+        sha256 = "cd55a062e763b9349921f0f5db8c3933288dc8ba4f76dd9416aac68acee3cb94",
         urls = [
-            "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.4.2/bazel-skylib-1.4.2.tar.gz",
-            "https://github.com/bazelbuild/bazel-skylib/releases/download/1.4.2/bazel-skylib-1.4.2.tar.gz",
+            "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.5.0/bazel-skylib-1.5.0.tar.gz",
+            "https://github.com/bazelbuild/bazel-skylib/releases/download/1.5.0/bazel-skylib-1.5.0.tar.gz",
         ],
     )

@@ -10,6 +10,9 @@ Install
 .. toctree::
    :caption: Install
              
+Linux
+-----
+
 The OpenEXR library is available for download and installation in
 binary form via package managers on many Linux distributions. See
 `https://pkgs.org/download/openexr
@@ -19,35 +22,45 @@ RHEL/CentOS:
 
 .. code-block::
 
-    $ sudo yum makecache
-    $ sudo yum install OpenEXR
+    % sudo yum makecache
+    % sudo yum install OpenEXR
 
 Ubuntu:
 
 .. code-block::
 
-    $ sudo apt-get update
-    $ sudo apt-get install openexr
+    % sudo apt-get update
+    % sudo apt-get install openexr
 
 Beware that some distributions are out of date and only provide
 distributions of outdated releases OpenEXR. We recommend against using
 OpenEXR v2, and we *strongly* recommend against using OpenEXR v1.
 
+macOS
+-----
+
 On macOS, install via `Homebrew <https://formulae.brew.sh/formula/openexr>`_:
 
 .. code-block::
 
-   $ brew install openexr
+   % brew install openexr
 
-We do not recommend installation via
-`Macports <https://ports.macports.org/port/openexr>`_ because the
-distribution is out of date.
+Alternatively, you can install on macOS via `MacPorts
+<https://ports.macports.org/port/openexr>`_:
 
-Also note that the official OpenEXR project does not provide supported
-python bindings. ``pip install openexr`` installs the `openexrpython
-<https://github.com/jamesbowman/openexrpython>`_ module, which is not
-affiliated with the OpenEXR project or the ASWF. Please direct
-questions there.
+.. code-block::
+
+   % port install openexr
+
+Windows
+-------
+
+Install via `vcpkg <https://vcpkg.io/en/packages>`_:
+
+.. code-block::
+
+   % .\vcpkg install openexr
+
 
 Build from Source
 -----------------
@@ -94,9 +107,9 @@ To build:
 
 .. code-block::
 
-    $ cd $builddir
-    $ cmake $srcdir --install-prefix $installdir
-    $ cmake --build $builddir --target install --config Release
+    % cd $builddir
+    % cmake $srcdir --install-prefix $installdir
+    % cmake --build $builddir --target install --config Release
 
 Note that the CMake configuration prefers to apply an out-of-tree
 build process, since there may be multiple build configurations
@@ -125,7 +138,7 @@ can specify a local install directory to cmake via the
 
 .. code-block::
 
-    $ cmake .. -DCMAKE_INSTALL_PREFIX=$openexr_install_directory
+    % cmake .. -DCMAKE_INSTALL_PREFIX=$openexr_install_directory
 
 Library Names
 -------------
@@ -174,23 +187,23 @@ installation of Imath, add the Imath directory to the
  
 .. code-block::
 
-    $ mkdir $build_directory
-    $ cd $build_directory
-    $ cmake -DCMAKE_PREFIX_PATH=$imath_install_directory \
+    % mkdir $build_directory
+    % cd $build_directory
+    % cmake -DCMAKE_PREFIX_PATH=$imath_install_directory \
             -DCMAKE_INSTALL_PREFIX=$openexr_install_destination \
             $openexr_source_directory
-    $ cmake --build . --target install --config Release
+    % cmake --build . --target install --config Release
 
 Alternatively, you can specify the ``Imath_DIR`` variable:
 
 .. code-block::
 
-    $ mkdir $build_directory
-    $ cd $build_directory
-    $ cmake -DImath_DIR=$imath_config_directory \
+    % mkdir $build_directory
+    % cd $build_directory
+    % cmake -DImath_DIR=$imath_config_directory \
             -DCMAKE_INSTALL_PREFIX=$openexr_install_destination \
             $openexr_source_directory
-    $ cmake --build . --target install --config Release
+    % cmake --build . --target install --config Release
 
 Note that ``Imath_DIR`` should point to the directory that includes
 the ``ImathConfig.cmake`` file, which is typically the
@@ -256,13 +269,36 @@ variables, run:
 
 .. code-block::
 
-    $ cmake -LAH $openexr_source_directory
+    % cmake -LAH $openexr_source_directory
 
 You can customize these options three ways:
 
 1. Modify the ``.cmake`` files in place.
 2. Use the UI ``cmake-gui`` or ``ccmake``.
 3. Specify them as command-line arguments when you invoke cmake.
+
+Uninstall
+~~~~~~~~~
+
+If you did a binary instal of OpenEXR via a package manager
+(`apt-get`, `yum`, `port`, `brew`, etc), use the package manager to
+uninstall.
+
+If you have installed from source, *and you still have the build
+tree from which you installed*, you can uninstall via: 
+
+.. code-block::
+
+    % cmake --build $builddir --target uninstall
+
+or if using ``make``:
+
+.. code-block::
+
+    % make uninstall
+
+The `uninstall` relies on CMake's `install_manifest.txt` for the record
+of what was installed.
 
 Library Naming Options
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -410,7 +446,12 @@ Component Options
 
 * ``OPENEXR_BUILD_TOOLS``
 
-  Build and install the binary programs (exrheader, exrinfo,
+  Build the binary programs (exrheader, exrinfo,
+  exrmakepreview, etc). Default is ``ON``.
+  
+* ``OPENEXR_INSTALL_TOOLS``
+
+  Install the binary programs (exrheader, exrinfo,
   exrmakepreview, etc). Default is ``ON``.
   
 * ``OPENEXR_INSTALL_EXAMPLES``
@@ -501,5 +542,5 @@ initial generation:
 
 .. code-block::
 
-    $ cmake -G “Ninja” ..
+    % cmake -G “Ninja” ..
 
