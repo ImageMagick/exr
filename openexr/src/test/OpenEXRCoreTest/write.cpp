@@ -149,6 +149,11 @@ testStartWriteDeepScan (const std::string& tempdir)
     EXRCORE_TEST_RVAL (exr_get_storage (outf, partidx, &storage));
     EXRCORE_TEST (storage == EXR_STORAGE_DEEP_SCANLINE);
 
+    uint32_t verflags;
+    EXRCORE_TEST_RVAL (
+        exr_get_file_version_and_flags (outf, &verflags));
+    EXRCORE_TEST (verflags == (2 | 0x00000800));
+
     EXRCORE_TEST_RVAL (exr_finish (&outf));
     remove (outfn.c_str ());
 }
@@ -248,6 +253,11 @@ testStartWriteDeepTile (const std::string& tempdir)
     EXRCORE_TEST_RVAL (exr_get_storage (outf, partidx, &storage));
     EXRCORE_TEST (storage == EXR_STORAGE_DEEP_TILED);
 
+    uint32_t verflags;
+    EXRCORE_TEST_RVAL (
+        exr_get_file_version_and_flags (outf, &verflags));
+    EXRCORE_TEST (verflags == (2 | 0x00000800));
+
     EXRCORE_TEST_RVAL (exr_finish (&outf));
     remove (outfn.c_str ());
 }
@@ -258,6 +268,7 @@ testWriteBaseHeader (const std::string& tempdir)
     exr_context_t outf;
     std::string   outfn = tempdir + "testattr.exr";
     int           partidx;
+    uint32_t      verflags;
 
     exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
     cinit.error_handler_fn          = &err_cb;
@@ -425,8 +436,8 @@ testWriteBaseHeader (const std::string& tempdir)
         &outf, outfn.c_str (), EXR_WRITE_FILE_DIRECTLY, &cinit));
     EXRCORE_TEST_RVAL (
         exr_add_part (outf, "beauty", EXR_STORAGE_SCANLINE, &partidx));
-    exr_attr_box2i_t dataw = {-2, -3, 514, 515};
-    exr_attr_box2i_t dispw = {0, 0, 512, 512};
+    exr_attr_box2i_t dataw = {{-2, -3}, {514, 515}};
+    exr_attr_box2i_t dispw = {{0, 0}, {512, 512}};
     exr_attr_v2f_t   swc   = {0.5f, 0.5f};
     EXRCORE_TEST_RVAL (exr_initialize_required_attr (
         outf,
@@ -464,6 +475,14 @@ testWriteBaseHeader (const std::string& tempdir)
         1));
 
     EXRCORE_TEST_RVAL (exr_write_header (outf));
+    EXRCORE_TEST_RVAL (
+        exr_get_file_version_and_flags (outf, &verflags));
+    EXRCORE_TEST (verflags == 2);
+
+    uint64_t cto;
+    EXRCORE_TEST_RVAL (
+        exr_get_chunk_table_offset (outf, 0, &cto));
+    EXRCORE_TEST (cto == 364);
 
     EXRCORE_TEST_RVAL (exr_finish (&outf));
     remove (outfn.c_str ());
@@ -474,7 +493,7 @@ testWriteBaseHeader (const std::string& tempdir)
         &outf, outfn.c_str (), EXR_WRITE_FILE_DIRECTLY, &cinit));
     EXRCORE_TEST_RVAL (
         exr_add_part (outf, "beauty", EXR_STORAGE_TILED, &partidx));
-    dataw = {0, 0, 512, 512};
+    dataw = {{0, 0}, {512, 512}};
     EXRCORE_TEST_RVAL (exr_initialize_required_attr (
         outf,
         partidx,
@@ -533,6 +552,9 @@ testWriteBaseHeader (const std::string& tempdir)
     EXRCORE_TEST (txsize == 32 && tysize == 32);
 
     EXRCORE_TEST_RVAL (exr_write_header (outf));
+    EXRCORE_TEST_RVAL (
+        exr_get_file_version_and_flags (outf, &verflags));
+    EXRCORE_TEST (verflags == (2 | 0x00000200));
 
     EXRCORE_TEST_RVAL (exr_finish (&outf));
     remove (outfn.c_str ());
@@ -596,8 +618,7 @@ testWriteAttrs (const std::string& tempdir)
         EXR_ERR_ARGUMENT_OUT_OF_RANGE, exr_set_name (outf, 1, "a"));
     EXRCORE_TEST_RVAL_FAIL (
         EXR_ERR_INVALID_ARGUMENT, exr_set_name (outf, partidx, NULL));
-    EXRCORE_TEST_RVAL_FAIL (
-        EXR_ERR_INVALID_ARGUMENT, exr_set_name (outf, partidx, ""));
+    EXRCORE_TEST_RVAL (exr_set_name (outf, partidx, ""));
     EXRCORE_TEST_RVAL (exr_set_name (outf, partidx, "beauty"));
     EXRCORE_TEST_RVAL (exr_get_name (outf, partidx, &partname));
     EXRCORE_TEST (0 == strcmp (partname, "beauty"));
@@ -908,7 +929,7 @@ testWriteAttrs (const std::string& tempdir)
     }
 
     {
-        exr_attr_box2i_t tb2i = {1, 2, 3, 4};
+        exr_attr_box2i_t tb2i = {{1, 2}, {3, 4}};
         TEST_CORNER_CASE_NAME (box2i, tb2i, int);
         EXRCORE_TEST (tb2i.min.x == 1);
         EXRCORE_TEST (tb2i.min.y == 2);
@@ -917,7 +938,7 @@ testWriteAttrs (const std::string& tempdir)
     }
 
     {
-        exr_attr_box2f_t tb2f = {1.f, 2.f, 3.f, 4.f};
+        exr_attr_box2f_t tb2f = {{1.f, 2.f}, {3.f, 4.f}};
         TEST_CORNER_CASE_NAME (box2f, tb2f, int);
         EXRCORE_TEST (tb2f.min.x == 1.f);
         EXRCORE_TEST (tb2f.min.y == 2.f);
@@ -1365,6 +1386,11 @@ testWriteMultiPart (const std::string& tempdir)
     EXRCORE_TEST (storage == EXR_STORAGE_SCANLINE);
     EXRCORE_TEST_RVAL (exr_get_storage (outf, 1, &storage));
     EXRCORE_TEST (storage == EXR_STORAGE_TILED);
+
+    uint32_t verflags;
+    EXRCORE_TEST_RVAL (
+        exr_get_file_version_and_flags (outf, &verflags));
+    EXRCORE_TEST (verflags == (2 | 0x00001000));
 
     EXRCORE_TEST_RVAL (exr_finish (&outf));
     remove (outfn.c_str ());

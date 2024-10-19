@@ -23,6 +23,8 @@
 #include <ImfNamespace.h>
 #include "../../lib/OpenEXRCore/internal_cpuid.h"
 #include "../../lib/OpenEXRCore/internal_coding.h"
+#include "../../lib/OpenEXRCore/openexr_context.h"
+#include "../../lib/OpenEXRCore/openexr_part.h"
 
 void
 testBase (const std::string& tempdir)
@@ -44,8 +46,8 @@ testBase (const std::string& tempdir)
         std::cerr << "'" << std::endl;
         EXRCORE_TEST (false);
     }
-    std::cout << "Testing OpenEXR library version: '" << major << "." << minor << "."
-              << patch;
+    std::cout << "Testing OpenEXR library version: '" << major << "." << minor
+              << "." << patch;
     if (extra[0] != '\0') std::cout << extra;
     std::cout << "'" << std::endl;
 
@@ -198,6 +200,10 @@ testBaseErrors (const std::string& tempdir)
         0 == strcmp (
                  exr_get_error_code_as_string (EXR_ERR_ATTR_SIZE_MISMATCH),
                  "EXR_ERR_ATTR_SIZE_MISMATCH"));
+    EXRCORE_TEST (
+        0 == strcmp (
+                 exr_get_error_code_as_string (EXR_ERR_INCOMPLETE_CHUNK_TABLE),
+                 "EXR_ERR_INCOMPLETE_CHUNK_TABLE"));
     EXRCORE_TEST (
         0 == strcmp (
                  exr_get_error_code_as_string (EXR_ERR_SCAN_TILE_MIXEDAPI),
@@ -362,30 +368,31 @@ testBaseDebug (const std::string& tempdir)
     exr_print_context_info (c, 1);
 }
 
-void testCPUIdent (const std::string& tempdir)
+void
+testCPUIdent (const std::string& tempdir)
 {
-    int hf16c, havx, hsse2;
+    int                          hf16c, havx, hsse2;
     OPENEXR_IMF_NAMESPACE::CpuId id;
     check_for_x86_simd (&hf16c, &havx, &hsse2);
 
-    if (hf16c != (int)id.f16c)
+    if (hf16c != (int) id.f16c)
     {
-        std::cerr
-            << "CPU Id test f16c mismatch: " << hf16c << " vs " << (int)id.f16c << std::endl;
+        std::cerr << "CPU Id test f16c mismatch: " << hf16c << " vs "
+                  << (int) id.f16c << std::endl;
         EXRCORE_TEST (false);
     }
 
-    if (havx != (int)id.avx)
+    if (havx != (int) id.avx)
     {
-        std::cerr
-            << "CPU Id test avx mismatch: " << havx << " vs " << (int)id.avx << std::endl;
+        std::cerr << "CPU Id test avx mismatch: " << havx << " vs "
+                  << (int) id.avx << std::endl;
         EXRCORE_TEST (false);
     }
 
-    if (hsse2 != (int)id.sse2)
+    if (hsse2 != (int) id.sse2)
     {
-        std::cerr
-            << "CPU Id test sse2 mismatch: " << hsse2 << " vs " << (int)id.sse2 << std::endl;
+        std::cerr << "CPU Id test sse2 mismatch: " << hsse2 << " vs "
+                  << (int) id.sse2 << std::endl;
         EXRCORE_TEST (false);
     }
 
@@ -400,7 +407,8 @@ void testCPUIdent (const std::string& tempdir)
 #endif
 }
 
-void testHalf (const std::string& tempdir)
+void
+testHalf (const std::string& tempdir)
 {
     EXRCORE_TEST (half_to_float (0) == 0.f);
     EXRCORE_TEST (float_to_half (0.f) == 0);
@@ -417,5 +425,33 @@ void testHalf (const std::string& tempdir)
 
     EXRCORE_TEST (uint_to_float (0) == 0.f);
     EXRCORE_TEST (uint_to_float_int (0) == 0);
+}
+
+////////////////////////////////////////
+
+void testTempContext (const std::string& tempdir)
+{
+    exr_context_t c = NULL;
+    exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
+    int pc = -1;
+
+    printf ("Testing initial temporary context API\n");
+
+    EXRCORE_TEST_RVAL_FAIL (
+        EXR_ERR_INVALID_ARGUMENT,
+        exr_start_temporary_context (NULL, tempdir.c_str (), NULL));
+
+    EXRCORE_TEST_RVAL (exr_start_temporary_context (&c, tempdir.c_str (), NULL));
+    EXRCORE_TEST_RVAL (exr_get_count (c, &pc));
+    EXRCORE_TEST (pc == 1);
+    exr_finish (&c);
+
+    EXRCORE_TEST_RVAL (exr_start_temporary_context (
+                           &c, tempdir.c_str (), &cinit));
+    EXRCORE_TEST_RVAL (exr_initialize_required_attr_simple (
+                           c, 0, 1920, 1080, EXR_COMPRESSION_NONE));
+    exr_finish (&c);
+
+    printf ("ok.\n");
 }
 

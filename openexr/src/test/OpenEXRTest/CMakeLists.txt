@@ -15,8 +15,6 @@ add_executable(OpenEXRTest
   random.h
   testAttributes.cpp
   testAttributes.h
-  testB44ExpLogTable.cpp
-  testB44ExpLogTable.h
   testBackwardCompatibility.cpp
   testBackwardCompatibility.h
   testBadTypeAttributes.cpp
@@ -25,6 +23,8 @@ add_executable(OpenEXRTest
   testChannels.h
   testCompositeDeepScanLine.cpp
   testCompositeDeepScanLine.h
+  testCompressionApi.cpp
+  testCompressionApi.h
   testCompression.cpp
   testCompression.h
   testConversion.cpp
@@ -49,10 +49,6 @@ add_executable(OpenEXRTest
   testDeepScanLineMultipleRead.h
   testDeepTiledBasic.cpp
   testDeepTiledBasic.h
-  testDwaCompressorSimd.cpp
-  testDwaCompressorSimd.h
-  testDwaLookups.cpp
-  testDwaLookups.h
   testExistingStreams.cpp
   testExistingStreams.h
   testFutureProofing.cpp
@@ -151,11 +147,11 @@ endfunction()
 
 define_openexr_tests(
  testAttributes
- testB44ExpLogTable
  testBackwardCompatibility
  testBadTypeAttributes
  testChannels
  testCompositeDeepScanLine
+ testCompressionApi
  testCompression
  testConversion
  testCopyDeepScanLine
@@ -167,7 +163,6 @@ define_openexr_tests(
  testDeepScanLineBasic
  testDeepScanLineMultipleRead
  testDeepTiledBasic
- testDwaCompressorSimd
  testDwaLookups
  testExistingStreams
  testFutureProofing
