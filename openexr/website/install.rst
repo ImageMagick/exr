@@ -243,7 +243,7 @@ Building the website requires that ``sphinx``, ``breathe``, and
 ``doxygen`` are installed. It further requires the `sphinx-press-theme
 <https://pypi.org/project/sphinx-press-theme>`_. Complete dependencies
 are described in the `requirements.txt
-<https://github.com/AcademySoftwareFoundation/imath/blob/main/docs/requirements.txt>`_
+<https://github.com/AcademySoftwareFoundation/imath/blob/main/website/requirements.txt>`_
 file. 
 
 On Debian/Ubuntu Linux:
@@ -279,7 +279,7 @@ You can customize these options three ways:
 Uninstall
 ~~~~~~~~~
 
-If you did a binary instal of OpenEXR via a package manager
+If you did a binary install of OpenEXR via a package manager
 (`apt-get`, `yum`, `port`, `brew`, etc), use the package manager to
 uninstall.
 
@@ -452,6 +452,12 @@ Component Options
 
   Install the binary programs (exrheader, exrinfo,
   exrmakepreview, etc). Default is ``ON``.
+  
+* ``OPENEXR_INSTALL_DEVELOPER_TOOLS``
+
+  Install the binary programs useful for developing
+  and/or debugging OpenEXR itself (e.g. exrcheck).
+  Default is ``OFF``.
   
 * ``OPENEXR_BUILD_EXAMPLES``
 

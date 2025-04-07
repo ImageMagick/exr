@@ -35,11 +35,21 @@ permissions:
 
 jobs:
   build_wheels:
-    name: Python Wheels - ${{ matrix.os }}
+    name: Python Wheels - ${{ matrix.os }}-${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            arch: x64
+          - os: ubuntu-24.04-arm
+            arch: arm64
+          - os: macos-13
+            arch: x64
+          - os: macos-latest
+            arch: arm64
+          - os: windows-latest
+            arch: x64
 
     steps:
 
@@ -47,7 +57,7 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Install Python 
-        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
           python-version: '3.x'
 
@@ -57,7 +67,7 @@ jobs:
         run: pipx run build --sdist . --outdir wheelhouse
 
       - name: Build wheel
-        uses: pypa/cibuildwheel@f1859528322d7b29d4493ee241a167807661dfb4 # v2.21.2
+        uses: pypa/cibuildwheel@v2.23
         env:
           CIBW_ARCHS_MACOS: x86_64 arm64 universal2
           # Build Python 3.7 through 3.12.
@@ -70,9 +80,9 @@ jobs:
           OPENEXR_TEST_IMAGE_REPO: "https://raw.githubusercontent.com/AcademySoftwareFoundation/openexr-images/main"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+        uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.os }}
+          name: wheels-${{ matrix.os }}-${{ matrix.arch }}
           path: |
             ./wheelhouse/*.whl
             ./wheelhouse/*.tar.gz
