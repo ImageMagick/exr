@@ -1,7 +1,8 @@
-[DLL]
+[DYNAMIC_LIBRARY]
 
 [LICENSE]
-openexr\LICENSE.md;imath\LICENSE.md
+openexr\LICENSE.md
+imath\LICENSE.md
 
 [DEFINES]
 HALF_EXPORTS
@@ -10,19 +11,10 @@ ILMIMF_EXPORTS
 ILMTHREAD_EXPORTS
 IMATH_EXPORTS
 
-[DEFINES_DLL]
+[DYNAMIC_DEFINES]
 OPENEXR_DLL
 OPENEXR_EXPORTS
 OPENEXRCORE_EXPORTS
-
-[DIRECTORIES]
-imath
-imath\src\Imath
-openexr
-openexr\src\lib\Iex
-openexr\src\lib\IlmThread
-openexr\src\lib\OpenEXR
-openexr\src\lib\OpenEXRCore
 
 [INCLUDES]
 imath
@@ -32,16 +24,32 @@ openexr\src\lib\Iex
 openexr\src\lib\IlmThread
 openexr\src\lib\OpenEXR
 openexr\src\lib\OpenEXRCore
-deflate->.
+
+[INCLUDE_ARTIFACTS]
+imath -> .
+imath\src\Imath -> .
+openexr -> .
+openexr\src\lib\OpenEXR -> .
+openexr\src\lib\OpenEXRCore -> .
 
 [EXCLUDES]
-b44ExpLogTable.cpp
-toFloat.cpp
+imath\src\Imath\toFloat.cpp
+imath\src\ImathTest\
+imath\src\python\
+imath\website\
+openexr\Contrib\
+openexr\src\bin\
+openexr\src\lib\OpenEXRUtil\
+openexr\src\lib\OpenEXR\b44ExpLogTable.cpp
+openexr\src\examples\
+openexr\src\test\
+openexr\src\wrappers\
+openexr\website\
 
-[DEPENDENCIES]
+[REFERENCES]
 deflate
 
-[CONFIG_DEFINE]
+[MAGICK_BASECONFIG_DEFINE]
 /*
   Define to use the OpenEXR library
 */
