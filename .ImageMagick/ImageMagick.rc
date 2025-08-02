@@ -1,5 +1,5 @@
 #include "winver.h"
-#include "../openexr/.ImageMagick/ImageMagick.version.h"
+#include "ImageMagick.version.h"
 
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION DELEGATE_VERSION_NUM
