@@ -15,7 +15,7 @@
 //
 // Whether to use the internally provided vendored version of
 // deflate or the system provided version
-#define OPENEXR_USE_INTERNAL_DEFLATE 1
+#define OPENEXR_USE_INTERNAL_DEFLATE 0
 
 //
 // Define and set to 1 if the target system supports a proc filesystem
