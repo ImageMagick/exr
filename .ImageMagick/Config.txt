@@ -31,6 +31,8 @@ external\
 src\bin\
 src\lib\OpenEXRUtil\
 src\lib\OpenEXR\b44ExpLogTable.cpp
+src\lib\OpenEXRCore\internal_ht.cpp
+src\lib\OpenEXRCore\internal_ht_common.cpp
 src\examples\
 src\test\
 src\wrappers\
