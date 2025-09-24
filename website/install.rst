@@ -66,6 +66,8 @@ Install via `vcpkg <https://vcpkg.io/en/packages>`_:
    % .\vcpkg install openexr
 
 
+.. _build-from-source:
+
 Build from Source
 -----------------
 
@@ -76,8 +78,18 @@ Download the source from the `GitHub releases page
 <https://github.com/AcademySoftwareFoundation/openexr/releases>`_
 page, or clone the `repo <https://github.com/AcademySoftwareFoundation/openexr>`_.
 
-The ``release`` branch of the repo always points to the most advanced
-release.
+If cloning the repo, check out the ``release`` branch:
+
+.. code-block::
+
+   % git checkout release
+
+The ``release`` branch of the repo always points to the most advanced stable
+release. Other branches may contain compatible updates to older releases.
+
+The default ``main`` branch may contain experimental features which could change in future
+versions. It should only be used for testing, or for developers contributing to
+the OpenEXR project.
 
 
 Prerequisites
@@ -86,9 +98,11 @@ Prerequisites
 Make sure these are installed on your system before building OpenEXR:
 
 * OpenEXR requires CMake version 3.14 or newer
-* C++ compiler that supports C++11
+* C++ compiler that supports C++17
 * Imath (auto fetched by CMake if not found) (https://github.com/AcademySoftwareFoundation/openexr)
 * libdeflate source code (auto fetched by CMake if not found) (https://github.com/ebiggers/libdeflate)
+* openjph (auto fetched by CMake if not found; new in v3.4, not yet released) (https://github.com/aous72/OpenJPH)
+* (optional) Intel's Thread Building Blocks library (TBB)
 
 The instructions that follow describe building OpenEXR with CMake.
 
@@ -388,6 +402,30 @@ local filesystem via a ``file:`` url:
 
     cmake -DOPENEXR_IMAGES_REPO=file:///my/clone/of/openexr-images -DOPENEXR_IMAGES_TAG=""
 
+TBB Dependency
+~~~~~~~~~~~~~~
+
+OpenEXR can optionally use the TBB library as the default global
+thread pool as a thread provider. This allows applications which also
+use TBB for other purposes to lower the number of active threads. With
+high core count machines more prevalent, this can significantly lower
+the number of active threads and so the improve available resources
+especially when compiling with a static library and using plugins
+which use OpenEXR.
+
+This is disabled by default, but when turned on, assumes the OneAPI
+version of TBB which provides cmake modules. This ONLY changes the
+global thread pool as otherwise this can cause mutex deadlocks if you
+create other ThreadPools thinking that they are separate threads (i.e.
+the previous use case), but TBB shares actual threads and uses an
+arena to control thread usage.
+
+To enable this, set the flag during config:
+
+.. code-block::
+
+    cmake -DOPENEXR_USE_TBB=ON ...
+
 Namespace Options
 ~~~~~~~~~~~~~~~~~
 
@@ -484,7 +522,7 @@ See the CMake documentation for more information (https://cmake.org/cmake/help/v
 
   C++ standard to compile against. This obeys the global
   ``CMAKE_CXX_STANDARD`` but doesn’t force the global setting to
-  enable sub-project inclusion. Default is ``14``.
+  enable sub-project inclusion. Default is ``17``.
 
 * ``CMAKE_CXX_COMPILER``
 

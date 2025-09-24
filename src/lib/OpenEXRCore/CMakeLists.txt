@@ -10,6 +10,7 @@ openexr_define_library(OpenEXRCore
     #NB: If you make any of these public, make sure to update the
     # locking macros in the relative source files
     internal_attr.h
+    internal_bytes.h
     internal_channel_list.h
     internal_coding.h
     internal_constants.h
@@ -43,6 +44,8 @@ openexr_define_library(OpenEXRCore
     internal_b44.c
     internal_b44_table.c
     internal_piz.c
+    internal_ht.cpp
+    internal_ht_common.cpp
     internal_dwa.c
     internal_huf.c
 
@@ -52,6 +55,7 @@ openexr_define_library(OpenEXRCore
     float_vector.c
     channel_list.c
     opaque.c
+    bytes.c
     preview.c
 
     base.c
@@ -76,8 +80,6 @@ openexr_define_library(OpenEXRCore
     validation.c
 
     debug.c
-
-    ${EXR_DEFLATE_SOURCES}
 
   HEADERS
     openexr.h
@@ -104,14 +106,18 @@ openexr_define_library(OpenEXRCore
     Imath::Imath
   )
 
-set_source_files_properties(${EXR_DEFLATE_SOURCES} PROPERTIES
-    COMPILE_FLAGS
-    "$<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:GNU>>:-Wno-sign-conversion -Wno-implicit-int-conversion -Wno-unused-parameter -Wno-used-but-marked-unused -Wno-shorten-64-to-32 -Wno-sign-compare -Wno-padded -Wno-cast-qual -Wno-disabled-macro-expansion>")
-
 if (DEFINED EXR_DEFLATE_LIB)
   if (BUILD_SHARED_LIBS)
     target_link_libraries(OpenEXRCore PRIVATE ${EXR_DEFLATE_LIB})
   else()
     target_link_libraries(OpenEXRCore PUBLIC ${EXR_DEFLATE_LIB})
+  endif()
+endif()
+
+if (DEFINED EXR_OPENJPH_LIB)
+  if (BUILD_SHARED_LIBS)
+    target_link_libraries(OpenEXRCore PRIVATE ${EXR_OPENJPH_LIB})
+  else()
+    target_link_libraries(OpenEXRCore PUBLIC ${EXR_OPENJPH_LIB})
   endif()
 endif()

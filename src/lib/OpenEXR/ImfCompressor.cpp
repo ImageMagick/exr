@@ -22,6 +22,7 @@
 
 #include <algorithm>
 #include <stdexcept>
+#include "ImfHTCompressor.h"
 
 OPENEXR_IMF_INTERNAL_NAMESPACE_SOURCE_ENTER
 
@@ -335,6 +336,14 @@ newCompressor (Compression c, size_t maxScanLineSize, const Header& hdr)
                 DwaCompressor::STATIC_HUFFMAN);
             break;
 
+        case HTJ2K256_COMPRESSION:
+
+            return new HTCompressor (hdr, static_cast<int> (maxScanLineSize), 256);
+
+        case HTJ2K32_COMPRESSION:
+
+            return new HTCompressor (hdr, static_cast<int> (maxScanLineSize), 32);
+
         default: break;
     }
     // clang-format on
@@ -415,6 +424,14 @@ newTileCompressor (
                 static_cast<int> (numTileLines),
                 DwaCompressor::STATIC_HUFFMAN);
             break;
+
+        case HTJ2K256_COMPRESSION:
+        case HTJ2K32_COMPRESSION:
+
+            return new HTCompressor (
+                hdr,
+                static_cast<int> (tileLineSize),
+                static_cast<int> (numTileLines));
 
         default: break;
     }
