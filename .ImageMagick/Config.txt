@@ -1,5 +1,23 @@
 [DYNAMIC_LIBRARY]
 
+[VERSION]
+3.4.0
+
+[RELEASE_DATE]
+2025-09-05
+
+[PRODUCT_NAME]
+openexr
+
+[COMPANY_NAME]
+Industrial Light & Magic, a division of Lucasfilm Entertainment Company Ltd
+
+[URL]
+http://www.openexr.com
+
+[COPYRIGHT]
+Copyright (c) 2006, Industrial Light & Magic, a division of Lucasfilm Entertainment Company Ltd
+
 [LICENSE_FILE]
 LICENSE.md
 
