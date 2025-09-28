@@ -10,13 +10,13 @@
 openexr
 
 [COMPANY_NAME]
-Industrial Light & Magic, a division of Lucasfilm Entertainment Company Ltd
+Contributors to the OpenEXR Project.
 
 [URL]
-http://www.openexr.com
+https://github.com/AcademySoftwareFoundation/openexr
 
 [COPYRIGHT]
-Copyright (c) 2006, Industrial Light & Magic, a division of Lucasfilm Entertainment Company Ltd
+Copyright (c) Contributors to the OpenEXR Project.
 
 [LICENSE_FILE]
 LICENSE.md
