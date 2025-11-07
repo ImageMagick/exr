@@ -100,7 +100,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 # Suffix for debug configuration libraries
 # (if you should choose to install those)
 # Don't override if the user has set it and don't save it in the cache
-if (NOT CMAKE_DEBUG_POSTFIX)
+if (NOT DEFINED CMAKE_DEBUG_POSTFIX)
   set(CMAKE_DEBUG_POSTFIX "_d")
 endif()
 
@@ -257,7 +257,7 @@ endif()
 
 option(OPENEXR_FORCE_INTERNAL_OPENJPH "Force downloading OpenJPH from a git repo" OFF)
 set(OPENEXR_OPENJPH_REPO "https://github.com/aous72/OpenJPH.git" CACHE STRING "OpenJPH git repo URI")
-set(OPENEXR_OPENJPH_TAG "0.24.1" CACHE STRING "OpenJPH git repo tag")
+set(OPENEXR_OPENJPH_TAG "0.24.5" CACHE STRING "OpenJPH git repo tag")
 
 if (NOT OPENEXR_FORCE_INTERNAL_OPENJPH)
   find_package(openjph CONFIG QUIET)
