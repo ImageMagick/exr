@@ -58,7 +58,6 @@ src\wrappers\
 website\
 
 [REFERENCES]
-deflate
 imath
 openjph
 
