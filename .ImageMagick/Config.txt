@@ -51,7 +51,6 @@ Contrib\
 external\
 src\bin\
 src\lib\OpenEXRUtil\
-src\lib\OpenEXR\b44ExpLogTable.cpp
 src\examples\
 src\test\
 src\wrappers\
