@@ -3,7 +3,8 @@
 
 # OpenEXR Release Notes
 
-* [Version 3.4.10](#version-3410-april-16-2026) April 16, 2026
+* [Version 3.4.11](#version-3411-april-29-2026) April 29, 2026
+* [Version 3.4.10](#version-3410-april-17-2026) April 17, 2026
 * [Version 3.4.9](#version-349-april--3-2026) April  3, 2026
 * [Version 3.4.8](#version-348-march-26-2026) March 26, 2026
 * [Version 3.4.7](#version-347-march-15-2026) March 15, 2026
@@ -14,6 +15,7 @@
 * [Version 3.4.2](#version-342-october-15-2025) October 15, 2025
 * [Version 3.4.1](#version-341-october-8-2025) October 8, 2025
 * [Version 3.4.0](#version-340-september-5-2025) September 5, 2025
+* [Version 3.3.10](#version-339-april-17-2026) April 17, 2026
 * [Version 3.3.9](#version-339-april--4-2026) April  4, 2026
 * [Version 3.3.8](#version-338-march-1-2026) March 1, 2026
 * [Version 3.3.7](#version-337-february-19-2026) February 19, 2026
@@ -24,6 +26,7 @@
 * [Version 3.3.2](#version-332-november-11-2024) November 11, 2024
 * [Version 3.3.1](#version-331-october-8-2024) October 8, 2024
 * [Version 3.3.0](#version-330-september-30-2024) September 30, 2024
+* [Version 3.2.8](#version-328-april-17-2026) April 17, 2026
 * [Version 3.2.7](#version-327-april-3-2026) April 3, 2026
 * [Version 3.2.6](#version-326-march-1-2026) March 1, 2026
 * [Version 3.2.5](#version-325-november-4-2025) November 4, 2025
@@ -98,7 +101,67 @@
 * [Version 1.0.1](#version-101)
 * [Version 1.0](#version-10)
 
-## Version 3.4.10 (April 16, 2026)
+## Version 3.4.11 (April 29, 2026)
+
+Patch release that addresses the following security vulnerabilities:
+
+* [CVE-2026-42217](https://www.cve.org/CVERecord?id=CVE-2026-42217)
+Shift exponent overflow in `readVariableLengthInteger()` (`ImfIDManifest.cpp`)
+* [CVE-2026-42216](https://www.cve.org/CVERecord?id=CVE-2026-42216)
+Out-of-bounds read in `IDManifest::init()` during prefix expansion
+* [CVE-2026-41142](https://www.cve.org/CVERecord?id=CVE-2026-41142)
+Integer overflow in `ImageChannel::resize` leads to heap OOB write via OpenEXRUtil public API
+
+* OSS-fuzz [504280155](https://issues.oss-fuzz.com/issues/504280155)
+Heap-buffer-overflow in `DwaCompressor_uncompress`
+* OSS-fuzz [505062709](https://issues.oss-fuzz.com/issues/505062709)
+Null-dereference READ in `Imf_3_3::prefixFromLayerName`
+
+Build fixes:
+
+- Fix Windows ARM64EC build issues and correct SIMD ARM NEON path for ARM64/EC
+
+Also, some minor documentation updates:
+
+- GitHub Security Advisories are the preferred way of reporting
+  vulnerabilities, not email.
+- Some clarification around handling of UFT-8 of file paths
+
+### Merged Pull Requests
+
+* [2383](https://github.com/AcademySoftwareFoundation/openexr/pull/2383)
+validate that the uncompressed sizes recorded in the dwa header are valid
+* [2382](https://github.com/AcademySoftwareFoundation/openexr/pull/2382)
+Fix Null-dereference READ in prefixFromLayerName
+* [2378](https://github.com/AcademySoftwareFoundation/openexr/pull/2378)
+Harden IDManifest parsing against illegal shift and string prefix OOB
+* [2377](https://github.com/AcademySoftwareFoundation/openexr/pull/2377)
+Fix OOB read when expanding IDManifest prefix-compressed strings
+* [2375](https://github.com/AcademySoftwareFoundation/openexr/pull/2375)
+Minor changes to website index page to make some sentences clearer. A…
+* [2368](https://github.com/AcademySoftwareFoundation/openexr/pull/2368)
+Add release notes and news for v3.4.10, v3.3.10, v3.2.8
+* [2367](https://github.com/AcademySoftwareFoundation/openexr/pull/2367)
+Fix int overflow in ImageChannel::resize pixel count
+* [2364](https://github.com/AcademySoftwareFoundation/openexr/pull/2364)
+Recommend GH Security Advisories for vulnerability reporting
+* [2361](https://github.com/AcademySoftwareFoundation/openexr/pull/2361)
+Add documentation and test for UTF-8 file paths
+* [2344](https://github.com/AcademySoftwareFoundation/openexr/pull/2344)
+Fix Windows ARM64EC build issues and correct SIMD ARM NEON path for ARM64/EC
+
+### Merged Workflow Pull Requests
+
+* [2370](https://github.com/AcademySoftwareFoundation/openexr/pull/2370)
+Bump msys2/setup-msys2 from 2.31.0 to 2.31.1
+* [2366](https://github.com/AcademySoftwareFoundation/openexr/pull/2366)
+Add workflow dispatch trigger to release-sign.yml
+* [2363](https://github.com/AcademySoftwareFoundation/openexr/pull/2363)
+Bump vmactions/freebsd-vm from 1.4.4 to 1.4.5
+* [2362](https://github.com/AcademySoftwareFoundation/openexr/pull/2362)
+Bump github/codeql-action from 4.35.1 to 4.35.2
+
+## Version 3.4.10 (April 17, 2026)
 
 Patch release that addresses the following security vulnerabilities:
 
@@ -881,6 +944,18 @@ Fetch master branch of libdeflate on main
 * [1852](https://github.com/AcademySoftwareFoundation/openexr/pull/1852)
 Add an option to use TBB as the global provider
 
+## Version 3.3.10 (April 17, 2026)
+
+Patch release that addresses the following security vulnerabilities:
+
+* [CVE-2026-40244](https://www.cve.org/CVERecord?id=CVE-2026-40244) Integer overflow in DWA setupChannelData planarUncRle pointer arithmetic (missed variant of CVE-2026-34589)
+* [CVE-2026-40250](https://www.cve.org/CVERecord?id=CVE-2026-40250) Integer overflow in DWA decoder outBufferEnd pointer arithmetic (missed variant of CVE-2026-34589)
+
+### Merged Pull Requests
+
+* [2346](https://github.com/AcademySoftwareFoundation/openexr/pull/2346)
+Fix integer overflow in internal_dwa_compressor.h
+
 ## Version 3.3.9 (April  4, 2026)
 
 Patch release for v3.3 that addresses the following security vulnerabilities:
@@ -1565,6 +1640,18 @@ Fix macOS arm64 build
 * [1423](https://github.com/AcademySoftwareFoundation/openexr/pull/1423)
 Propagate dwa core 3 1
 * [1418](https://github.com/AcademySoftwareFoundation/openexr/pull/1418)
+
+## Version 3.2.8 (April 17, 2026)
+
+Patch release that addresses the following security vulnerabilities:
+
+* [CVE-2026-40244](https://www.cve.org/CVERecord?id=CVE-2026-40244) Integer overflow in DWA setupChannelData planarUncRle pointer arithmetic (missed variant of CVE-2026-34589)
+* [CVE-2026-40250](https://www.cve.org/CVERecord?id=CVE-2026-40250) Integer overflow in DWA decoder outBufferEnd pointer arithmetic (missed variant of CVE-2026-34589)
+
+### Merged Pull Requests
+
+* [2346](https://github.com/AcademySoftwareFoundation/openexr/pull/2346)
+Fix integer overflow in internal_dwa_compressor.h
 
 ## Version 3.2.7 (April 3, 2026)
 
