@@ -529,6 +529,27 @@ class TestUnittest(unittest.TestCase):
 
         os.remove(outfilename)
 
+    def test_write_float_vector_ndarray(self):
+
+        channels = {
+            "Z" : np.zeros((1, 1), dtype='uint32')
+        }
+        header = {
+            "floatvector32" : np.array([0.0, 1.0, 2.0, 3.0], dtype='float32'),
+            "singlevalue32" : np.array([0.5], dtype='float32')
+        }
+
+        with OpenEXR.File(header, channels) as outfile:
+
+            outfilename = mktemp_outfilename()
+            outfile.write(outfilename)
+
+            with OpenEXR.File(outfilename) as infile:
+                self.assertEqual(infile.header()["floatvector32"], [0.0, 1.0, 2.0, 3.0])
+                self.assertEqual(infile.header()["singlevalue32"], [0.5])
+
+        os.remove(outfilename)
+
     def test_write_float(self):
 
         # Construct a file from scratch and write it.
@@ -586,6 +607,34 @@ class TestUnittest(unittest.TestCase):
                 compare_files (infile, outfile)
 
         os.remove(outfilename)
+
+    def test_unfinished_multipart_load(self):
+
+        #
+        # Multipart files may list more part headers than have valid
+        # pixel data (interrupted write). Loading should return only
+        # parts whose pixels read successfully, not fail the entire
+        # file open.
+        #
+        # The test file unfinished_multipart.exr has 4 parts, 2 valid
+        # and 2 invalid. The default read should return 2 parts; the
+        # header_only read should return all 4 parts.
+        #
+
+        path = f"{test_dir}/unfinished_multipart.exr"
+        num_parts = 4
+        num_good = 2
+
+        with OpenEXR.File(path, separate_channels=True) as f:
+            self.assertEqual(len(f.parts), num_good)
+            for i in range(num_good):
+                self.assertIn('Z', f.parts[i].channels)
+                self.assertEqual(f.parts[i].channels['Z'].pixels.shape, (8, 8))
+            self.assertEqual(f.parts[0].name(), 'Part0')
+            self.assertEqual(f.parts[1].name(), 'Part1')
+
+        with OpenEXR.File(path, separate_channels=True, header_only=True) as f:
+            self.assertEqual(len(f.parts), num_parts)
 
     def test_write_2part(self):
 
