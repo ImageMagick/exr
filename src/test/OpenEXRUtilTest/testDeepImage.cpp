@@ -14,6 +14,7 @@
 #include <ImfHeader.h>
 
 #include <cassert>
+#include <climits>
 #include <cstdio>
 
 using namespace OPENEXR_IMF_NAMESPACE;
@@ -451,6 +452,32 @@ testSetSampleCounts ()
 }
 
 void
+testSetSampleCountRowOffset ()
+{
+    //
+    // Regression test for GHSA-54cp-3rq6-7mq8: row-based sample count setter
+    // must use dataWindow.min.y (not min.x) when mapping row index to Y.
+    //
+
+    cout << "sample count row setter with non-zero data window origin"
+         << endl;
+
+    DeepImage img;
+    img.insertChannel ("Z", FLOAT, 1, 1, false);
+
+    const Box2i dataWindow (V2i (0, 1), V2i (1, 1));
+    img.resize (dataWindow, ONE_LEVEL, ROUND_DOWN);
+
+    SampleCountChannel& sc = img.level (0).sampleCounts ();
+
+    unsigned int counts[2] = {1, 1};
+    sc.set (0, counts);
+
+    assert (sc.at (0, 1) == 1);
+    assert (sc.at (1, 1) == 1);
+}
+
+void
 testShiftPixels ()
 {
     cout << "pixel shifting" << endl;
@@ -671,6 +698,46 @@ testRenameChannels ()
     assert (caught);
 }
 
+void
+testRoundListSizeUpLimits ()
+{
+    cout << "            roundListSizeUp limits" << endl;
+
+    auto expectArgExc = [] (auto&& fn) {
+        bool caught = false;
+        try
+        {
+            fn ();
+        }
+        catch (const ArgExc&)
+        {
+            caught = true;
+        }
+        assert (caught);
+    };
+
+    expectArgExc ([&] {
+        DeepImage img;
+        img.resize (Box2i (V2i (0, 0), V2i (0, 0)), ONE_LEVEL, ROUND_DOWN);
+        img.level (0).sampleCounts ().set (0, 0, UINT_MAX);
+    });
+
+    expectArgExc ([&] {
+        DeepImage img;
+        img.resize (Box2i (V2i (0, 0), V2i (0, 0)), ONE_LEVEL, ROUND_DOWN);
+        img.level (0).sampleCounts ().set (0, 0, 0x80000001u);
+    });
+
+    expectArgExc ([&] {
+        DeepImage img;
+        img.resize (Box2i (V2i (0, 0), V2i (0, 0)), ONE_LEVEL, ROUND_DOWN);
+        SampleCountChannel& samples = img.level (0).sampleCounts ();
+        unsigned int*       counts  = samples.beginEdit ();
+        counts[0]                   = UINT_MAX;
+        samples.endEdit ();
+    });
+}
+
 } // namespace
 
 void
@@ -683,6 +750,8 @@ testDeepImage (const string& tempDir)
         testScanLineImages (tempDir + "deepScanLines.exr");
         testTiledImages (tempDir + "deepTiles.exr");
         testSetSampleCounts ();
+        testSetSampleCountRowOffset ();
+        testRoundListSizeUpLimits ();
         testShiftPixels ();
         testCropping (tempDir + "deepCropped.exr");
         testRenameChannel ();
