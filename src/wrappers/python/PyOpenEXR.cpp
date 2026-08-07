@@ -207,6 +207,9 @@ PyFile::PyFile(const std::string& filename, bool separate_channels, bool header_
         
             std::vector<size_t> shape ({height, width});
 
+            if (!separate_channels)
+                P.validateCoalescedChannels (header.channels (), rgbaChannels);
+
             //
             // Read the channel data, different for image vs. deep
             //
@@ -223,6 +226,10 @@ PyFile::PyFile(const std::string& filename, bool separate_channels, bool header_
                     P.readDeepPixels(*_inputFile, type, header.channels(), shape, rgbaChannels, dw, separate_channels);
                 }
                 parts.append(py::cast<PyPart>(PyPart(P)));
+            }
+            catch (const std::invalid_argument&)
+            {
+                throw;
             }
             catch (const std::exception& e)
             {
@@ -243,6 +250,9 @@ PyPart::readPixels(MultiPartInputFile& infile, const ChannelList& channel_list,
                    const std::vector<size_t>& shape, const std::set<std::string>& rgbaChannels,
                    const Box2i& dw, bool separate_channels)
 {
+    if (!separate_channels)
+        validateCoalescedChannels (channel_list, rgbaChannels);
+
     FrameBuffer frameBuffer;
 
     for (auto c = channel_list.begin(); c != channel_list.end(); c++)
@@ -273,11 +283,21 @@ PyPart::readPixels(MultiPartInputFile& infile, const ChannelList& channel_list,
             std::vector<size_t> c_shape = shape;
 
             //
+            // For subsampled channels, shrink the allocated array to
+            // the actual sampled dimensions so no stale rows/columns
+            // are returned to Python.
+            //
+            if (C.xSampling > 1)
+                c_shape[1] = (shape[1] - 1) / C.xSampling + 1;
+            if (C.ySampling > 1)
+                c_shape[0] = (shape[0] - 1) / C.ySampling + 1;
+
+            //
             // If this channel belongs to one of the rgba's, give
             // the PyChannel the extra dimension and the proper shape.
             // nrgba is 3 for RGB and 4 for RGBA.
             //
-            
+
             if (rgbaChannels.find(c.name()) != rgbaChannels.end())
                 c_shape.push_back(nrgba);
 
@@ -336,7 +356,10 @@ PyPart::readPixels(MultiPartInputFile& infile, const ChannelList& channel_list,
             }
         }
 
-        size_t yStride = xStride * shape[1] / C.xSampling;
+        size_t sampledWidth = (C.xSampling > 1)
+            ? (shape[1] - 1) / C.xSampling + 1
+            : shape[1];
+        size_t yStride = xStride * sampledWidth;
 
         frameBuffer.insert (c.name(),
                             Slice::Make (c.channel().type,
@@ -447,11 +470,12 @@ PyPart::setDeepSliceData(const ChannelList& channel_list, size_t height, size_t 
         size_t channel_offset = 0;
         if (C._nrgba > 0)
         {
-            if (!strcmp(c.name(), "G"))
+            char last = c.name()[strlen(c.name()) - 1];
+            if (last == 'G')
                 channel_offset = 1;
-            else if (!strcmp(c.name(), "B"))
+            else if (last == 'B')
                 channel_offset = 2;
-            else if (!strcmp(c.name(), "A"))
+            else if (last == 'A')
                 channel_offset = 3;
         }
 
@@ -495,6 +519,9 @@ PyPart::readDeepPixels(MultiPartInputFile& infile, const std::string& type, cons
                        const std::vector<size_t>& shape, const std::set<std::string>& rgbaChannels,
                        const Box2i& dw, bool separate_channels)
 {
+    if (!separate_channels)
+        validateCoalescedChannels (channel_list, rgbaChannels);
+
     size_t width  = dw.max.x - dw.min.x + 1;
     size_t height = dw.max.y - dw.min.y + 1;
     auto dw_offset = dw.min.y * width + dw.min.x;
@@ -953,9 +980,101 @@ PyPart::writeDeepPixels(MultiPartOutputFile& outfile, const Box2i& dw) const
 // channel_name is returned as the single character name of the channel
 //
 
+namespace
+{
+
+const char*
+pixelTypeName (PixelType type)
+{
+    switch (type)
+    {
+        case UINT: return "UINT";
+        case HALF: return "HALF";
+        case FLOAT: return "FLOAT";
+        default: return "unknown";
+    }
+}
+
+} // namespace
+
+//
+// Only combine RGB(A) channels into a single numpy array when coalescing is
+// unambiguous: all channels in a group must share the same pixel type, and no
+// literal channel name may collide with a coalesced group key (for example,
+// literal "left" plus "left.R", "left.G", "left.B", each of which would
+// attempt to add a channel dictionary entry with key "left"). 
+//
+// Note that attempting to coalesce invalid channel layouts causes a failure of
+// the entire file read, whereas other read errors simply skip the offending
+// part. This is reasonable behavior since the condition is not a defect in
+// the data itself, but simply an inability to return the data in the format
+// the user requested.
+
+void
+PyPart::validateCoalescedChannels (
+    const ChannelList&           channel_list,
+    const std::set<std::string>& rgbaChannels) const
+{
+    if (rgbaChannels.empty ())
+        return;
+
+    std::map<std::string, PixelType> groupType;
+    std::set<std::string>            coalescedKeys;
+
+    for (auto c = channel_list.begin (); c != channel_list.end (); ++c)
+    {
+        if (rgbaChannels.find (c.name ()) == rgbaChannels.end ())
+            continue;
+
+        // py_channel_name is the name of the combined channel, i.e. if the
+        // file has left.R, left.G, left.B, then py_channel_name is "left".
+        // It's allowable to have "left" be FLOAT and "right" be HALF, but
+        // all RGB channels within "left" and "right" must have the same
+        // type.
+
+        std::string py_channel_name;
+        char        channel_name;
+        if (channelNameToRGBA (channel_list, c.name (), py_channel_name, channel_name) <= 0)
+            continue;
+
+        coalescedKeys.insert (py_channel_name);
+
+        const PixelType channelType = c.channel ().type;
+        auto            it          = groupType.find (py_channel_name);
+        if (it == groupType.end ())
+            groupType[py_channel_name] = channelType;
+        else if (it->second != channelType)
+        {
+            std::stringstream err;
+            err << "cannot coalesce channels into \"" << py_channel_name
+                << "\": channel \"" << c.name () << "\" has pixel type "
+                << pixelTypeName (channelType) << " but other channels in the group "
+                << "have pixel type " << pixelTypeName (it->second)
+                << "; use separate_channels=True";
+            throw std::invalid_argument (err.str ());
+        }
+    }
+
+    for (auto c = channel_list.begin (); c != channel_list.end (); ++c)
+    {
+        if (rgbaChannels.find (c.name ()) != rgbaChannels.end ())
+            continue;
+
+        if (coalescedKeys.find (c.name ()) != coalescedKeys.end ())
+        {
+            std::stringstream err;
+            err << "cannot coalesce channels into \"" << c.name ()
+                << "\": channel \"" << c.name ()
+                << "\" collides with a coalesced RGB/RGBA group key"
+                << "; use separate_channels=True";
+            throw std::invalid_argument (err.str ());
+        }
+    }
+}
+
 int
 PyPart::channelNameToRGBA(const ChannelList& channel_list, const std::string& name,
-                          std::string& py_channel_name, char& channel_name)
+                          std::string& py_channel_name, char& channel_name) const
 {
     py_channel_name = name;
     channel_name = py_channel_name.back();
