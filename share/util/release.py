@@ -68,7 +68,8 @@ def extract_section(content, version_tag):
 
         # Stop capturing when the next subsection (##) starts
         if capture and (subsection_header_pattern.match(line) or
-                        "Merged Pull Requests" in line):
+                        "Merged Pull Requests" in line or
+                        "Merged pull requests" in line):
             break
         # Capture lines if inside the correct section and before any subsections
         if capture:

@@ -1,3 +1,8 @@
+//
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) Contributors to the OpenEXR Project.
+//
+
 // Enums defined in ImfTileDescription.h
 // enum LevelMode
 // {
@@ -5,13 +10,17 @@
 //     MIPMAP_LEVELS,
 //     RIPMAP_LEVELS
 // };
-    
+
 // enum LevelRoundingMode
 // {
 //     ROUND_DOWN,
 //     ROUND_UP
 // };
-    
+
+#include <ImfTileDescription.h>
+
+using namespace OPENEXR_IMF_NAMESPACE;
+
 class TileDescription
 {
   public:

@@ -7,14 +7,16 @@
 #    undef NDEBUG
 #endif
 
-#include <ImfArray.h>
-#include <ImfChannelList.h>
-#include <ImfFrameBuffer.h>
-#include <ImfHeader.h>
-#include <ImfInputFile.h>
-#include <ImfTiledInputFile.h>
-#include <ImfTiledOutputFile.h>
-#include <half.h>
+#include "compareLJ2K.h"
+
+#include "ImfArray.h"
+#include "ImfChannelList.h"
+#include "ImfFrameBuffer.h"
+#include "ImfHeader.h"
+#include "ImfInputFile.h"
+#include "ImfTiledInputFile.h"
+#include "ImfTiledOutputFile.h"
+#include <Imath/half.h>
 
 #include <assert.h>
 #include <stdio.h>
@@ -311,10 +313,16 @@ writeCopyReadMIP (
             for (int y = 0; y < in1.levelHeight (l); ++y)
                 for (int x = 0; x < in1.levelWidth (l); ++x)
                 {
-                    assert ((levels2[l])[y][x] == (levels1[l])[y][x]);
+                    if (comp == LJ2K_COMPRESSION)
+                    {
+                        assert (checkHTJ2KSample ((levels2[l])[y][x], (levels1[l])[y][x]));
+                        assert (checkHTJ2KSample ((levels2[l])[y][x], (levels[l])[y][x]));
+                    } else {
+                        assert ((levels2[l])[y][x] == (levels1[l])[y][x]);
 
-                    if (comp != B44_COMPRESSION && comp != B44A_COMPRESSION)
-                        assert ((levels2[l])[y][x] == (levels[l])[y][x]);
+                        if (comp != B44_COMPRESSION && comp != B44A_COMPRESSION)
+                            assert ((levels2[l])[y][x] == (levels[l])[y][x]);
+                    }
                 }
     }
 
@@ -486,13 +494,20 @@ writeCopyReadRIP (
                 for (int y = 0; y < in1.levelHeight (ly); ++y)
                     for (int x = 0; x < in1.levelWidth (lx); ++x)
                     {
-                        assert (
-                            (levels2[ly][lx])[y][x] == (levels1[ly][lx])[y][x]);
+                        if (comp == LJ2K_COMPRESSION)
+                        {
+                            assert (checkHTJ2KSample ((levels2[ly][lx])[y][x], (levels1[ly][lx])[y][x]));
+                            assert (checkHTJ2KSample ((levels2[ly][lx])[y][x], (levels[ly][lx])[y][x]));
+                        } else {
 
-                        if (comp != B44_COMPRESSION && comp != B44A_COMPRESSION)
                             assert (
-                                (levels2[ly][lx])[y][x] ==
-                                (levels[ly][lx])[y][x]);
+                                (levels2[ly][lx])[y][x] == (levels1[ly][lx])[y][x]);
+
+                            if (comp != B44_COMPRESSION && comp != B44A_COMPRESSION)
+                                assert (
+                                    (levels2[ly][lx])[y][x] ==
+                                    (levels[ly][lx])[y][x]);
+                        }
                     }
     }
 

@@ -13,7 +13,20 @@
 
 #include "test_value.h"
 
-#include <openexr.h>
+#include "openexr.h"
+
+#include "ImfArray.h"
+#include "ImfChannelList.h"
+#include "ImfCompressor.h"
+#include "ImfFrameBuffer.h"
+#include "ImfHeader.h"
+#include "ImfHuf.h"
+#include "ImfInputFile.h"
+#include "ImfOutputFile.h"
+#include "ImfTiledOutputFile.h"
+
+#include <Imath/ImathRandom.h>
+#include <Imath/half.h>
 
 #include <memory.h>
 #include <stdlib.h>
@@ -24,18 +37,6 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
-
-#include <ImathRandom.h>
-#include <ImfArray.h>
-#include <ImfChannelList.h>
-#include <ImfCompressor.h>
-#include <ImfFrameBuffer.h>
-#include <ImfHeader.h>
-#include <ImfHuf.h>
-#include <ImfInputFile.h>
-#include <ImfOutputFile.h>
-#include <ImfTiledOutputFile.h>
-#include <half.h>
 
 #include "internal_ht_common.cpp"
 
@@ -908,7 +909,7 @@ static void
 doDecodeScan (exr_context_t f, pixels& p, int xs, int ys)
 {
     exr_chunk_info_t      cinfo;
-    exr_decode_pipeline_t decoder;
+    exr_decode_pipeline_t decoder = EXR_DECODE_PIPELINE_INITIALIZER;
     int32_t               scansperchunk;
     exr_attr_box2i_t      dw;
     bool                  first = true;
@@ -989,7 +990,7 @@ doDecodeTile (exr_context_t f, pixels& p, int xs, int ys)
     int                   y, endy;
     int                   x, endx;
     exr_chunk_info_t      cinfo;
-    exr_decode_pipeline_t decoder;
+    exr_decode_pipeline_t decoder = EXR_DECODE_PIPELINE_INITIALIZER;
     bool                  first = true;
 
     EXRCORE_TEST (xs == 1 && ys == 1);
@@ -1298,9 +1299,13 @@ doWriteRead (
     dataW.max.x = dwx + fw - 1;
     dataW.max.y = dwy + fh - 1;
 
-    std::cout << "  " << pattern << " tiled: " << (tiled ? "yes" : "no")
-              << " sampling " << xs << ", " << ys << " comp " << (int) comp
-              << std::endl;
+    std::string codec;
+    getCompressionNameFromId(Compression(comp), codec);
+
+    std::cout << "  " << std::left << std::setw (9) << pattern
+              << " tiled: " << std::setw (3) << (tiled ? "yes" : "no")
+              << "  sampling " << xs << ", " << ys << "  comp "
+              << codec << " (" << comp << ")" << std::endl;
 
     EXRCORE_TEST_RVAL (exr_start_write (
         &f, filename.c_str (), EXR_WRITE_FILE_DIRECTLY, &cinit));
@@ -1435,6 +1440,7 @@ doWriteRead (
         case EXR_COMPRESSION_RLE:
         case EXR_COMPRESSION_ZIP:
         case EXR_COMPRESSION_ZIPS:
+        case EXR_COMPRESSION_ZSTD:
             restore.compareExact (p, "orig", "C loaded C");
             break;
         case EXR_COMPRESSION_PIZ:
@@ -1805,6 +1811,12 @@ testHTHeaderBounds (const std::string& tempdir)
 }
 
 void
+testZstdCompression (const std::string& tempdir)
+{
+    testComp (tempdir, EXR_COMPRESSION_ZSTD);
+}
+
+void
 testDeepNoCompression (const std::string& tempdir)
 {}
 
@@ -1814,4 +1826,8 @@ testDeepZIPCompression (const std::string& tempdir)
 
 void
 testDeepZIPSCompression (const std::string& tempdir)
+{}
+
+void
+testDeepZstdCompression (const std::string& tempdir)
 {}

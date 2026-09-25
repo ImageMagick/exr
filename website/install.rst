@@ -102,14 +102,70 @@ Make sure these are installed on your system before building OpenEXR:
 * ``Imath`` (auto-fetched by CMake if not found) (https://github.com/AcademySoftwareFoundation/Imath)
 * ``libdeflate`` (internal copy used by CMake if not found for
   v3.4+; auto-fetched in v3.3 and before) (https://github.com/ebiggers/libdeflate)
-* ``openjph`` (internal vendored copy used by CMake if not found; new
-  in v3.4; auto-fetched in v3.4.0-3.4.3) (https://github.com/aous72/OpenJPH)
+* ``openjph`` (minimum version 0.32.0; internal vendored copy used by CMake if not found; new
+  in v3.4; auto-fetched in 3.4.5 and before) (https://github.com/aous72/OpenJPH)
+* ``zstd`` (internal vendored copy used by CMake if a suitable external
+  install is not found; new in v3.5) (https://github.com/facebook/zstd)
 * (optional) Intel's Thread Building Blocks library (TBB)
 
 The instructions that follow describe building OpenEXR with CMake.
 
 Note that as of OpenEXR 3, the Gnu autoconf bootstrap/configure build
 system is no longer supported.
+
+Headers and ``#include`` Policy
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Public headers are installed under ``${CMAKE_INSTALL_INCLUDEDIR}`` in
+a dedicated subdirectory, by default ``OpenEXR/`` (the CMake cache
+variable ``OPENEXR_OUTPUT_SUBDIR`` controls the name). For a typical
+prefix, paths look like ``$prefix/include/OpenEXR/ImfRgbaFile.h``.
+
+Application code may use **either** of these include styles:
+
+* ``#include <ImfRgbaFile.h>`` (historical, flat filename)
+* ``#include <OpenEXR/ImfRgbaFile.h>`` (namespaced path under the parent
+  include directory)
+
+Both are supported **by design**. The exported CMake targets
+(``OpenEXR::OpenEXR``, ``OpenEXR::OpenEXRUtil``, ``OpenEXR::OpenEXRCore``,
+``OpenEXR::Iex``, ``OpenEXR::IlmThread``, and related ``OpenEXR::*Config``
+interface targets) propagate two install-interface include directories:
+``$prefix/include`` **and** ``$prefix/include/OpenEXR``. Linking against
+those targets after ``find_package(OpenEXR)`` is the recommended way to
+obtain correct flags; you should not need to add ``-I`` paths by hand.
+The same dual-path behavior is reflected in the ``pkg-config`` file
+(``Cflags`` lists both roots) for non-CMake builds.
+
+**Recommended usage:** Prefer ``find_package(OpenEXR …)`` and
+``target_link_libraries(… OpenEXR::…)`` in CMake, or ``pkg-config`` for
+other build systems, and keep either include spelling consistent within
+your project.
+
+If you are not using cmake or pkg-config and must set compiler flags
+yourself, mirror both include directories above and include
+``-I$prefix/include`` and ``-I$prefix/include/OpenEXR``; a single
+``-I$prefix/include`` without the ``OpenEXR`` subdirectory is **not**
+sufficient for flat ``#include <Imf*.h>`` lines.
+
+This layout preserves long-standing flat includes in existing code and
+documentation while keeping headers grouped under ``OpenEXR/`` on
+disk. There is no plan to remove either style in current release
+lines.
+
+Headers in the OpenEXR Source Tree
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When inspecting the OpenEXR source code or investigating issues
+building the library, note that within the OpenEXR source tree, all
+local headers are included with quotes, i.e. ``#include
+"ImfHeader.h"``, not angle brackets ``<>``, since for an internal
+build the headers come from the same library tree. Also note that
+since headers are stored alongside source files in each internal
+library directory (``OpenEXR``, ``OpenEXRCore``, ``OpenEXRUtil``,
+``Iex``, ``IlmThread``), not in a single common ``OpenEXR`` folder,
+they are included internally as bare files, without a ``OpenEXR/``
+subdirectory. This intentionally differs from the installed layout.
 
 OpenEXR/Imath Version Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -307,8 +363,6 @@ See below for other customization options.
 
 Imath Header Includes (``#include <Imath/...>``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-(new in v3.5)
 
 OpenEXR source and public headers use the conventional Imath include
 form with an ``Imath/`` directory prefix, for example:
@@ -534,16 +588,32 @@ As of OpenEXR release v3.4, OpenEXR depends on
 `OpenJPH <https://github.com/aous72/OpenJPH>`_ for
 HTJ2K compression. 
 
-As of OpenEXR release v3.4.4, OpenEXR ships with an internal "vendored"
+A minimum version of 0.32.0 is required.
+
+As of OpenEXR release v3.4.6, OpenEXR ships with an internal "vendored"
 copy of the ``OpenJPH`` library. At configuration time, if
 CMake finds an external installation of ``OpenJPH``, it will use
-it. If it fails to find an installation, it will use the internal
+it. If it fails to find an acceptable installation, it will use the internal
 copy. To force use of the internal copy, configure with
 ``-DOPENEXR_FORCE_INTERNAL_OPENJPH=ON``.
 
-OpenEXR releases v3.4.0-v3.4.3 auto-fetch the ``OpenJPH`` source and
+OpenEXR releases v3.4.0-v3.4.5 auto-fetch the ``OpenJPH`` source and
 build it internally if cmake does not find an external
 installation. 
+
+``zstd`` Dependency
+~~~~~~~~~~~~~~~~~~~
+
+As of OpenEXR release v3.5, OpenEXR depends on
+`zstd <https://github.com/facebook/zstd>`_ for
+ZSTD lossless compression.
+
+As of OpenEXR release v3.5, OpenEXR ships with an internal "vendored"
+copy of the ``zstd`` library. At configuration time, if
+CMake finds an external installation of ``zstd`` (minimum version
+1.5.0), it will use it. If it fails to find an installation, it will use
+the internal copy. To force use of the internal copy, configure with
+``-DOPENEXR_FORCE_INTERNAL_ZSTD=ON``.
 
 TBB Dependency
 ~~~~~~~~~~~~~~

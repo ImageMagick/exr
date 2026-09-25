@@ -1,11 +1,27 @@
+//
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) Contributors to the OpenEXR Project.
+//
 
-char fileName[] = "";
-// [begin hasEnvmap]
-RgbaInputFile file (fileName);
+#include <ImfInputFile.h>
+#include <ImfRgbaFile.h>
+#include <ImfEnvmap.h>
+#include <ImfStandardAttributes.h>
 
-if (hasEnvmap (file.header()))
+using namespace OPENEXR_IMF_NAMESPACE;
+
+void
+envmap1 ()
 {
-    Envmap type = envmap (file.header());
-    // ...
+    char fileName[] = "";
+    // [begin hasEnvmap]
+    RgbaInputFile file (fileName);
+
+    if (hasEnvmap (file.header()))
+    {
+        Envmap type = envmap (file.header());
+        // ...
+    }
+    // [end hasEnvmap]
+
 }
-// [end hasEnvmap]

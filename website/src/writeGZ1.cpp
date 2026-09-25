@@ -1,4 +1,18 @@
+//
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) Contributors to the OpenEXR Project.
+//
+
 // [begin writeGZ1]
+#include <ImfHeader.h>
+#include <ImfArray.h>
+#include <ImfChannelList.h>
+#include <ImfFrameBuffer.h>
+#include <ImfOutputFile.h>
+
+using namespace IMATH_NAMESPACE;
+using namespace OPENEXR_IMF_NAMESPACE;
+
 void
 writeGZ1 (
     const char   fileName[],
@@ -41,14 +55,14 @@ const half*  gPixels;
 const float* zPixels;
 int x, y, width;
 
-half* G = 
+half* G =
 // [begin compteChannelG]
 (half*)((char*)gPixels + x * sizeof(half) * 1 + y * sizeof(half) * width);
     // = (half*)((char*)gPixels + x * 2 + y * 2 * width);
 // [end compteChannelG]
 
 // [begin compteChannelZ]
-float* Z = 
+float* Z =
 (float*)((char*)zPixels + x * sizeof(float) * 1 + y * sizeof(float) * width);
     // = (float*)((char*)zPixels + x * 4 + y * 4 * width);
 // [end compteChannelZ]

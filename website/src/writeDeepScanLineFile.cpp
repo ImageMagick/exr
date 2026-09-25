@@ -1,3 +1,30 @@
+//
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) Contributors to the OpenEXR Project.
+//
+
+#include <ImfHeader.h>
+#include <ImfChannelList.h>
+#include <ImfPartType.h>
+#include <ImfDeepScanLineInputFile.h>
+#include <ImfArray.h>
+#include <ImfDeepTiledOutputFile.h>
+#include <ImfDeepFrameBuffer.h>
+
+using namespace IMATH_NAMESPACE;
+using namespace OPENEXR_IMF_NAMESPACE;
+
+int
+getPixelSampleCount(int i, int j)
+{
+    return 0;
+}
+
+void
+getPixelSampleData(int i, int j, Array2D<float*>& dataZ, Array2D<half*>& dataA)
+{
+}
+
 void
 writeDeepScanLineFile (
     const char       filename[],

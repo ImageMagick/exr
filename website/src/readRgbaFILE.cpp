@@ -1,3 +1,17 @@
+//
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) Contributors to the OpenEXR Project.
+//
+
+#include "C_IStream.h"
+
+#include <ImfArray.h>
+#include <ImfInputFile.h>
+#include <ImfRgbaFile.h>
+
+using namespace IMATH_NAMESPACE;
+using namespace OPENEXR_IMF_NAMESPACE;
+
 void
 readRgbaFILE (
     FILE*          cfile,
@@ -6,7 +20,8 @@ readRgbaFILE (
     int&           width,
     int&           height)
 {
-    C_IStream istr (cfile, fileName);
+
+   C_IStream istr (cfile, fileName);
 
     RgbaInputFile file (istr);
 

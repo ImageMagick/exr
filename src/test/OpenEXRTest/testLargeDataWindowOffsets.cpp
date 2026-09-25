@@ -10,8 +10,10 @@
 #include "ImfInputFile.h"
 #include "ImfOutputFile.h"
 #include "ImfStandardAttributes.h"
-#include <IlmThread.h>
-#include <ImathBox.h>
+#include "IlmThread.h"
+
+#include <Imath/ImathBox.h>
+
 #include <algorithm>
 #include <assert.h>
 #include <iostream>
@@ -356,7 +358,8 @@ test (int testCount)
 
         Header hdr = writefile (writeFrameBuf, channels, writetypes);
         Box2i  dw  = hdr.dataWindow ();
-        cout << "dataWindow: " << dw.min << ' ' << dw.max << ' ';
+        cout << "dataWindow: " << dw.min << ' ' << dw.max << ' '
+             << "comp: " << hdr.compression () << ' ';
         cout.flush ();
         FrameBuffer readFrameBuf;
         readfile (readFrameBuf, channels, readTypes);
@@ -365,7 +368,7 @@ test (int testCount)
         // only the first 5 compression methods are guaranteed lossless on both half and float.
         // skip comparison for other types
         //
-        if (hdr.compression () < 5)
+        if (!isLossyCompression (hdr.compression ()))
         {
             if (compare (readFrameBuf, writeFrameBuf, dw)) { cout << " OK "; }
             else { cout << " FAIL" << endl; }

@@ -1,4 +1,20 @@
+//
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) Contributors to the OpenEXR Project.
+//
+
 // [begin readHeader]
+#include <ImfRgbaFile.h>
+#include <ImfStandardAttributes.h>
+
+#include <iostream>
+
+using std::cout;
+using std::endl;
+using std::flush;
+
+using namespace OPENEXR_IMF_NAMESPACE;
+
 void
 readHeader (const char fileName[])
 {
@@ -10,31 +26,9 @@ readHeader (const char fileName[])
     const M44fAttribute* cameraTransform =
         file.header ().findTypedAttribute<M44fAttribute> ("cameraTransform");
 
-    if (comments) cout << "commentsn " << comments->value () << endl;
+    if (comments) cout << "comments " << comments->value () << endl;
 
     if (cameraTransform)
-        cout << "cameraTransformn" << cameraTransform->value () << flush;
+        cout << "cameraTransform " << cameraTransform->value () << flush;
 }
 // [end readHeader]
- 
-// [begin readComments]
-void
-readComments (const char fileName[], string &comments)
-{
-    RgbaInputFile file (fileName);
-
-    comments = file.header().typedAttribute<StringAttribute>("comments").value();
-}
-// [end readComments]
-
-// [begin readCommentsError]
-void
-readComments (const char fileName[], const StringAttribute *&comments)
-{
-    // error: comments pointer is invalid after this function returns
-
-    RgbaInputFile file (fileName);
-
-    comments = file.header().findTypedAttribute <StringAttribute> ("comments");
-}
-// [end readCommentsError]

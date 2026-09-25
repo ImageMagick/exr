@@ -10,15 +10,17 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <Iex.h>
-#include <ImathFun.h>
-#include <ImfChannelList.h>
-#include <ImfInputPart.h>
-#include <ImfMultiPartInputFile.h>
-#include <ImfOutputFile.h>
-#include <ImfRgbaFile.h>
-#include <ImfRgbaYca.h>
-#include <ImfStandardAttributes.h>
+#include "Iex.h"
+#include "ImfChannelList.h"
+#include "ImfInputPart.h"
+#include "ImfMultiPartInputFile.h"
+#include "ImfOutputFile.h"
+#include "ImfRgbaFile.h"
+#include "ImfRgbaYca.h"
+#include "ImfStandardAttributes.h"
+
+#include <Imath/ImathFun.h>
+
 #include <algorithm>
 #include <mutex>
 #include <string.h>
@@ -102,6 +104,8 @@ prefixFromLayerName (const string& layerName, const Header& header)
 V3f
 ywFromHeader (const Header& header)
 {
+    // TODO: Add support for colorInteropID.
+
     Chromaticities cr;
 
     if (hasChromaticities (header)) cr = chromaticities (header);

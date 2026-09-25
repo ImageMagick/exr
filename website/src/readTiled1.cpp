@@ -1,3 +1,21 @@
+//
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) Contributors to the OpenEXR Project.
+//
+
+#include <ImfTiledInputFile.h>
+#include <ImfFrameBuffer.h>
+#include <ImfArray.h>
+
+using namespace IMATH_NAMESPACE;
+using namespace OPENEXR_IMF_NAMESPACE;
+
+struct GZ
+{
+    half g;
+    float z;
+};
+
 // [begin readTiled1]
 void
 readTiled1 (const char fileName[], Array2D<GZ>& pixels, int& width, int& height)

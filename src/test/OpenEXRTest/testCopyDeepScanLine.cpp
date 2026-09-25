@@ -13,13 +13,13 @@
 #include <assert.h>
 #include <string.h>
 
-#include <IlmThreadPool.h>
-#include <ImfArray.h>
-#include <ImfChannelList.h>
-#include <ImfDeepFrameBuffer.h>
-#include <ImfDeepScanLineInputFile.h>
-#include <ImfDeepScanLineOutputFile.h>
-#include <ImfPartType.h>
+#include "IlmThreadPool.h"
+#include "ImfArray.h"
+#include "ImfChannelList.h"
+#include "ImfDeepFrameBuffer.h"
+#include "ImfDeepScanLineInputFile.h"
+#include "ImfDeepScanLineOutputFile.h"
+#include "ImfPartType.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
@@ -354,13 +354,14 @@ readCopyWriteTest (const std::string& tempDir, int channelCount, int testTimes)
 
     for (int i = 0; i < testTimes; i++)
     {
-        int         compressionIndex = i % 3;
+        int         compressionIndex = i % 4;
         Compression compression;
         switch (compressionIndex)
         {
             case 0: compression = NO_COMPRESSION; break;
             case 1: compression = RLE_COMPRESSION; break;
             case 2: compression = ZIPS_COMPRESSION; break;
+            case 3: compression = ZSTD_COMPRESSION; break;
         }
 
         generateRandomFile (source_filename, channelCount, compression);

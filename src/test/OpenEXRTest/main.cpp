@@ -59,6 +59,7 @@
 #include "testSharedFrameBuffer.h"
 #include "testStandardAttributes.h"
 #include "testTiledCompression.h"
+#include "testLJ2KBoundary.h"
 #include "testTiledCopyPixels.h"
 #include "testTiledLineOrder.h"
 #include "testTiledRgba.h"
@@ -67,7 +68,8 @@
 #include "testXdr.h"
 #include "testYca.h"
 
-#include "ImathRandom.h"
+#include <Imath/ImathRandom.h>
+
 #include "tmpDir.h"
 
 // system includes
@@ -198,6 +200,7 @@ main (int argc, char* argv[])
     TEST (testTiledRgba, "basic");
     TEST (testTiledCopyPixels, "basic");
     TEST (testTiledCompression, "basic");
+    TEST (testLJ2KBoundary, "basic");
     TEST (testTiledLineOrder, "basic");
     TEST (testScanLineApi, "basic");
     TEST (testExistingStreams, "core");

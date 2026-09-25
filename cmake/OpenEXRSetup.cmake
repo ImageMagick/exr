@@ -93,6 +93,17 @@ option(OPENEXR_TEST_PYTHON "Run python binding tests" ON)
 # probably assume this is OpenEXR
 set(OPENEXR_OUTPUT_SUBDIR OpenEXR CACHE STRING "Destination sub-folder of the include path for install")
 
+# When OpenEXR is pulled in via add_subdirectory(), mirror installed layout under
+# BUILD_INTERFACE so consumers can use #include <OpenEXR/...>. Not used for a normal
+# top-level OpenEXR build (clears legacy cache entry from older CMake revisions).
+if(OPENEXR_IS_SUBPROJECT)
+  set(OPENEXR_BUILD_INTERFACE_UNIFIED "${CMAKE_BINARY_DIR}/OpenEXR_build_interface_include")
+  file(MAKE_DIRECTORY "${OPENEXR_BUILD_INTERFACE_UNIFIED}/${OPENEXR_OUTPUT_SUBDIR}")
+else()
+  unset(OPENEXR_BUILD_INTERFACE_UNIFIED CACHE)
+  unset(OPENEXR_BUILD_INTERFACE_UNIFIED)
+endif()
+
 # This does not seem to be available as a per-target property,
 # but is pretty harmless to set globally
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -261,12 +272,8 @@ set(OPENEXR_USE_INTERNAL_OPENJPH 0 CACHE INTERNAL
     "Whether OpenEXR bundles vendored OpenJPH into OpenEXRCore (0 or 1)")
 
 if (NOT OPENEXR_FORCE_INTERNAL_OPENJPH)
-  find_package(openjph CONFIG QUIET)
+  find_package(openjph 0.32.0 CONFIG QUIET)
   if(openjph_FOUND)
-    if(openjph_VERSION VERSION_LESS "0.21.0")
-        message(FATAL_ERROR "OpenJPH >= 0.21.0 required, but found ${openjph_VERSION}")
-    endif()
-
     message(STATUS "Using OpenJPH ${openjph_VERSION} from ${openjph_DIR}")
     set(EXR_OPENJPH_LIB openjph)
   else()
@@ -274,7 +281,7 @@ if (NOT OPENEXR_FORCE_INTERNAL_OPENJPH)
     find_package(PkgConfig)
     if(PKG_CONFIG_FOUND)
       include(FindPkgConfig)
-      pkg_check_modules(openjph IMPORTED_TARGET GLOBAL QUIET openjph=0.21)
+      pkg_check_modules(openjph IMPORTED_TARGET GLOBAL QUIET openjph=0.32.0)
       if(openjph_FOUND)
         set(EXR_OPENJPH_LIB PkgConfig::openjph)
         message(STATUS "Using OpenJPH ${openjph_VERSION} from ${openjph_LINK_LIBRARIES}")
@@ -286,25 +293,33 @@ endif()
 if(EXR_OPENJPH_LIB)
   # Using external library
   # For OpenEXR.pc.in for static build
-  set(EXR_OPENJPH_PKGCONFIG_REQUIRES "openjph >= 0.21.0")
+  set(EXR_OPENJPH_PKGCONFIG_REQUIRES "openjph >= 0.32.0")
 else()
   # Using internal openjph
   set(OPENEXR_USE_INTERNAL_OPENJPH 1 CACHE INTERNAL
       "Whether OpenEXR bundles vendored OpenJPH into OpenEXRCore (0 or 1)" FORCE)
 
   # extract the openjph version variables from ojph_version.h
-  set(openjph_SOURCE_DIR "${CMAKE_SOURCE_DIR}/external/openjph")
+  set(openjph_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/OpenJPH")
   set(openjph_version "${openjph_SOURCE_DIR}/src/core/openjph/ojph_version.h")
   if(EXISTS "${openjph_version}")
     file(STRINGS "${openjph_version}" _openjph_major REGEX "#define OPENJPH_VERSION_MAJOR")
     file(STRINGS "${openjph_version}" _openjph_minor REGEX "#define OPENJPH_VERSION_MINOR")
     file(STRINGS "${openjph_version}" _openjph_patch REGEX "#define OPENJPH_VERSION_PATCH")
+    file(STRINGS "${openjph_version}" _openjph_sha REGEX "#define OPENJPH_VERSION_SHA")
     string(REGEX REPLACE ".*OPENJPH_VERSION_MAJOR[ \t]+([0-9]+).*" "\\1" openjph_VERSION_MAJOR "${_openjph_major}")
     string(REGEX REPLACE ".*OPENJPH_VERSION_MINOR[ \t]+([0-9]+).*" "\\1" openjph_VERSION_MINOR "${_openjph_minor}")
     string(REGEX REPLACE ".*OPENJPH_VERSION_PATCH[ \t]+([0-9]+).*" "\\1" openjph_VERSION_PATCH "${_openjph_patch}")
+    string(REGEX REPLACE ".*OPENJPH_VERSION_SHA[ \t]+([0-9a-f]+).*" "\\1" openjph_VERSION_SHA "${_openjph_sha}")
+  else()
+    message(STATUS "can't find openjph_version.h: ${openjph_version}")
   endif()
 
-  set(openjph_VERSION "${openjph_VERSION_MAJOR}.${openjph_VERSION_MINOR}.${openjph_VERSION_PATCH}")
+  if(openjph_VERSION_SHA)
+    set(openjph_VERSION "${openjph_VERSION_SHA}")
+  else()
+    set(openjph_VERSION "${openjph_VERSION_MAJOR}.${openjph_VERSION_MINOR}.${openjph_VERSION_PATCH}")
+  endif()
   
   if(OPENEXR_FORCE_INTERNAL_OPENJPH)
     message(STATUS "openjph forced internal, using vendored code, version ${openjph_VERSION}")
@@ -321,7 +336,7 @@ endif()
 option(OPENEXR_FORCE_INTERNAL_IMATH "Force using an internal imath" OFF)
 # Check to see if Imath is installed outside of the current build directory.
 set(OPENEXR_IMATH_REPO "https://github.com/AcademySoftwareFoundation/Imath.git" CACHE STRING "Repo for auto-build of Imath")
-set(OPENEXR_IMATH_TAG "v3.2.2" CACHE STRING "Tag for auto-build of Imath (branch, tag, or SHA)")
+set(OPENEXR_IMATH_TAG "main" CACHE STRING "Tag for auto-build of Imath (branch, tag, or SHA)")
 if(NOT OPENEXR_FORCE_INTERNAL_IMATH)
   #TODO: ^^ Release should not clone from main, this is a place holder
   set(CMAKE_IGNORE_PATH "${CMAKE_CURRENT_BINARY_DIR}/_deps/imath-src/config;${CMAKE_CURRENT_BINARY_DIR}/_deps/imath-build/config")
@@ -385,6 +400,112 @@ else()
     list(APPEND imathinc ${imathconfinc})
     set(IMATH_HEADER_ONLY_INCLUDE_DIRS ${imathinc})
     message(STATUS "Imath interface dirs ${IMATH_HEADER_ONLY_INCLUDE_DIRS}")
+  endif()
+endif()
+
+#######################################
+# Find or use vendored libzstd
+#######################################
+
+option(OPENEXR_FORCE_INTERNAL_ZSTD "Force using an internal zstd" OFF)
+set(OPENEXR_MINIMUM_ZSTD_VERSION 1.5.0)
+set(OPENEXR_USE_INTERNAL_ZSTD OFF)
+
+if(NOT OPENEXR_FORCE_INTERNAL_ZSTD)
+  find_package(zstd ${OPENEXR_MINIMUM_ZSTD_VERSION} CONFIG QUIET)
+  if(zstd_FOUND)
+    if(TARGET zstd::libzstd_shared)
+      set(EXR_ZSTD_LIB zstd::libzstd_shared)
+    else()
+      set(EXR_ZSTD_LIB zstd::libzstd_static)
+    endif()
+    set(EXR_ZSTD_VERSION ${zstd_VERSION})
+    message(STATUS "Using zstd ${EXR_ZSTD_VERSION} from ${zstd_DIR}")
+  else()
+    # If not found, try pkgconfig
+    find_package(PkgConfig)
+    if(PKG_CONFIG_FOUND)
+      include(FindPkgConfig)
+      pkg_check_modules(libzstd IMPORTED_TARGET GLOBAL QUIET libzstd)
+      if(libzstd_FOUND)
+        set(EXR_ZSTD_LIB PkgConfig::libzstd)
+        set(EXR_ZSTD_VERSION ${libzstd_VERSION})
+        message(STATUS "Using zstd ${EXR_ZSTD_VERSION} from ${libzstd_LINK_LIBRARIES}")
+      endif()
+    endif()
+  endif()
+endif()
+
+if(EXR_ZSTD_LIB)
+  # Using external library
+  if(NOT DEFINED zstd_VERSION_MAJOR)
+    string(REGEX MATCH "^([0-9]+)\\.([0-9]+)\\.([0-9]+)" _zstd_version_match "${EXR_ZSTD_VERSION}")
+    set(zstd_VERSION_MAJOR "${CMAKE_MATCH_1}")
+    set(zstd_VERSION_MINOR "${CMAKE_MATCH_2}")
+    set(zstd_VERSION_PATCH "${CMAKE_MATCH_3}")
+  endif()
+  # For OpenEXR.pc.in for static build
+  set(EXR_ZSTD_PKGCONFIG_REQUIRES "libzstd >= ${EXR_ZSTD_VERSION}")
+else()
+  # Using internal zstd
+  set(zstd_version "${CMAKE_CURRENT_SOURCE_DIR}/external/zstd/lib/zstd.h")
+  if(EXISTS "${zstd_version}")
+    file(STRINGS "${zstd_version}" _zstd_major REGEX "#define ZSTD_VERSION_MAJOR")
+    file(STRINGS "${zstd_version}" _zstd_minor REGEX "#define ZSTD_VERSION_MINOR")
+    file(STRINGS "${zstd_version}" _zstd_patch REGEX "#define ZSTD_VERSION_RELEASE")
+    string(REGEX REPLACE ".*ZSTD_VERSION_MAJOR[ \t]+([0-9]+).*" "\\1" zstd_VERSION_MAJOR "${_zstd_major}")
+    string(REGEX REPLACE ".*ZSTD_VERSION_MINOR[ \t]+([0-9]+).*" "\\1" zstd_VERSION_MINOR "${_zstd_minor}")
+    string(REGEX REPLACE ".*ZSTD_VERSION_RELEASE[ \t]+([0-9]+).*" "\\1" zstd_VERSION_PATCH "${_zstd_patch}")
+  else()
+    message(STATUS "can't find zstd.h: ${zstd_version}")
+  endif()
+
+  if(OPENEXR_FORCE_INTERNAL_ZSTD)
+    message(STATUS "zstd forced internal, using vendored code, version ${zstd_VERSION_MAJOR}.${zstd_VERSION_MINOR}.${zstd_VERSION_PATCH}")
+  else()
+    message(STATUS "zstd was not found, using vendored code, version ${zstd_VERSION_MAJOR}.${zstd_VERSION_MINOR}.${zstd_VERSION_PATCH}")
+  endif()
+
+  set(OPENEXR_USE_INTERNAL_ZSTD ON)
+  set(EXR_ZSTD_LIB)
+endif()
+
+# OpenEXR includes Imath headers from an "Imath/" subdirectory,
+# i.e. #include <Imath/ImathVec.h. The Imath library installs its
+# headers in that folder, although when Imath is built inside the
+# OpenEXR build tree (brought in via FetchContent or
+# add_subdirectory), there is no "Imath/" subdirectory. Imath’s CMake
+# exposes an include dir pointing at …/src/Imath (matches #include
+# <ImathVec.h> but doesn't match <Imath/ImathVec.h>), and ImathConfig,
+# an include dir pointing at …/config, where ImathConfig.h lives
+# (matches #include <ImathConfig.h>, not <Imath/ImathConfig.h>).
+#
+# To support #include <Imath/...> in this configuration, we must
+# create an "Imath/" directory in the build tree and symlink/copy the
+# ImathConfig.h header into it, and also provide Imath's "src/"
+# directory as a build interface include dir (because "Imath/" lives
+# underneath it).
+
+if(TARGET Imath AND TARGET ImathConfig)
+  get_target_property(_openexr_imath_imported Imath IMPORTED)
+  get_target_property(_openexr_imathcfg_imported ImathConfig IMPORTED)
+  if(NOT _openexr_imath_imported
+     AND NOT _openexr_imathcfg_imported
+     AND EXISTS "${Imath_SOURCE_DIR}/src/Imath/ImathVec.h")
+    set(_openexr_imath_gen_cfg "${Imath_BINARY_DIR}/config/ImathConfig.h")
+    set(_openexr_imath_cfg_compat "${PROJECT_BINARY_DIR}/OpenEXR_ImathIncludeCompat")
+    if(EXISTS "${_openexr_imath_gen_cfg}")
+      file(MAKE_DIRECTORY "${_openexr_imath_cfg_compat}/Imath")
+      configure_file("${_openexr_imath_gen_cfg}"
+                     "${_openexr_imath_cfg_compat}/Imath/ImathConfig.h" COPYONLY)
+    endif()
+
+    target_include_directories(Imath INTERFACE
+      "$<BUILD_INTERFACE:${Imath_SOURCE_DIR}/src>")
+    if(EXISTS "${_openexr_imath_gen_cfg}")
+      target_include_directories(ImathConfig INTERFACE
+        "$<BUILD_INTERFACE:${_openexr_imath_cfg_compat}>")
+    endif()
   endif()
 endif()
 

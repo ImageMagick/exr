@@ -47,14 +47,15 @@
 //
 //-----------------------------------------------------------------------------
 
-#include "ImathBox.h"
-#include "ImathVec.h"
 #include "ImfExport.h"
 #include "ImfForward.h"
 #include "ImfHeader.h"
 #include "ImfNamespace.h"
 #include "ImfRgba.h"
 #include "ImfThreading.h"
+
+#include <Imath/ImathBox.h>
+#include <Imath/ImathVec.h>
 
 #include <string>
 
@@ -70,7 +71,8 @@ const Chromaticities& acesChromaticities ();
 // ACES output file.
 //
 
-class IMF_EXPORT_TYPE AcesOutputFile
+class IMF_EXPORT_TYPE OPENEXR_DEPRECATED ("AcesOutputFile is deprecated")
+    AcesOutputFile
 {
 public:
     //---------------------------------------------------
@@ -209,7 +211,8 @@ private:
 // ACES input file
 //
 
-class IMF_EXPORT_TYPE AcesInputFile
+class IMF_EXPORT_TYPE OPENEXR_DEPRECATED ("AcesInputFile is deprecated")
+    AcesInputFile
 {
 public:
     //-------------------------------------------------------

@@ -1,3 +1,15 @@
+//
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) Contributors to the OpenEXR Project.
+//
+
+#include <ImfRgba.h>
+#include <ImfRgbaFile.h>
+#include <ImfStandardAttributes.h>
+
+using namespace IMATH_NAMESPACE;
+using namespace OPENEXR_IMF_NAMESPACE;
+
 void
 writeRgba3 (
     const char  fileName[],

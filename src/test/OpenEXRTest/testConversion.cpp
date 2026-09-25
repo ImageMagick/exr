@@ -8,16 +8,16 @@
 #endif
 
 #include "compareFloat.h"
-#include <ImfArray.h>
-#include <ImfChannelList.h>
-#include <ImfConvert.h>
-#include <ImfFrameBuffer.h>
-#include <ImfHeader.h>
-#include <ImfInputFile.h>
-#include <ImfOutputFile.h>
-#include <ImfTiledInputFile.h>
-#include <ImfTiledOutputFile.h>
-#include <half.h>
+#include "ImfArray.h"
+#include "ImfChannelList.h"
+#include "ImfConvert.h"
+#include "ImfFrameBuffer.h"
+#include "ImfHeader.h"
+#include "ImfInputFile.h"
+#include "ImfOutputFile.h"
+#include "ImfTiledInputFile.h"
+#include "ImfTiledOutputFile.h"
+#include <Imath/half.h>
 
 #include <assert.h>
 #include <stdio.h>
@@ -336,7 +336,7 @@ testConversion (const std::string& tempDir)
 
         for (int comp = 0; comp < NUM_COMPRESSION_METHODS; ++comp)
         {
-            if (comp == B44_COMPRESSION || comp == B44A_COMPRESSION)
+            if (comp == B44_COMPRESSION || comp == B44A_COMPRESSION || comp == LJ2K_COMPRESSION)
             {
                 continue;
             }

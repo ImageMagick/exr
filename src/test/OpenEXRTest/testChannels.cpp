@@ -7,13 +7,14 @@
 #    undef NDEBUG
 #endif
 
-#include "half.h"
-#include <ImfArray.h>
-#include <ImfChannelList.h>
-#include <ImfFrameBuffer.h>
-#include <ImfHeader.h>
-#include <ImfInputFile.h>
-#include <ImfOutputFile.h>
+#include "ImfArray.h"
+#include "ImfChannelList.h"
+#include "ImfFrameBuffer.h"
+#include "ImfHeader.h"
+#include "ImfInputFile.h"
+#include "ImfOutputFile.h"
+
+#include <Imath/half.h>
 
 #include <assert.h>
 #include <stdio.h>
@@ -44,7 +45,8 @@ writeRead (
     const Array2D<half>& h2out,
     const char           fileName[],
     int                  width,
-    int                  height)
+    int                  height,
+    bool                 manyC)
 {
     //
     // Write an image file with three channels, H1, H2 and H3.
@@ -77,6 +79,17 @@ writeRead (
             1,    // xSampling
             1)    // ySampling
     );
+    if (manyC)
+    {
+        for ( int curc = 0; curc < 132; ++curc )
+        {
+            char cname[32];
+            snprintf (cname, 32, "c%03d", curc);
+            hdr.channels ().insert (
+                cname,
+                Channel (HALF, 1, 1));
+        }
+    }
 
     {
         FrameBuffer fb;
@@ -103,7 +116,10 @@ writeRead (
                 1)                            // ySampling
         );
 
-        cout << "writing" << flush;
+        if (manyC)
+            cout << "Many Channels: writing" << flush;
+        else
+            cout << "Values: writing" << flush;
 
         remove (fileName);
         OutputFile out (fileName, hdr);
@@ -212,10 +228,110 @@ writeRead (
                 assert (h4in[y][x] == 3.0);
             }
         }
+
+        if (manyC)
+        {
+            for ( int curc = 0; curc < 132; ++curc )
+            {
+                char cname[32];
+                snprintf (cname, 32, "c%03d", curc);
+
+                cout << " " << curc << flush;
+                Array2D<half> testcin (h, w);
+
+                FrameBuffer fb;
+
+                /* if the channel isn't there, will fill with 3 but we should have 0 */
+                fb.insert (
+                    cname, // name
+                    Slice (
+                        HALF,                    // type
+                        (char*) &testcin[-dy][-dx], // base
+                        sizeof (testcin[0][0]),     // xStride
+                        sizeof (testcin[0][0]) * w, // yStride
+                        1, 1, 3.0)
+                           );
+
+                in.setFrameBuffer (fb);
+                in.readPixels (dw.min.y, dw.max.y);
+                for (int y = 0; y < h; ++y)
+                {
+                    for (int x = 0; x < w; ++x)
+                    {
+                        assert (testcin[y][x] == 0.0);
+                    }
+                }
+            }
+        }
     }
 
     remove (fileName);
     cout << endl;
+}
+
+void
+verifyIterators(void)
+{
+    ChannelList l1;
+
+    l1.insert("A", Channel(HALF));
+    l1.insert("B", Channel(HALF));
+    l1.insert("C", Channel(HALF));
+
+    ChannelList::Iterator it1 = l1.begin();
+    ChannelList::ConstIterator cit1 = l1.begin();
+
+    ChannelList::Iterator it2 = l1.end();
+    ChannelList::ConstIterator cit2 = l1.end();
+
+    // Test global '!=' overloads
+    assert(it1 != it2);
+    assert(it1 != cit2);
+    assert(cit1 != it2);
+    assert(cit1 != cit2);
+
+    // Test global '==' overloads
+    assert(it1 == it1);
+    assert(it1 == cit1);
+    assert(cit1 == it1);
+    assert(cit1 == cit1);
+
+    // Test post/pre '++' overloads
+    it1++;
+    ++it1;
+    cit1++;
+    ++cit1;
+    
+    // Test post/pre '--' overloads
+    it1--;
+    --it1;
+    cit1--;
+    --cit1;
+
+    assert(it1 == l1.begin());
+    assert(cit1 == l1.begin());
+     
+    while (it1 != l1.end())
+    {
+        
+        // Test '*' overloads
+        Channel& c = *it1;
+        const Channel& cc = *cit1;
+        assert(c.type == HALF);
+        assert(cc.type == HALF);
+        
+        // Test '->' overload
+        assert(it1->type == HALF);
+        assert(cit1->type == HALF);
+
+        // Test pre/post '++' overloads
+        it1++;
+        cit1++;
+
+    }
+
+    assert(it1 == l1.end());
+    assert(cit1 == l1.end());
 }
 
 } // namespace
@@ -225,6 +341,10 @@ testChannels (const std::string& tempDir)
 {
     try
     {
+        cout << "Testing ChannelList Iterator behavior" << endl;
+
+        verifyIterators ();
+
         cout << "Testing filling of missing channels" << endl;
 
         const int W = 117;
@@ -236,7 +356,8 @@ testChannels (const std::string& tempDir)
 
         std::string filename = tempDir + "imf_test_channels.exr";
 
-        writeRead (ph1, ph2, filename.c_str (), W, H);
+        writeRead (ph1, ph2, filename.c_str (), W, H, false);
+        writeRead (ph1, ph2, filename.c_str (), W, H, true);
 
         cout << "ok\n" << endl;
     }

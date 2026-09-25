@@ -7,17 +7,20 @@
 #    undef NDEBUG
 #endif
 
-#include <IlmThread.h>
-#include <ImathRandom.h>
-#include <ImfArray.h>
-#include <ImfChannelList.h>
-#include <ImfFrameBuffer.h>
-#include <ImfHeader.h>
-#include <ImfInputFile.h>
-#include <ImfThreading.h>
-#include <ImfTiledInputFile.h>
-#include <ImfTiledOutputFile.h>
-#include <half.h>
+#include "compareLJ2K.h"
+
+#include "IlmThread.h"
+#include "ImfArray.h"
+#include "ImfChannelList.h"
+#include "ImfFrameBuffer.h"
+#include "ImfHeader.h"
+#include "ImfInputFile.h"
+#include "ImfThreading.h"
+#include "ImfTiledInputFile.h"
+#include "ImfTiledOutputFile.h"
+
+#include <Imath/ImathRandom.h>
+#include <Imath/half.h>
 
 #include <assert.h>
 #include <stdio.h>
@@ -192,7 +195,12 @@ writeCopyReadONE (
 
         for (int y = 0; y < h; ++y)
             for (int x = 0; x < w; ++x)
-                assert (ph1[y][x] == ph2[y][x]);
+                if (comp == LJ2K_COMPRESSION)
+                {
+                    assert (checkHTJ2KSample (ph1[y][x], ph2[y][x]));
+                } else {
+                    assert (ph1[y][x] == ph2[y][x]);
+                }
     }
 
     remove (fileName);
@@ -389,7 +397,12 @@ writeCopyReadMIP (
         for (int l = 0; l < numLevels; ++l)
             for (int y = 0; y < in.levelHeight (l); ++y)
                 for (int x = 0; x < in.levelWidth (l); ++x)
-                    assert ((levels2[l])[y][x] == (levels[l])[y][x]);
+                    if (comp == LJ2K_COMPRESSION)
+                    {
+                        assert (checkHTJ2KSample ((levels2[l])[y][x], (levels[l])[y][x]));
+                    } else {
+                        assert ((levels2[l])[y][x] == (levels[l])[y][x]);
+                    }
     }
 
     remove (fileName);
@@ -611,8 +624,13 @@ writeCopyReadRIP (
             for (int lx = 0; lx < numXLevels; ++lx)
                 for (int y = 0; y < in.levelHeight (ly); ++y)
                     for (int x = 0; x < in.levelWidth (lx); ++x)
-                        assert (
-                            (levels2[ly][lx])[y][x] == (levels[ly][lx])[y][x]);
+                        if (comp == LJ2K_COMPRESSION)
+                        {
+                            assert (checkHTJ2KSample ((levels2[ly][lx])[y][x], (levels[ly][lx])[y][x]));
+                        } else {
+                            assert ((levels2[ly][lx])[y][x] == (levels[ly][lx])[y][x]);
+                        }
+
     }
 
     remove (fileName);

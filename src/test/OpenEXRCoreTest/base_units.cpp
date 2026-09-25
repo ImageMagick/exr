@@ -10,7 +10,7 @@
 #    define NOMINMAX
 #endif
 
-#include <openexr.h>
+#include "openexr.h"
 
 #include "base_units.h"
 
@@ -19,8 +19,8 @@
 #include <cstring>
 #include <iostream>
 
-#include <ImfSystemSpecific.h>
-#include <ImfNamespace.h>
+#include "ImfSystemSpecific.h"
+#include "ImfNamespace.h"
 #include "../../lib/OpenEXRCore/internal_cpuid.h"
 #include "../../lib/OpenEXRCore/internal_coding.h"
 #include "../../lib/OpenEXRCore/openexr_context.h"
@@ -355,6 +355,20 @@ testBaseLimits (const std::string& tempdir)
     exr_get_default_dwa_compression_quality (&dcq);
     EXRCORE_TEST (dcq == 100.f);
     exr_set_default_dwa_compression_quality (45.f);
+
+    float hcq;
+    exr_set_default_lossy_htj2k_quality (75.f);
+    exr_get_default_lossy_htj2k_quality (&hcq);
+    EXRCORE_TEST (hcq == 75.f);
+
+    exr_set_default_lossy_htj2k_quality (-1.f);
+    exr_get_default_lossy_htj2k_quality (&hcq);
+    EXRCORE_TEST (hcq == 1.f);
+
+    exr_set_default_lossy_htj2k_quality (200.f);
+    exr_get_default_lossy_htj2k_quality (&hcq);
+    EXRCORE_TEST (hcq == 150.f);
+    exr_set_default_lossy_htj2k_quality (110.f);
 }
 
 void
