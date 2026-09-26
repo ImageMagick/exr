@@ -41,6 +41,7 @@ src\lib\Iex
 src\lib\IlmThread
 src\lib\OpenEXR
 src\lib\OpenEXRCore
+..\imath\src\Imath
 
 [INCLUDE_ARTIFACTS]
 . -> .
