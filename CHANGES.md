@@ -3,11 +3,16 @@
 
 # OpenEXR Release Notes
 
+* [Version 3.5.5](#version-355-november-22-2026) November 22, 2026
 * [Version 3.5.4](#version-354-november-11-2026) November 11, 2026
 * [Version 3.5.3](#version-353-october-30-2026) October 30, 2026
 * [Version 3.5.2](#version-352-october-2-2026) October 2, 2026
 * [Version 3.5.1](#version-351-september-25-2026) September 25, 2026
 * [Version 3.5.0](#version-350-september-21-2026) September 21, 2026
+* [Version 3.4.19](#version-3419-november-22-2026) November 22, 2026
+* [Version 3.4.18](#version-3418-november-7-2026) November 7, 2026
+* [Version 3.4.17](#version-3417-october-30-2026) October 30 2026
+* [Version 3.4.16](#version-3416-september-28-2026) September 28, 2026
 * [Version 3.4.15](#version-3415-august-21-2026) August 21, 2026
 * [Version 3.4.14](#version-3414-august-6-2026) August 6, 2026
 * [Version 3.4.13](#version-3413-june-19-2026) June 19, 2026
@@ -24,6 +29,9 @@
 * [Version 3.4.2](#version-342-october-15-2025) October 15, 2025
 * [Version 3.4.1](#version-341-october-8-2025) October 8, 2025
 * [Version 3.4.0](#version-340-september-5-2025) September 5, 2025
+* [Version 3.3.17](#version-3317-november-22-2026) November 22, 2026
+* [Version 3.3.16](#version-3316-november-7-2026) November 7, 2026
+* [Version 3.3.15](#version-3315-october-30-2026) October 30, 2026
 * [Version 3.3.14](#version-3314-august-21-2026) August 21, 2026
 * [Version 3.3.13](#version-3313-august-6-2026) August 6, 2026
 * [Version 3.3.12](#version-3312-june-21-2026) June 21, 2026
@@ -117,6 +125,111 @@
 * [Version 1.0.2](#version-102)
 * [Version 1.0.1](#version-101)
 * [Version 1.0](#version-10)
+
+## Version 3.5.5 (November 22, 2026)
+
+Patch release of OpenEXR v3.5 that fixes several bugs, most involving
+corrupt or malformed input files that could trigger out-of-bounds
+issues on read:
+
+* Hardened header parsing: the parser now properly cleans up after a failed
+  attribute read
+  ([2868](https://github.com/AcademySoftwareFoundation/openexr/pull/2868))
+* Fixed handling of corrupt DWA-compressed images
+  ([2866](https://github.com/AcademySoftwareFoundation/openexr/pull/2866))
+* Fixed integer overflow bugs in `RgbaLut::apply`, deep sample-count
+  table offsets, and the `CompositeDeepScanLine` pixel index
+  ([2861](https://github.com/AcademySoftwareFoundation/openexr/pull/2861),
+  [2843](https://github.com/AcademySoftwareFoundation/openexr/pull/2843),
+  [2844](https://github.com/AcademySoftwareFoundation/openexr/pull/2844))
+* Zero-length deep scanline sample-count tables are now rejected
+  ([2857](https://github.com/AcademySoftwareFoundation/openexr/pull/2857))
+* Added a buffer-size check in the HTJ2K header writer
+  ([2838](https://github.com/AcademySoftwareFoundation/openexr/pull/2838))
+* Fixed `DECREASING_Y` chunk offsets and x-subsampled row stride in the
+  legacy Python `OutputFile.writePixels()`
+  ([2876](https://github.com/AcademySoftwareFoundation/openexr/pull/2876),
+  [2870](https://github.com/AcademySoftwareFoundation/openexr/pull/2870))
+
+Also:
+
+* Lossy HTJ2K LUTs are now computed on demand rather than at startup
+  ([2871](https://github.com/AcademySoftwareFoundation/openexr/pull/2871))
+* `exrmultipart` now supports splitting tiled multiview images
+  ([2829](https://github.com/AcademySoftwareFoundation/openexr/pull/2829))
+* Updated the Bazel build's OpenJPH dependency to v0.33.0
+  ([2856](https://github.com/AcademySoftwareFoundation/openexr/pull/2856))
+* CI now builds and tests the Python bindings under ASan + UBSan, and
+  adds an emulated 32-bit armv7 test job
+  ([2865](https://github.com/AcademySoftwareFoundation/openexr/pull/2865),
+  [2860](https://github.com/AcademySoftwareFoundation/openexr/pull/2860))
+
+This release addresses the following security vulnerability:
+
+* ***CVE Pending*** ([GHSA-HJW7-CQX6-RWQ5](https://github.com/AcademySoftwareFoundation/openexr/security/advisories/GHSA-HJW7-CQX6-RWQ5)) Integer overflow in CompositeDeepScanLine pixel index causes heap out-of-bounds access
+
+This release also begins a new practice of recoding release notes in
+[CHANGES.md](https://github.com/AcademySoftwareFoundation/openexr/blob/main/CHANGES.md):
+all patch releases will now include a CHANGES.md file that includes
+sections to *all known releases* as of that release date, including
+releases on more modern major/minor release streams.
+
+### Merged Pull Requests
+
+* [2876](https://github.com/AcademySoftwareFoundation/openexr/pull/2876)
+  Fix DECREASING_Y chunk offset in legacy Python OutputFile.writePixels() (by @Dilshad-Tanvi)
+* [2871](https://github.com/AcademySoftwareFoundation/openexr/pull/2871)
+  Move the LJ2K lookups from the global scope to the place they are used (by @vlazar-ilm/Vlad Lazar)
+* [2870](https://github.com/AcademySoftwareFoundation/openexr/pull/2870)
+  Fix x-subsampled row stride in legacy Python OutputFile.writePixels() (by @Dilshad-Tanvi)
+* [2868](https://github.com/AcademySoftwareFoundation/openexr/pull/2868)
+  Resync header parser after failed attribute validation (by @cary-ilm/Cary Phillips)
+* [2866](https://github.com/AcademySoftwareFoundation/openexr/pull/2866)
+  Fix DWA Huffman fallback copying buffer capacity instead of data length (by @cary-ilm/Cary Phillips)
+* [2861](https://github.com/AcademySoftwareFoundation/openexr/pull/2861)
+  Fix signed integer overflow of data-window origin in RgbaLut::apply (by @cary-ilm/Cary Phillips)
+* [2857](https://github.com/AcademySoftwareFoundation/openexr/pull/2857)
+  reject zero-length deep scanline sample-count table (by @cary-ilm/Cary Phillips)
+* [2856](https://github.com/AcademySoftwareFoundation/openexr/pull/2856)
+  Update openjph dependency version to 0.33.0 (by @Vertexwahn/Vertexwahn)
+* [2844](https://github.com/AcademySoftwareFoundation/openexr/pull/2844)
+  Use 64-bit arithmetic for CompositeDeepScanLine pixel index (by @cary-ilm/Cary Phillips)
+* [2843](https://github.com/AcademySoftwareFoundation/openexr/pull/2843)
+  Use 64-bit arithmetic for deep sample-count table offset (by @cary-ilm/Cary Phillips)
+* [2838](https://github.com/AcademySoftwareFoundation/openexr/pull/2838)
+  Check the buffer size in the HTJ2K write_header (by @Ar-maan05/Armaan Sandhu)
+* [2829](https://github.com/AcademySoftwareFoundation/openexr/pull/2829)
+  Support splitting tiled multiview images (by @1cbyc/Isaac Emmanuel)
+
+### Merged Documentation Pull Requests
+
+* [2836](https://github.com/AcademySoftwareFoundation/openexr/pull/2836)
+  release notes and news for v3.3.16 and v3.4.18 (by @cary-ilm/Cary Phillips)
+
+### Merged Workflow Pull Requests
+
+* [2873](https://github.com/AcademySoftwareFoundation/openexr/pull/2873)
+  Move slack-release-notifier to linuxfoundation/slack-release-notifier (by @cary-ilm/Cary Phillips)
+* [2865](https://github.com/AcademySoftwareFoundation/openexr/pull/2865)
+  ci: build and test the Python bindings under ASan + UBSan (by @cary-ilm/Cary Phillips)
+* [2863](https://github.com/AcademySoftwareFoundation/openexr/pull/2863)
+  Bump the actions-deps group with 2 updates (by @app/dependabot)
+* [2862](https://github.com/AcademySoftwareFoundation/openexr/pull/2862)
+  Bump the python-module-deps group with 2 updates (by @app/dependabot)
+* [2860](https://github.com/AcademySoftwareFoundation/openexr/pull/2860)
+  ci: add QEMU armv7 32-bit emulated test job (by @cary-ilm/Cary Phillips)
+* [2847](https://github.com/AcademySoftwareFoundation/openexr/pull/2847)
+  Bump rules_cc from 0.2.27 to 0.2.28 in the bazel-deps group (by @app/dependabot)
+* [2846](https://github.com/AcademySoftwareFoundation/openexr/pull/2846)
+  Revert slack-release-notifier to last good 20260930 release (by @cary-ilm/Cary Phillips)
+* [2842](https://github.com/AcademySoftwareFoundation/openexr/pull/2842)
+  Bump jmertic/slack-release-notifier from 20260930 to 20261106 in the actions-deps group (by @app/dependabot)
+* [2840](https://github.com/AcademySoftwareFoundation/openexr/pull/2840)
+  ci: remove the deprecated MSYS2 MINGW32 jobs (by @cary-ilm/Cary Phillips)
+* [2839](https://github.com/AcademySoftwareFoundation/openexr/pull/2839)
+  release-candidate-notice: reword to 'staged', strip signature, handle -rc (by @cary-ilm/Cary Phillips)
+* [2837](https://github.com/AcademySoftwareFoundation/openexr/pull/2837)
+  Add release candidate Slack notifier workflow (by @cary-ilm/Cary Phillips)
 
 ## Version 3.5.4 (November 11, 2026)
 
@@ -771,6 +884,138 @@ This release addresses the following security vulnerabilities:
   Bump readthedocs/actions from 1.2 to 1.5
 * [2116](https://github.com/AcademySoftwareFoundation/openexr/pull/2116)
   CI fixes: (by @cary-ilm/Cary Phillips)
+
+## Version 3.4.19 (November 22, 2026)
+
+Patch release for OpenEXR v3.4 that addresses the following security
+vulnerabilities:
+
+* ***CVE Pending*** ([GHSA-HJW7-CQX6-RWQ5](https://github.com/AcademySoftwareFoundation/openexr/security/advisories/GHSA-HJW7-CQX6-RWQ5)) Integer overflow in CompositeDeepScanLine pixel index causes heap out-of-bounds access
+* ***CVE Pending*** ([GHSA-HRP4-XJP5-CQ7J](https://github.com/AcademySoftwareFoundation/openexr/security/advisories/GHSA-HRP4-XJP5-CQ7J))
+Misaligned pointer store in ht_undo_impl() (HTJ2K decode, internal_ht.cpp)
+
+This release also begins a new practice of recoding release notes in
+[CHANGES.md](https://github.com/AcademySoftwareFoundation/openexr/blob/main/CHANGES.md):
+all patch releases will now include a CHANGES.md file that includes
+sections to *all known releases* as of that release date, including
+releases on more modern major/minor release streams.
+
+### Merged Pull Requests
+
+* [2844](https://github.com/AcademySoftwareFoundation/openexr/pull/2844)
+  Use 64-bit arithmetic for CompositeDeepScanLine pixel index (by @cary-ilm/Cary Phillips)
+* [2695](https://github.com/AcademySoftwareFoundation/openexr/pull/2695)
+  J2K: fix misaligned access (by @palemieux/Pierre-Anthony Lemieux)
+
+### Merged Workflow Pull Requests
+
+* [2873](https://github.com/AcademySoftwareFoundation/openexr/pull/2873)
+  Move slack-release-notifier to linuxfoundation/slack-release-notifier (by @cary-ilm/Cary Phillips)
+* [2846](https://github.com/AcademySoftwareFoundation/openexr/pull/2846)
+  Revert slack-release-notifier to last good 20260930 release (by @cary-ilm/Cary Phillips)
+* [2842](https://github.com/AcademySoftwareFoundation/openexr/pull/2842)
+  Bump jmertic/slack-release-notifier from 20260930 to 20261106 in the actions-deps group (by @app/dependabot)
+* [2839](https://github.com/AcademySoftwareFoundation/openexr/pull/2839)
+  release-candidate-notice: reword to 'staged', strip signature, handle -rc (by @cary-ilm/Cary Phillips)
+* [2837](https://github.com/AcademySoftwareFoundation/openexr/pull/2837)
+  Add release candidate Slack notifier workflow (by @cary-ilm/Cary Phillips)
+* [2835](https://github.com/AcademySoftwareFoundation/openexr/pull/2835)
+  release-notice: add workflow_dispatch to send announcements manually (by @cary-ilm/Cary Phillips)
+* [2799](https://github.com/AcademySoftwareFoundation/openexr/pull/2799)
+  Fix missing step id breaking Slack release notifications (by @cary-ilm/Cary Phillips)
+
+## Version 3.4.18 (November 7, 2026)
+
+Patch release that addresses a regression introduced in v3.3.0 that leads
+to excessive memory usage during write, especially with DWA
+compression (Issue
+[#2791](https://github.com/AcademySoftwareFoundation/openexr/issues/2791)).
+
+This release also addresses the following security vulnerabilities:
+
+* ***CVE Pending*** ([GHSA-PP92-4RV3-WFQ6](https://github.com/AcademySoftwareFoundation/openexr/security/advisories/GHSA-PP92-4RV3-WFQ6)) OpenEXR: a signed-int data-window-origin overflow in the OpenEXRUtil Image API turns `Imf::loadImage` into an attacker-steered out-of-bounds write
+* ***CVE Pending*** ([GHSA-2V77-PVHX-25C3](https://github.com/AcademySoftwareFoundation/openexr/security/advisories/GHSA-2V77-PVHX-25C3)) Integer overflow in legacy `OpenEXR.OutputFile.writePixels()` causes heap over-read
+
+### Merged Pull Requests
+
+* [2818](https://github.com/AcademySoftwareFoundation/openexr/pull/2818)
+  Remove test_write_overflow (by @cary-ilm/Cary Phillips)
+* [2817](https://github.com/AcademySoftwareFoundation/openexr/pull/2817)
+  Fix integer overflow in legacy Python `OutputFile.writePixels()` (by @cary-ilm/Cary Phillips)
+* [2816](https://github.com/AcademySoftwareFoundation/openexr/pull/2816)
+  Fix integer overflow in OpenEXRUtil Image channel base pointers (by @cary-ilm/Cary Phillips)
+* [2809](https://github.com/AcademySoftwareFoundation/openexr/pull/2809)
+  Reduce write memory (by @kdt3rd/Kimball Thurston)
+* [2794](https://github.com/AcademySoftwareFoundation/openexr/pull/2794)
+  Only zero the DWA chunk header instead of the full output buffer (by @vlazar-ilm/Vlad Lazar)
+
+## Version 3.4.17 (October 30, 2026)
+
+Patch release that addresses the following security vulnerabilities:
+
+* ***CVE Pending*** ([GHSA-WHF5-29MJ-GP53](https://github.com/AcademySoftwareFoundation/openexr/security/advisories/GHSA-WHF5-29MJ-GP53)) Heap Out-of-Bounds Write via Signed Integer Overflow in DWAA/DWAB `LossyDctDecoder`
+* ***CVE Pending*** ([GHSA-VP77-HHRC-M2C3](https://github.com/AcademySoftwareFoundation/openexr/security/advisories/GHSA-VP77-HHRC-M2C3)) Subsampled chunk-height miscount: heap overflow in B44 encoder, NULL dereference in DWA decoder/encoder
+* ***CVE Pending*** ([GHSA-RXWG-X3WX-PGFH](https://github.com/AcademySoftwareFoundation/openexr/security/advisories/GHSA-RXWG-X3WX-PGFH)) Heap out-of-bounds write via 32-bit tile-area integer overflow in `DeepTiledOutputFile` (deep-image re-save path) — possible incomplete fix of PR #939
+* ***CVE Pending*** ([GHSA-RJG8-982X-JHC2](https://github.com/AcademySoftwareFoundation/openexr/security/advisories/GHSA-RJG8-982X-JHC2)) Uninitialized Heap Memory Disclosure in DWA Decompression via Short zlib Stream Mapped to Success
+* ***CVE Pending*** ([GHSA-J76P-H7GW-VMPF](https://github.com/AcademySoftwareFoundation/openexr/security/advisories/GHSA-J76P-H7GW-VMPF)) Heap buffer overflow in the OpenEXR Python bindings when two RGB channel groups coalesce to the same key
+* ***CVE Pending*** ([GHSA-G248-596F-9995](https://github.com/AcademySoftwareFoundation/openexr/security/advisories/GHSA-G248-596F-9995)) Unvalidated extra `chlist` header attributes merged into `Header::channels()` cause a heap overflow in `run_fill`
+* ***CVE Pending*** ([GHSA-FRX8-5P4H-J8M7](https://github.com/AcademySoftwareFoundation/openexr/security/advisories/GHSA-FRX8-5P4H-J8M7)) Heap OOB Write via Integer Overflow in B44 Chunk Unpacked-Size Computation — Remote Code Execution in OpenEXRCore
+* ***CVE Pending*** ([GHSA-638X-X7MR-89XC](https://github.com/AcademySoftwareFoundation/openexr/security/advisories/GHSA-638X-X7MR-89XC)) Out-of-bounds write at an attacker-chosen displacement in legacy Python `InputFile.channel()`
+* ***CVE Pending*** ([GHSA-3CP4-779M-H837](https://github.com/AcademySoftwareFoundation/openexr/security/advisories/GHSA-3CP4-779M-H837)) Use-after-free in OpenEXRCore `exr_copy_unset_attributes()` when a channel name exceeds 31 bytes
+
+This version also addresses a regression introduced in v3.4.14 in
+reading deep images on big-endian hosts, due to a byte-order bug in
+the deep sample count table. Little-endian hosts are unaffected.
+
+### Merged Pull Requests
+
+* [2787](https://github.com/AcademySoftwareFoundation/openexr/pull/2787)
+ Fix byte-swapped deep sample count table on big-endian hosts (by @cary-ilm/Cary Phillips)
+* [2762](https://github.com/AcademySoftwareFoundation/openexr/pull/2762)
+  Fix compute_sampled_height() for chunks with no sampled row (by @cary-ilm/Cary Phillips)
+* [2760](https://github.com/AcademySoftwareFoundation/openexr/pull/2760)
+  Fix dangling channels pointer in exr_copy_unset_attributes() (by @cary-ilm/Cary Phillips)
+* [2757](https://github.com/AcademySoftwareFoundation/openexr/pull/2757)
+  Fix unsigned wraparound in legacy Python InputFile.channel() (by @cary-ilm/Cary Phillips)
+* [2749](https://github.com/AcademySoftwareFoundation/openexr/pull/2749)
+  Use size_t block indexing in DWA lossy DCT decoder (by @cary-ilm/Cary Phillips)
+* [2748](https://github.com/AcademySoftwareFoundation/openexr/pull/2748)
+  Fix tile area overflow in DeepTiledOutputFile::initialize (by @cary-ilm/Cary Phillips)
+* [2747](https://github.com/AcademySoftwareFoundation/openexr/pull/2747)
+  Reject Python RGB channel groups that coalesce to the same key (by @cary-ilm/Cary Phillips)
+* [2745](https://github.com/AcademySoftwareFoundation/openexr/pull/2745)
+  Only merge the "channels" chlist attribute into Header::channels() (by @cary-ilm/Cary Phillips)
+* [2744](https://github.com/AcademySoftwareFoundation/openexr/pull/2744)
+  Grow the part table geometrically when adding parts (by @cary-ilm/Cary Phillips)
+* [2726](https://github.com/AcademySoftwareFoundation/openexr/pull/2726)
+  Fix heap OOB read in deep PIZ encoder path (by @kalt2212/Kalt2212)
+* [2718](https://github.com/AcademySoftwareFoundation/openexr/pull/2718)
+  Fix B44 integer overflow OOB write (by @cary-ilm/Cary Phillips)
+* [2717](https://github.com/AcademySoftwareFoundation/openexr/pull/2717)
+  Fix DWA uninitialized heap memory disclosure (by @cary-ilm/Cary Phillips)
+
+### Merged Workflow Pull Requests
+
+* [2731](https://github.com/AcademySoftwareFoundation/openexr/pull/2731)
+  Bump actions/upload-artifact from 7.0.1 to 7.0.2 (by @app/dependabot)
+* [2711](https://github.com/AcademySoftwareFoundation/openexr/pull/2711)
+  Bump vmactions/freebsd-vm from 1.5.8 to 1.5.9 (by @app/dependabot)
+* [2703](https://github.com/AcademySoftwareFoundation/openexr/pull/2703)
+  Strip Contributors from notes in slack release post (by @cary-ilm/Cary Phillips)
+* [2692](https://github.com/AcademySoftwareFoundation/openexr/pull/2692)
+  Bump jmertic/slack-release-notifier from 20260820 to 20260930 (by @app/dependabot)
+
+## Version 3.4.16 (September 28, 2026)
+
+v3.4.16 fixes a bug which created unreadable DWAB files in certain circumstances.
+There is also a fix to prevent 'undefined behavior' warnings with the BytesAttribute
+
+### Merged Pull Requests
+
+  * [2653](https://github.com/AcademySoftwareFoundation/openexr/pull/2653)
+Fix DWAB corrupted file
+  * [2650](https://github.com/AcademySoftwareFoundation/openexr/pull/2650)
+Fix null pointer memcpy in BytesAttribute for zero-length data (follow-up to #2615)
 
 ## Version 3.4.15 (August 21, 2026)
 
@@ -2084,6 +2329,106 @@ JPEG-2000 (HTJ2K)** encoding:
   Fetch master branch of libdeflate on main
 * [1852](https://github.com/AcademySoftwareFoundation/openexr/pull/1852)
   Add an option to use TBB as the global provider
+
+## Version 3.3.17 (November 22, 2026)
+
+Patch release for OpenEXR v3.3 that addresses a security vulnerability:
+
+* ***CVE Pending*** ([GHSA-HJW7-CQX6-RWQ5](https://github.com/AcademySoftwareFoundation/openexr/security/advisories/GHSA-HJW7-CQX6-RWQ5)) Integer overflow in CompositeDeepScanLine pixel index causes heap out-of-bounds access
+
+This release also begins a new practice of recoding release notes in
+[CHANGES.md](https://github.com/AcademySoftwareFoundation/openexr/blob/main/CHANGES.md):
+all patch releases will now include a CHANGES.md file that includes
+sections to *all known releases* as of that release date, including
+releases on more modern major/minor release streams.
+
+### Merged Pull Requests
+
+* [2844](https://github.com/AcademySoftwareFoundation/openexr/pull/2844)
+  Use 64-bit arithmetic for CompositeDeepScanLine pixel index (by @cary-ilm/Cary Phillips)
+
+### Merged Workflow Pull Requests
+
+* [2873](https://github.com/AcademySoftwareFoundation/openexr/pull/2873)
+  Move slack-release-notifier to linuxfoundation/slack-release-notifier (by @cary-ilm/Cary Phillips)
+* [2846](https://github.com/AcademySoftwareFoundation/openexr/pull/2846)
+  Revert slack-release-notifier to last good 20260930 release (by @cary-ilm/Cary Phillips)
+* [2842](https://github.com/AcademySoftwareFoundation/openexr/pull/2842)
+  Bump jmertic/slack-release-notifier from 20260930 to 20261106 in the actions-deps group (by @app/dependabot)
+* [2839](https://github.com/AcademySoftwareFoundation/openexr/pull/2839)
+  release-candidate-notice: reword to 'staged', strip signature, handle -rc (by @cary-ilm/Cary Phillips)
+* [2837](https://github.com/AcademySoftwareFoundation/openexr/pull/2837)
+  Add release candidate Slack notifier workflow (by @cary-ilm/Cary Phillips)
+* [2835](https://github.com/AcademySoftwareFoundation/openexr/pull/2835)
+  release-notice: add workflow_dispatch to send announcements manually (by @cary-ilm/Cary Phillips)
+* [2799](https://github.com/AcademySoftwareFoundation/openexr/pull/2799)
+  Fix missing step id breaking Slack release notifications (by @cary-ilm/Cary Phillips)
+
+## Version 3.3.16 (November 7, 2026)
+
+Patch release that addresses a regression introduced in v3.3.0 that leads
+to excessive memory usage during write, especially with DWA
+compression (Issue
+[#2791](https://github.com/AcademySoftwareFoundation/openexr/issues/2791)).
+
+This release also addresses the following security vulnerabilities:
+
+* ***CVE Pending*** ([GHSA-PP92-4RV3-WFQ6](https://github.com/AcademySoftwareFoundation/openexr/security/advisories/GHSA-PP92-4RV3-WFQ6)) OpenEXR: a signed-int data-window-origin overflow in the OpenEXRUtil Image API turns `Imf::loadImage` into an attacker-steered out-of-bounds write
+* ***CVE Pending*** ([GHSA-2V77-PVHX-25C3](https://github.com/AcademySoftwareFoundation/openexr/security/advisories/GHSA-2V77-PVHX-25C3)) Integer overflow in legacy `OpenEXR.OutputFile.writePixels()` causes heap over-read
+
+### Merged Pull Requests
+
+* [2818](https://github.com/AcademySoftwareFoundation/openexr/pull/2818)
+  Remove test_write_overflow (by @cary-ilm/Cary Phillips)
+* [2817](https://github.com/AcademySoftwareFoundation/openexr/pull/2817)
+  Fix integer overflow in legacy Python `OutputFile.writePixels()` (by @cary-ilm/Cary Phillips)
+* [2816](https://github.com/AcademySoftwareFoundation/openexr/pull/2816)
+  Fix integer overflow in OpenEXRUtil Image channel base pointers (by @cary-ilm/Cary Phillips)
+* [2809](https://github.com/AcademySoftwareFoundation/openexr/pull/2809)
+  Reduce write memory (by @kdt3rd/Kimball Thurston)
+* [2794](https://github.com/AcademySoftwareFoundation/openexr/pull/2794)
+  Only zero the DWA chunk header instead of the full output buffer (by @vlazar-ilm/Vlad Lazar)
+
+## Version 3.3.15 (October 30, 2026)
+
+Patch release that addresses the following security vulnerabilities:
+
+* ***CVE Pending*** ([GHSA-WHF5-29MJ-GP53](https://github.com/AcademySoftwareFoundation/openexr/security/advisories/GHSA-WHF5-29MJ-GP53)) Heap Out-of-Bounds Write via Signed Integer Overflow in DWAA/DWAB `LossyDctDecoder`
+* ***CVE Pending*** ([GHSA-RXWG-X3WX-PGFH](https://github.com/AcademySoftwareFoundation/openexr/security/advisories/GHSA-RXWG-X3WX-PGFH)) Heap out-of-bounds write via 32-bit tile-area integer overflow in `DeepTiledOutputFile` (deep-image re-save path) — possible incomplete fix of PR #939
+* ***CVE Pending*** ([GHSA-RJG8-982X-JHC2](https://github.com/AcademySoftwareFoundation/openexr/security/advisories/GHSA-RJG8-982X-JHC2)) Uninitialized Heap Memory Disclosure in DWA Decompression via Short zlib Stream Mapped to Success
+* ***CVE Pending*** ([GHSA-J76P-H7GW-VMPF](https://github.com/AcademySoftwareFoundation/openexr/security/advisories/GHSA-J76P-H7GW-VMPF)) Heap buffer overflow in the OpenEXR Python bindings when two RGB channel groups coalesce to the same key
+* ***CVE Pending*** ([GHSA-G248-596F-9995](https://github.com/AcademySoftwareFoundation/openexr/security/advisories/GHSA-G248-596F-9995)) Unvalidated extra `chlist` header attributes merged into `Header::channels()` cause a heap overflow in `run_fill`
+* ***CVE Pending*** ([GHSA-FRX8-5P4H-J8M7](https://github.com/AcademySoftwareFoundation/openexr/security/advisories/GHSA-FRX8-5P4H-J8M7)) Heap OOB Write via Integer Overflow in B44 Chunk Unpacked-Size Computation — Remote Code Execution in OpenEXRCore
+* ***CVE Pending*** ([GHSA-638X-X7MR-89XC](https://github.com/AcademySoftwareFoundation/openexr/security/advisories/GHSA-638X-X7MR-89XC)) Out-of-bounds write at an attacker-chosen displacement in legacy Python `InputFile.channel()`
+* ***CVE Pending*** ([GHSA-3CP4-779M-H837](https://github.com/AcademySoftwareFoundation/openexr/security/advisories/GHSA-3CP4-779M-H837)) Use-after-free in OpenEXRCore `exr_copy_unset_attributes()` when a channel name exceeds 31 bytes
+
+### Merged Pull Requests
+
+* [2760](https://github.com/AcademySoftwareFoundation/openexr/pull/2760)
+  Fix dangling channels pointer in exr_copy_unset_attributes() (by @cary-ilm/Cary Phillips)
+* [2757](https://github.com/AcademySoftwareFoundation/openexr/pull/2757)
+  Fix unsigned wraparound in legacy Python InputFile.channel() (by @cary-ilm/Cary Phillips)
+* [2749](https://github.com/AcademySoftwareFoundation/openexr/pull/2749)
+  Use size_t block indexing in DWA lossy DCT decoder (by @cary-ilm/Cary Phillips)
+* [2748](https://github.com/AcademySoftwareFoundation/openexr/pull/2748)
+  Fix tile area overflow in DeepTiledOutputFile::initialize (by @cary-ilm/Cary Phillips)
+* [2747](https://github.com/AcademySoftwareFoundation/openexr/pull/2747)
+  Reject Python RGB channel groups that coalesce to the same key (by @cary-ilm/Cary Phillips)
+* [2745](https://github.com/AcademySoftwareFoundation/openexr/pull/2745)
+  Only merge the "channels" chlist attribute into Header::channels() (by @cary-ilm/Cary Phillips)
+* [2744](https://github.com/AcademySoftwareFoundation/openexr/pull/2744)
+  Grow the part table geometrically when adding parts (by @cary-ilm/Cary Phillips)
+* [2718](https://github.com/AcademySoftwareFoundation/openexr/pull/2718)
+  Fix B44 integer overflow OOB write (by @cary-ilm/Cary Phillips)
+* [2717](https://github.com/AcademySoftwareFoundation/openexr/pull/2717)
+  Fix DWA uninitialized heap memory disclosure (by @cary-ilm/Cary Phillips)
+
+### Merged Workflow Pull Requests
+
+* [2711](https://github.com/AcademySoftwareFoundation/openexr/pull/2711)
+  Bump vmactions/freebsd-vm from 1.5.8 to 1.5.9 (by @app/dependabot)
+* [2703](https://github.com/AcademySoftwareFoundation/openexr/pull/2703)
+  Strip Contributors from notes in slack release post (by @cary-ilm/Cary Phillips)
 
 ## Version 3.3.14 (August 21, 2026)
 
